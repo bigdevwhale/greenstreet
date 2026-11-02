@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Зелёная улица</string>
+    <string name="channel_walk">Прогулка</string>
+    <string name="walk_title">Вы на прогулке</string>
+    <string name="walk_text">Грядки по пути поливаются, когда проходите мимо.</string>
+    <string name="walk_stop">Закончить прогулку</string>
+    <string name="channel_finds">Находки по дороге</string>
+</resources>

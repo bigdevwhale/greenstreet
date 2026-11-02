@@ -1,0 +1,108 @@
+t	n	gap	months	when	hearts	needs	reward	text_ru	text_en	reply_ru	reply_en	sets
+line								Здрасьте. Тише. Клюёт.	Hello. Quiet. They're biting.			
+line								Садитесь. Молчите. Это и есть рыбалка.	Sit. Say nothing. That's fishing.			
+line								Ну?	Well?			
+line								Мякиш — скатать, не мять. Рыба мятое не любит.	Breadcrumb bait — roll it, don't squash it. Fish don't like it squashed.			
+line								Поплавок — как сердце. Дрогнул — жди. Повело — тяни.	A float's like a heart. A twitch — wait. It slides off — strike.			
+line								Хозяйка в омуте. Видел однажды. С бревно.	The Old Lady's in the deep pool. Saw her once. Size of a log.			
+line								Гена бегал тут. Рыбу пугал. Теперь сидит со мной. Иногда.	Gena used to run past here. Scared the fish. Now he sits with me. Sometimes.			
+line								Ефим цаплю привёл. Говорит, моя. Пусть.	Efim brought a heron along. Says she's mine. Fine.			
+line								Жанна стрижёт хорошо. И не болтает. Со мной.	Zhanna cuts well. And doesn't chatter. Not with me.			
+line								Прохор горбушку оставляет. Мне — и рыбе.	Prokhor leaves me a crust. For me — and the fish.			
+line				morning				Рассвет. Лучшее время. Остальное — так.	Dawn. Best time there is. The rest is just time.			
+line				morning,fog				Туман. Рыба смелеет. Я тоже.	Fog. The fish get bold. So do I.			
+line				evening				Вечерний клёв. Не шумите.	Evening bite. No noise.			
+line				night				Ночью налим ходит. И я хожу.	Burbot move at night. So do I.			
+line				rain				Дождь. Хорошо. Плащ есть.	Rain. Good. I've got a coat.			
+line				rain				Мелкий дождь — к клёву. Крупный — к чаю.	Light rain — they bite. Heavy rain — tea.			
+line				snow				Снег. Лунку замело. Ничего, новую пробурю.	Snow. The hole's drifted over. Never mind, I'll drill another.			
+line				frost				Мороз. Лёд крепкий. Окунь злой. Самое то.	Frost. Ice is thick. Perch are fierce. Just right.			
+line				sun				Солнце. Рыба ушла в глубину. Я — в тень.	Sun. The fish went deep. I went to the shade.			
+line				heat				Жара. Карась в траве стоит. Ждём вечера.	Heat. Crucian carp sit in the weeds. We wait for evening.			
+line				spring				Лёд сошёл. Корюшка пошла. Огурцом пахнет — она.	The ice is gone. The smelt are running. Smells of cucumber — that's them.			
+line				spring				Весной не торопитесь. Вода холодная, рыба сонная. Как я.	Don't rush in spring. Cold water, sleepy fish. Like me.			
+line				summer				Лето. Лещ у бровки. Прикормка — каша. Терпение — ваше.	Summer. Bream along the drop-off. Groundbait — porridge. Patience — yours.			
+line				summer,evening				Комары. Ничего. Они тоже рыбаки.	Mosquitoes. Never mind. They're anglers too.			
+line				summer,night				Звёзды в воде. Ловить нечего. Смотрим.	Stars in the water. Nothing to catch. We look.			
+line				summer,morning				Пять утра. Туман на воде. Сазан плеснул. Видели? Ну, ещё будет.	Five a.m. Mist on the water. A carp jumped. See it? Well, there'll be more.			
+line				autumn				Осень. Щука жрёт. Перед зимой все жрут.	Autumn. The pike are feeding hard. Everyone does before winter.			
+line				autumn,rain				Ветер с реки. Рыба внизу. Сидим.	Wind off the river. Fish are deep. We sit.			
+line				autumn,morning				Иней на мостках. Скользко. Шаг — потом другой.	Frost on the jetty. Slippery. One step — then the next.			
+line				winter				Зима. Лёд. Ящик. Термос. Всё.	Winter. Ice. Tackle box. Flask. That's all.			
+line				winter,morning				Затемно вышел. Ёрш уже клюёт. Ёрш всегда клюёт.	Out before light. The ruffe are biting already. Ruffe always bite.			
+line				winter,snow				Снегопад. Тихо, как в ящике. Хорошо.	Snowfall. Quiet as inside a box. Good.			
+line				weekend				Выходные. Народу — тьма. Рыба прячется. Я тоже.	Weekend. Crowds. The fish hide. So do I.			
+line				weekend				По субботам тут всякие. Учу. Бесплатно. Если молчат.	Saturdays, all sorts come. I teach. Free. If they keep quiet.			
+line				spring,rain				Тёплый дождь. Щука у камыша встала. Блесну давайте.	Warm rain. A pike's sitting by the reeds. Hand me the spoon.			
+line				h3+				Руки у вас спокойные. Это редко.	You've got calm hands. That's rare.			
+line				h3+				Хотите — моё место? Нет? Правильно. Своё найдёте.	Want my spot? No? Right. You'll find your own.			
+line				h6+				Сорок лет тут сижу. Вода каждый день разная. Не надоело.	Forty years I've sat here. The water's different every day. Never bored.			
+line				h6+				Сын тоже тут сидел. Маленький. Удочку двумя руками держал.	My son used to sit here too. Little. Held the rod with both hands.			
+line				h9+				Вы мне теперь свой. Ну. Сидите.	You're one of mine now. Well. Sit.			
+line				y1				Новые? Садитесь. Только тихо.	New? Sit down. Just quietly.			
+line				y1,summer				Плотва. Мелочь. А радует.	Roach. Tiddlers. Still cheering.			
+line				y2+,after:palych.letter				Письмо от сына перечитал. Три раза. Хорошее письмо.	Read my son's letter again. Three times. A good letter.			
+line				y2+,h6+,after:palych.invite				Серёжа приедет. Сказал — приедет.	Seryozha's coming. He said he would.			
+line				y3+,after:palych.son				Серёжа звонил. Спрашивал, где его старая удочка. Здесь. Ждёт.	Seryozha rang. Asked where his old rod is. Here. Waiting.			
+line				y3+,h8+,after:palych.grand				Внучка свистульку подарила. Рыбу пугает. Ношу.	My granddaughter gave me a whistle. Scares the fish. I wear it anyway.			
+line				y3+,after:palych.lady				Хозяйка вчера плеснула. Здоровается.	The Old Lady splashed yesterday. Saying hello.			
+line				fest:new_year				С Новым. Лёд крепкий. Рыба тоже празднует.	Happy New Year. Ice is thick. The fish are celebrating too.			
+line				fest:maslenitsa				Блины. Хорошо. Жаль, на крючок не насадишь.	Pancakes. Good. Shame you can't put one on a hook.			
+line				fest:harvest_fair				Ярмарка. Ухи наварю. Приходите.	The fair. I'll make ukha. Come.			
+line				fest:first_snow				Первый снег. Скоро лёд. Бур наточил.	First snow. Ice soon. Sharpened the auger.			
+line				fest:first_ice				Первый лёд. Тонкий. Не ходите. Я у берега постою.	First ice. Thin. Don't go out. I'll stand by the bank.			
+line				fest:tit_day				Синичкин день. Синица на ящик садится. Мотыля просит. Даю.	Tit Day. A tit sits on my box. Asks for bloodworm. I give.			
+req	1	3		y1	0	bread_rye:1	coins:10	Хлеба. Ржаного. Мякиш — рыбе, корку — мне.	Bread. Rye. The crumb for the fish, the crust for me.	Ладно. Садитесь. Смотрите.	All right. Sit. Watch.	
+req	2	12		y1	0	potato:3	coins:15	Картошки. Три. Варёная — лучшая насадка на карпа.	Potatoes. Three. Boiled — best bait for carp.	Карп не пришёл. Картошку съел я. Тоже дело.	The carp didn't come. I ate the potatoes. Also fine.	
+req	3	14	3,4,5	y1	1	smelt:3	coins:20	Корюшка пошла. Поймайте три. Посмотрю, как держите.	The smelt are running. Catch three. I'll watch how you hold the rod.	Огурцом пахнет. Значит, свежая. Значит, умеете.	Smells of cucumber. So it's fresh. So you can do it.	
+req	4	12	4,5,6	y1	1	roach:4	coins:20	Плотва у моста. Четыре. Не спешите подсекать.	Roach by the bridge. Four. Don't strike too soon.	Ничего. Руки помнят. Голова потом догонит.	Not bad. Hands remember. The head catches up later.	
+req	5	12	5,6,7	y1	1	egg:3	coins:15	Яиц. Три. Сварить. На берегу без яиц нельзя.	Eggs. Three. Boiled. Can't sit on the bank without eggs.	Соль есть. Хлеб есть. Хорошо сидим.	Got salt. Got bread. Sitting well.	
+req	6	14	6,7,8	y1	2	perch:3,potato:2	recipe:ukha	Окуня три. Картошки две. Ухе научу. Один раз.	Three perch. Two potatoes. I'll teach you ukha. Once.	Картошку — первой. Рыбу — потом. Головешку из костра — в котёл, на миг. Запомнили? Повторять не буду.	Potatoes go in first. Fish after. A smouldering stick from the fire into the pot, just for a moment. Got that? I won't say it twice.	
+req	7	12	6,7,8	y1	2	crucian:4	coins:25	Караси в пруду. Четыре. Вечером, у травы.	Crucian carp in the pond. Four. Evening, by the weeds.	Золотые. Как пятаки. Хороши.	Golden. Like old coins. Lovely.	
+req	8	14	7,8,9	y1	2	bream:2	coins:30,seeds:potato_blue:3	Лещ. Два. Прикормка — каша. Сидеть долго.	Bream. Two. Groundbait — porridge. A long sit.	Долго сидели. Правильно сидели. Вот, картошка синяя. Сосед с дачи дал. Мне ни к чему.	A long sit. A proper sit. Here — blue potatoes. A neighbour gave me some. No use to me.	
+req	9	12	8,9,10	y1	3	kvass:2	coins:20	Кваса. Два. На берегу без кваса — не то.	Kvass. Two. The bank's not the same without kvass.	Холодный. Хорошо. Садитесь, разольём.	Cold. Good. Sit, I'll pour.	
+req	10	14	9,10,11	y1	3	pike:1	coins:35	Щука. Одна. Не Хозяйка. Поменьше. Для начала.	A pike. Just one. Not the Old Lady. Smaller. To start with.	Неплохая. Три кило. Хозяйка — раз в пять больше. Видел. Один раз.	Not bad. Three kilos. The Old Lady's five times that. Saw her. Once.	palych.pike
+req	11	14	11,12,1	y1	3	sbiten:2	coins:25	Скоро лёд. Сбитня. Два. Буду ждать.	Ice soon. Sbiten. Two. I'll wait.	Горячий. Пряный. Термос ваш теперь мой. Шучу. Верну.	Hot. Spicy. Your flask is mine now. Joking. I'll give it back.	
+req	12	14	12,1,2,3	y1	4	burbot:1	coins:40	Налим. Ночью, подо льдом. Один. Лунку покажу.	Burbot. At night, under the ice. One. I'll show you the hole.	Скользкий. Хитрый. Как надо.	Slippery. Crafty. Just right.	
+req	13	20	1,2,3	y2	4	perch:4	coins:30	Окунь. Четыре. Лунки у старой сваи.	Perch. Four. The holes by the old pile.	Полосатые. Злые. Хорошо держали.	Stripy. Fierce. You held them well.	
+req	14	12	2,3,4	y2	4	pirozhki:2	coins:30	Пирожков. Два. Письмо пришло. Читать буду. Не на пустой желудок.	Pirozhki. Two. A letter's come. I'll read it. Not on an empty stomach.	От сына. Серёжа. Шесть лет не писал. Хорошо пишет. Как раньше говорил — коротко.	From my son. Seryozha. Six years without a word. He writes well. The way he used to talk — short.	palych.letter
+req	15	12	3,4,5	y2	5	smelt:5	coins:30	Корюшки. Пять. Насушу. Пошлю ему. Он любил.	Smelt. Five. I'll dry them. Send them to him. He loved them.	Отправил. С Таней. Сказала — дойдёт. Пусть дойдёт.	Sent them. Through Tanya. She said they'll get there. Let them get there.	
+req	16	14	4,5,6	y2	5	roach:5	coins:30	Плотва. Пять. Хочу Хозяйку на живца. Попробуем.	Roach. Five. I want the Old Lady on live bait. We'll try.	Сорвалась. Хвост видел. С весло. Ничего. Подождёт.	She threw the hook. Saw her tail. Like an oar. Never mind. She'll wait.	
+req	17	12	5,6	y2	5	bread_rye:2	coins:25	Хлеба. Два. Ответ пишу. Третий день. Думать надо.	Bread. Two. I'm writing back. Third day now. Need to think.	Написал. Пять строчек. Позвал. Летом. Отправил.	Done. Five lines. Asked him to come. In summer. Sent it.	palych.invite
+req	18	12	6,7	y2	5	tench:2	coins:35,seeds:dill_gribovsky:3	Линь. Два. Рыба тихая. Как Серёжа в детстве.	Tench. Two. A quiet fish. Like Seryozha as a boy.	Скользкий, зелёный, спокойный. Вот. Укроп для ухи. Посадите.	Slippery, green, calm. Here. Dill for ukha. Plant it.	
+req	19	12	7,8	y2	6	ukha:1	coins:40	Ухи. Одну. Серёжа в субботу приезжает. Вдруг к воде не придёт. Пусть хоть ухой пахнет.	Ukha. One pot. Seryozha's coming on Saturday. Maybe he won't come down to the water. At least let it smell of ukha.	Пришёл. Сидели. Молчали. Подсекать помнит. Руки помнят.	He came. We sat. Said nothing. He still knows how to strike. Hands remember.	palych.son
+req	20	12	8,9	y2	6	ide:2	coins:35	Язь. Два. Серёжа уехал. Сказал — зимой на лёд приедет. Посмотрим.	Ide. Two. Seryozha's gone home. Said he'll come for the ice in winter. We'll see.	Красивый. Глаз жёлтый. Серёже фото послал. Ответил: «Ого». Это много.	Handsome. Yellow eye. Sent Seryozha a photo. He replied: “Wow.” That's a lot.	
+req	21	14	9,10	y2	6	zander:1	coins:45	Судак. Один. Ночью, у камней. Хитрый.	Zander. One. At night, by the stones. Crafty.	Клыки видели? Вот. Хитрый, а вы хитрее.	See the fangs? There. He's crafty, but you're craftier.	
+req	22	12	10,11	y2	6	potato:4	coins:25,seeds:garlic_lyubasha:3	Картошки. Четыре. На зиму. Печь на берегу буду.	Potatoes. Four. For winter. I'll bake them on the bank.	В золе — лучше всего. Вот чеснок. Хороший. Под зиму сажают.	Best in the embers. Here's garlic. Good one. Planted before winter.	
+req	23	14	12,1	y2	7	burbot:2	coins:45	Налимов. Два. Серёжа на лёд приедет. Не один. С дочкой. Не видел её. Восемь лет ей.	Burbot. Two. Seryozha's coming for the ice. Not alone. With his daughter. Never met her. She's eight.	Пусть видит, что дед не зря сидит. Налим — рыба зимняя. Как дед.	Let her see her grandad doesn't sit here for nothing. Burbot's a winter fish. Like her grandad.	
+req	24	12	1,2,3	y2	7	sbiten:3	coins:40	Сбитня. Три кружки. Нас трое будет. На льду.	Sbiten. Three mugs. There'll be three of us. On the ice.	Внучка ерша поймала. Визжала. Ёрш тоже. Хороший день.	My granddaughter caught a ruffe. She squealed. So did the ruffe. A good day.	palych.grand
+req	25	20	3,4,5	y3	7	smelt:5	coins:35	Корюшка. Пять. Внучке пошлю. Ей понравилось.	Smelt. Five. I'll send them to my granddaughter. She liked them.	Катя написала: «Пахнет огурцом!!!». Три восклицательных. В Гену пошла.	Katya wrote back: “Smells of cucumber!!!” Three exclamation marks. Takes after Gena.	
+req	26	14	4,5,6	y3	7	ruff:4	coins:35	Ершей. Четыре. Уха из ершей — самая наваристая. Не обижайте их.	Ruffe. Four. Ruffe make the richest ukha. Don't look down on them.	Колючие, а добрые. В ухе. Вот.	Prickly, but kind. In a soup. There.	
+req	27	14	5,6	y3	8	gudgeon:4	coins:40	Пескари. Четыре. На живца. Хозяйку летом брать будем.	Gudgeon. Four. For live bait. We'll go for the Old Lady this summer.	Бойкие. Хорошо. Хозяйка бойких любит.	Lively. Good. The Old Lady likes them lively.	
+req	28	12	6,7	y3	8	rudd:3	coins:40,seeds:onion_red:3	Краснопёрка. Три. Серёжа на всё лето едет. Отпуск взял. Первый раз.	Rudd. Three. Seryozha's coming for the whole summer. Took his leave. First time.	Плавники красные, как у Кати щёки на морозе. Вот лук. Красный. Для ухи.	Fins red as Katya's cheeks in the frost. Here's onion. Red. For ukha.	
+req	29	12	6,7,8	y3	8	pirozhki:3	coins:40	Пирожков три. Нас трое. С утра — на омут.	Three pirozhki. There are three of us. To the deep pool at dawn.	Хозяйка взяла. Сорвалась. Катя плакала. Я — нет. Почти.	The Old Lady took it. Threw the hook. Katya cried. I didn't. Nearly.	
+req	30	12	7,8	y3	8	crucian:5	coins:40	Карасей. Пять. Катя ловит. Учится. Терпение есть. В меня.	Crucian carp. Five. Katya's fishing. Learning. She's got patience. Gets it from me.	Пять из пяти. Сама. Я только сидел рядом. Это главное.	Five out of five. On her own. I just sat beside her. That's what matters.	
+req	31	12	7,8,9	y3	9	egg:4,bread_rye:1	coins:45	Яиц четыре. Хлеба. Ночь на берегу. Втроём. Костёр.	Four eggs. Bread. A night on the bank. The three of us. A fire.	Звёзды. Костёр. Серёжа рассказывал, как маленьким у меня удочку утопил. Смеялись. Хорошая ночь.	Stars. Fire. Seryozha told how he drowned my rod when he was little. We laughed. A good night.	
+req	32	10	8,9	y3	9	ukha:2	coins:50	Ухи. Две. На праздник ваш. Котёл принесу. Сам тоже сварю. Пусть много будет.	Ukha. Two pots. For your festival. I'll bring the cauldron. I'll make some too. Let there be plenty.	Хватило всем. Даже Гене. Он три раза подходил.	Enough for everyone. Even Gena. He came back three times.	
+req	33	12	9,10	y3	9	pike:2	coins:45	Щук. Две. Перед зимой жор. Хозяйка тоже голодная. Пойдём.	Pike. Two. They feed hard before winter. The Old Lady's hungry too. Let's go.	Взяли. Хозяйку. Втроём тянули. Двенадцать кило. Отпустили. Пусть живёт. Пусть ещё кого-нибудь поучит.	We got her. The Old Lady. Three of us pulling. Twelve kilos. Let her go. Let her be. Let her teach someone else.	palych.lady
+req	34	14	10,11	y3	9	sbiten:2	coins:50,seeds:radish_black:3	Сбитня. Два. Серёжа с семьёй переезжают. Поближе. Через две улицы. Вот.	Sbiten. Two. Seryozha and his family are moving. Closer. Two streets away. There.	Катя будет приходить. По субботам. Место ей покажу. Моё. Вот редька чёрная. Злая, как ёрш. Посадите.	Katya will come. On Saturdays. I'll show her my spot. Mine. Here's black radish. Fierce as a ruffe. Plant it.	
+req	35	14	12,1	y3	10	burbot:2	coins:45	Налимов. Два. Катя сама лунку пробурила. Маленькую. Но сама.	Burbot. Two. Katya drilled a hole herself. A small one. But herself.	В маленькую лунку большой налим не пролезет. Ничего. Вырастет — пробурит большую.	A big burbot won't fit through a small hole. Never mind. She'll grow and drill a bigger one.	
+req	36	14	1,2,3	y3	10	perch:5	coins:60,item:ukha:2	Окуней пять. И сядьте. Просто сядьте рядом. Втроём уже не умеем — вчетвером будем.	Five perch. And sit. Just sit beside us. We can't do it as three any more — we'll be four.	Вот. Серёжа, Катя, вы, я. Лёд, ящики, термос. Больше ничего не надо. Правда.	There. Seryozha, Katya, you, me. Ice, boxes, flask. Nothing else needed. Really.	
+note	1	7		y1	0			Место у старой сваи — моё. Остальное — ваше. Приходите на рассвете. П.	The spot by the old pile is mine. The rest is yours. Come at dawn. P.			
+note	2	40	3,4,5	y1	1			Ледоход был. Льдины шли, как стадо. Сорок лет смотрю. Не надоедает. П.	The ice went out. Floes moving like a herd. Forty years I've watched. Never tire of it. P.			
+note	3	45	6,7,8	y1	1			Утром видел Хозяйку. Щука. Вышла к камышу, постояла. С бревно. Ушла. Никому не говорил. Вам говорю. П.	Saw the Old Lady this morning. A pike. Came out by the reeds, stood there. Size of a log. Went off. Haven't told anyone. Telling you. P.			
+note	4	45	9,10,11	y1	2		item:sbiten:1	Учитесь хорошо. Не торопитесь — значит, умеете. Возьмите сбитень. Термос верните. П.	You learn well. You don't rush — so you can do it. Take this sbiten. Bring the flask back. P.			
+note	5	40	12,1	y1	2			Первый лёд. Тонкий. Не ходите. Я тоже не хожу. Ну, хожу. У берега. П.	First ice. Thin. Don't go out. I don't either. Well, I do. By the bank. P.			
+note	6	45	2,3	y1	3			Сын у меня есть. Серёжа. Далеко живёт. Поругались давно. Из-за ерунды. Из-за удочки. Не помню уже. Он, наверное, помнит. П.	I have a son. Seryozha. Lives far away. We quarrelled long ago. Over nothing. Over a fishing rod. I don't remember now. He probably does. P.			
+note	7	14		y2	3	palych.letter		Серёжа пишет: работа, квартира, дочка. Дочка! Восемь лет. Я не знал. Ничего. Теперь знаю. П.	Seryozha writes: work, a flat, a daughter. A daughter! Eight years old. I didn't know. Never mind. Now I do. P.			
+note	8	14	5,6,7	y2	4	palych.invite		Ответа нет. Две недели. Тане каждый день говорю «здрасьте». Она понимает. Головой качает. Жду. Рыба тоже не сразу берёт. П.	No answer. Two weeks. I say hello to Tanya every day. She understands. Shakes her head. I wait. Fish don't take straight away either. P.			
+note	9	10		y2	5	palych.son		Серёжа приехал. Седой уже, смешно. Сидели на сваях. Он сказал: «Пап, удочку ту я тогда нарочно сломал». Я сказал: «Знаю». Посмеялись. Двадцать лет. Из-за удочки. П.	Seryozha came. Grey already, funny that. We sat on the piles. He said, “Dad, that rod — I broke it on purpose back then.” I said, “I know.” We laughed. Twenty years. Over a rod. P.			
+note	10	40	9,10,11	y2	5			Серёжа звонит по воскресеньям. Спрашивает: клюёт? Говорю: клюёт. Даже если нет. Пусть думает, что клюёт. П.	Seryozha rings on Sundays. Asks: are they biting? I say they are. Even when they're not. Let him think they are. P.			
+note	11	14		y2	6	palych.grand		Внучку зовут Катя. Ёрш её уколол — не заплакала. Сказала: «Дедушка, он защищается». Правильно сказала. В меня. П.	My granddaughter's called Katya. A ruffe pricked her — she didn't cry. She said, “Grandad, he's defending himself.” Quite right. Takes after me. P.			
+note	12	40	3,4,5	y2	6			Лёд сошёл. Катя прислала рисунок. Я на льду, рыба подо льдом, и рыба улыбается. Повесил над печкой. П.	The ice is out. Katya sent a drawing. Me on the ice, a fish under the ice, and the fish is smiling. Hung it over the stove. P.			
+note	13	45	4,5,6	y3	7			Серёжа отпуск взял. На всё лето. Ко мне. Сказал: «Хозяйку будем брать, пап». Будем. П.	Seryozha's taken leave. The whole summer. Coming to me. He said, “We'll get the Old Lady, Dad.” We will. P.			
+note	14	40	6,7,8	y3	7			Утро. Серёжа, Катя, я. Три поплавка рядом. Никто не говорит. Катя тоже. Научилась. П.	Morning. Seryozha, Katya, me. Three floats side by side. Nobody talks. Katya neither. She's learned. P.			
+note	15	30	8,9	y3	8			На празднике вашем уху варил. Котёл на сорок человек. Хватило на пятьдесят. Серёжа дрова колол. Катя солила. Пересолила. Ели все. Хвалили. П.	Made ukha at your festival. A cauldron for forty. Fed fifty. Seryozha chopped wood. Katya salted it. Too much. Everyone ate. Everyone praised. P.			
+note	16	10		y3	8	palych.lady		Хозяйку отпустили. Катя её погладила. По спине. Хозяйка постояла у ног и ушла в омут. Медленно. Сорок лет я за ней ходил. Поймали — и отпустили. Правильно. П.	We let the Old Lady go. Katya stroked her. Along the back. The Old Lady lay by our feet a moment, then went down into the pool. Slowly. Forty years I was after her. Caught her — and let her go. That's right. P.			
+note	17	45	11,12,1	y3	9			Серёжа с семьёй теперь рядом. Через две улицы. По субботам — ко мне. Ящиков стало четыре. Один — ваш. Сидите, когда хотите. П.	Seryozha and his family are close now. Two streets away. Saturdays — they come to me. There are four boxes now. One's yours. Sit whenever you like. P.			
+note	18	50	1,2,3	y3	9		item:ukha:1	Вы спрашивали, зачем я тут сижу. Сорок лет. Тогда не ответил. Отвечаю. Чтобы было куда прийти. Вот Серёжа и пришёл. И вы. П.	You asked me once why I sit here. Forty years. I didn't answer then. I'm answering now. So there's somewhere to come back to. And Seryozha came. And you. P.			

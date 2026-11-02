@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Green Street</string>
+    <string name="channel_walk">The walk</string>
+    <string name="walk_title">Out for a walk</string>
+    <string name="walk_text">Beds along the way are tended as you pass.</string>
+    <string name="walk_stop">End the walk</string>
+    <string name="channel_finds">Finds on the way</string>
+</resources>

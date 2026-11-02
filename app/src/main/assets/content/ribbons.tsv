@@ -1,0 +1,140 @@
+key	kind	arg	name_ru	name_en	about_ru	about_en
+harvest_first	harvest	any:1	Первый урожай	First Harvest	Сняли первый урожай с грядки на газоне.	Brought in the first harvest from a bed on the lawn.
+harvest_10	harvest	any:10	Полная горсть	A Full Handful	Собрали десять урожаев.	Gathered ten harvests.
+harvest_50	harvest	any:50	Корзинка с верхом	A Heaped Basket	Пятьдесят урожаев — корзина уже не закрывается.	Fifty harvests: the basket won't close any more.
+harvest_150	harvest	any:150	Кормилец двора	Feeds the Courtyard	Сто пятьдесят урожаев. Двор знает, у кого просить укропу.	A hundred and fifty harvests. The courtyard knows whom to ask for dill.
+harvest_400	harvest	any:400	Хозяин обочины	Lord of the Verge	Четыреста урожаев с газонов вдоль ваших дорог.	Four hundred harvests from the lawns along your routes.
+harvest_1000	harvest	any:1000	Тысяча грядок	A Thousand Harvests	Тысяча урожаев. Район стал огородом, и никто не против.	A thousand harvests. The district has become a garden and nobody minds.
+harvest_radish	harvest	radish	Первая редиска	First Radish	Вытянули из земли первую редиску. Хрустит.	Pulled your first radish out of the ground. It crunches.
+harvest_potato	harvest	potato	Своя картошка	Our Own Potatoes	Выкопали картошку на газоне, к удивлению прохожих.	Dug potatoes out of a lawn, to the passers-by's surprise.
+harvest_cucumber	harvest	cucumber	Огурец с пупырышками	Pimply Cucumber	Первый свой огурец. Тётя Зина одобрила хруст.	Your first cucumber. Aunt Zina approved of the crunch.
+harvest_tomato	harvest	tomato	Помидор на солнце	Sun-warmed Tomato	Сняли спелый помидор, тёплый прямо с куста.	Picked a ripe tomato, still warm from the plant.
+harvest_pumpkin	harvest	pumpkin	Тыква-барыня	Lady Pumpkin	Вырастили тыкву, которую пришлось везти на санках.	Grew a pumpkin that needed a sledge to bring home.
+harvest_sunflower	harvest	sunflower	Выше забора	Over the Fence	Подсолнух вырос и смотрит на улицу поверх забора.	A sunflower has grown tall enough to look over the fence at the street.
+harvest_calendula	harvest	calendula	Календула у трамвая	Calendula by the Tram	Собрали календулу с городского газона.	Gathered calendula from a town lawn.
+harvest_tulip	harvest	tulip	Тюльпановая весна	Tulip Spring	Первые свои тюльпаны. Лиля прослезилась.	Your first own tulips. Lilya got teary.
+harvest_rye	harvest	rye	Свой хлеб	Our Own Bread	Сжали рожь. Прохор обещал испечь из неё каравай.	Reaped rye. Prokhor promised to bake a loaf from it.
+harvest_flax	harvest	flax	Голубое поле	A Blue Field	Собрали лён. Зоя уже держит наготове прялку.	Harvested flax. Zoya already has her spinning wheel ready.
+harvest_woad	harvest	woad	Синяя трава	The Blue Weed	Собрали вайду — из жёлтых цветов будет синяя краска.	Harvested woad: yellow flowers that give a blue dye.
+harvest_strawberry	harvest	strawberry	Ягодка на газоне	A Berry on the Lawn	Первая своя клубника. Съедена тут же.	Your first own strawberry. Eaten on the spot.
+harvest_garlic	harvest	garlic	Чесночная коса	Garlic Plait	Выкопали чеснок и заплели его в косу.	Dug up garlic and plaited it.
+harvest_microgreens	harvest	microgreens	Зима на подоконнике	Winter Windowsill	Собрали зелень на подоконнике посреди зимы.	Harvested greens on the windowsill in the middle of winter.
+harvest_pepper	harvest	pepper	Перец на балконе	Balcony Pepper	Первый перец из балконной теплицы.	The first pepper from the balcony greenhouse.
+harvest_melon	harvest	melon	Северная дыня	A Northern Melon	Вырастили дыню там, где дыни не растут.	Grew a melon where melons don't grow.
+harvest_apple	harvest	apple_tree	Первое яблоко	The First Apple	Антоновка в общем саду дала яблоко.	The Antonovka in the shared garden has borne an apple.
+harvest_currant	harvest	currant	Смородиновый куст	The Currant Bush	Обобрали смородину в общем саду.	Picked the currants in the shared garden.
+variety_5	variety	5	Пять сортов	Five Varieties	Вырастили пять разных сортов.	Grown five different varieties.
+variety_15	variety	15	Пёстрая грядка	A Motley Bed	Пятнадцать сортов. В семенной коробке тесно.	Fifteen varieties. The seed box is getting crowded.
+variety_30	variety	30	Знаток сортов	Variety Expert	Тридцать сортов. Тётя Зина спрашивает у вас совета.	Thirty varieties. Aunt Zina asks your advice.
+variety_60	variety	60	Ходячая картотека	Walking Index	Шестьдесят сортов. Сыч завёл на них отдельный ящик.	Sixty varieties. Sych has opened a separate drawer for them.
+variety_100	variety	100	Семенная библиотека	Seed Library	Сто сортов — целая библиотека семян.	A hundred varieties: a whole library of seeds.
+album_10	album	10	Первые страницы	The First Pages	В сезонном альбоме десять записей.	Ten entries in the season album.
+album_30	album	30	Альбом потолстел	A Thicker Album	Тридцать записей в альбоме.	Thirty entries in the album.
+album_60	album	60	Летопись грядок	Chronicle of the Beds	Шестьдесят записей: альбом стал летописью.	Sixty entries: the album has become a chronicle.
+album_100	album	100	Гербарий района	The District Herbarium	Сто записей. Вера Павловна просит альбом для урока.	A hundred entries. Vera Pavlovna asks to borrow the album for a lesson.
+fish_first	fish	any:1	Клюёт!	A Bite!	Поймали первую рыбу. Палыч кивнул.	Caught your first fish. Palych nodded.
+fish_20	fish	any:20	Терпение	Patience	Двадцать рыб. Палыч говорит, что вы научились ждать.	Twenty fish. Palych says you've learned to wait.
+fish_100	fish	any:100	Своё место на набережной	A Spot on the Embankment	Сто рыб. Ваше место на набережной теперь не занимают.	A hundred fish. Nobody takes your spot on the embankment now.
+fish_pike	fish	pike	Щучье веление	As the Pike Commands	Поймали щуку. Желания не загадывали, но могли бы.	Caught a pike. You made no wishes, but you could have.
+fish_bream	fish	bream	Лещ с ладонь	Bream like a Palm	Поймали леща — широкого, как ладонь Прохора.	Caught a bream as broad as Prokhor's palm.
+fish_burbot	fish	burbot	Налим из-подо льда	Burbot under the Ice	Поймали налима в зимнюю ночь.	Caught a burbot on a winter night.
+fish_smelt	fish	smelt	Пахнет огурцом	Smells of Cucumber	Поймали корюшку. Пахнет свежим огурцом, честно.	Caught a smelt. It really does smell of fresh cucumber.
+fish_catfish	fish	catfish	Усач	Old Whiskers	Вытащили сома. Палыч рассказывает об этом всем.	Landed a catfish. Palych tells everyone about it.
+fish_zander	fish	zander	Судак на зорьке	Zander at Dawn	Поймали судака на рассвете.	Caught a zander at first light.
+fish_crucian	fish	crucian	Карась-идеалист	The Idealist Crucian	Поймали карася в пруду парка.	Caught a crucian carp in the park pond.
+find_first	find	any:1	Находка	A Find	Нашли что-то хорошее под ногами.	Found something good underfoot.
+find_50	find	any:50	Зоркий глаз	Sharp Eyes	Пятьдесят находок в парке и на улицах.	Fifty finds in the park and the streets.
+find_200	find	any:200	Собиратель	The Gatherer	Двести находок. Карманы просят пощады.	Two hundred finds. Your pockets beg for mercy.
+find_porcini	find	porcini	Белый!	A Cep!	Нашли белый гриб в городском парке.	Found a cep in the town park.
+find_morel	find	morel	Весенний сморчок	Spring Morel	Нашли сморчок, пока все ещё ждали грибов.	Found a morel while everyone else was still waiting for mushrooms.
+find_clover	find	four_leaf_clover	Четыре листка	Four Leaves	Нашли клевер с четырьмя листками. На удачу.	Found a four-leaf clover. For luck.
+find_birch_sap	find	birch_sap	Берёзовый сок	Birch Sap	Набрали весеннего берёзового сока.	Collected spring birch sap.
+find_hazelnut	find	hazelnut	Ореховый Спас	Nut Harvest	Нашли спелые лесные орехи.	Found ripe hazelnuts.
+find_maple	find	maple_leaf	Кленовый букет	A Maple Bouquet	Собрали осенний кленовый лист.	Gathered an autumn maple leaf.
+find_driftwood	find	driftwood	Подарок реки	A Gift from the River	Нашли на берегу выбеленную водой корягу.	Found a piece of water-bleached driftwood on the bank.
+find_chanterelle	find	chanterelle	Лисички	Little Foxes	Нашли лисички — рыжие, как Пряник.	Found chanterelles, as ginger as Pryanik.
+cook_first	cook	any:1	Первое блюдо	First Dish	Приготовили что-то на дворовой кухне.	Made something in the courtyard kitchen.
+cook_50	cook	any:50	Своя кухня	A Kitchen of Your Own	Пятьдесят блюд и поделок.	Fifty dishes and crafts.
+cook_200	cook	any:200	Кухня пахнет домом	Keeper of the Kitchen	Двести блюд и поделок на дворовой кухне.	Two hundred dishes and crafts. The kitchen smells like home.
+cook_bread	cook	bread_rye	Ржаной каравай	Rye Loaf	Испекли ржаной хлеб. Прохор отломил горбушку и промолчал — это похвала.	Baked rye bread. Prokhor broke off the crust and said nothing, which is praise.
+cook_blini	cook	blini	Не комом	Not Lumpy	Испекли блины, и первый — не комом.	Made blini, and the first one wasn't lumpy.
+cook_jam	cook	jam_strawberry	Пенки	The Foam	Сварили клубничное варенье. Пенки — вам.	Made strawberry jam. The foam is yours.
+cook_sauerkraut	cook	sauerkraut	Капустница	Cabbage Evening	Заквасили капусту на зиму.	Fermented cabbage for the winter.
+cook_kvass	cook	kvass	Квасной мастер	Kvass Maker	Поставили свой квас.	Brewed your own kvass.
+cook_medovik	cook	medovik	Медовик	Honey Cake	Испекли медовик из своего мёда.	Baked a honey cake with your own honey.
+cook_candle	cook	candle	Свеча из своего воска	A Candle of Our Wax	Отлили свечу из воска с крыши.	Poured a candle from rooftop wax.
+cook_linen	cook	linen_cloth	Льняное полотно	Linen Cloth	Сделали полотно из своего льна.	Made cloth from your own flax.
+cook_blue	cook	cloth_blue	Синяя ткань	Blue Cloth	Покрасили ткань вайдой. Зоя довольна оттенком.	Dyed cloth with woad. Zoya approves of the shade.
+cook_seed_bomb	cook	seed_bomb	Семенная бомбочка	Seed Bomb	Слепили шарик из глины и семян для пустыря.	Rolled a ball of clay and seeds for the empty lot.
+cook_feeder	cook	bird_feeder	Столовая для синиц	Tit Canteen	Смастерили кормушку для птиц.	Built a bird feeder.
+cook_borscht	cook	borscht	Борщ как надо	Proper Borscht	Сварили борщ из своих овощей.	Cooked borscht from your own vegetables.
+cook_pie_apple	cook	pie_apple	Шарлотка	Apple Pie	Испекли яблочный пирог.	Baked an apple pie.
+km_10	km	10	Десять километров	Ten Kilometres	Прошли десять километров мимо своих грядок.	Walked ten kilometres past your beds.
+km_50	km	50	Свой маршрут	Your Own Route	Пятьдесят километров. Ноги сами знают дорогу.	Fifty kilometres. Your feet know the way by themselves.
+km_100	km	100	Сотня вёрст	A Hundred Versts	Сто километров по району.	A hundred kilometres around the district.
+km_300	km	300	Знаете каждый двор	You Know Every Yard	Триста километров. В районе не осталось незнакомых дворов.	Three hundred kilometres. No unfamiliar courtyards left in the district.
+km_500	km	500	Полтыщи	Half a Thousand	Пятьсот километров. Гена ставит вас в пример команде.	Five hundred kilometres. Gena holds you up as an example to his team.
+km_1000	km	1000	Тысяча километров	A Thousand Kilometres	Тысяча километров пешком, и все — по соседству.	A thousand kilometres on foot, all of them close to home.
+km_2000	km	2000	Дальний путь	The Long Road	Две тысячи километров. Где-то так далеко уезжает поезд Кузьмича.	Two thousand kilometres, about as far as Kuzmich's train goes.
+km_3000	km	3000	Кругосветка по-соседски	Round the World Next Door	Три тысячи километров вокруг собственного дома.	Three thousand kilometres around your own home.
+beds_3	beds	3	Три грядки	Three Beds	Три грядки сразу.	Three beds at once.
+beds_6	beds	6	Огород вдоль дороги	A Roadside Garden	Шесть грядок сразу.	Six beds at once.
+beds_9	beds	9	Девять грядок	Nine Beds	Девять грядок, как обещал Михалыч.	Nine beds, just as Mikhalych promised.
+beds_12	beds	12	Дюжина	A Dozen	Двенадцать грядок сразу.	Twelve beds at once.
+beds_16	beds	16	Зелёная улица	Green Street	Шестнадцать грядок. Улица и правда позеленела.	Sixteen beds. The street really has turned green.
+wild_1	wild	1	Дикая грядка	Gone Wild	Собрали урожай с одичавшей грядки. Она не обиделась.	Harvested a bed that had gone wild. It didn't take offence.
+wild_10	wild	10	Друг лебеды	Friend of Weeds	Десять урожаев с одичавших грядок.	Ten harvests from wild beds.
+wild_40	wild	40	Сад как придётся	Garden as It Goes	Сорок урожаев с одичавших грядок. Природа справляется.	Forty harvests from wild beds. Nature copes.
+hearts_all_3	hearts	all:3	Свой человек	One of Us	Все соседи относятся к вам тепло.	All the neighbours have warmed to you.
+hearts_all_6	hearts	all:6	Желанный гость	A Welcome Guest	Все соседи рады видеть вас на пороге.	Every neighbour is glad to see you at the door.
+hearts_all_10	hearts	all:10	Душа района	Heart of the District	Весь район считает вас родным.	The whole district thinks of you as family.
+hearts_nina	hearts	nina:10	Чай у Нины Петровны	Tea at Nina Petrovna's	Нина Петровна держит для вас отдельную чашку.	Nina Petrovna keeps a cup just for you.
+hearts_asya	hearts	asya:10	Старший друг	A Grown-up Friend	Ася советуется с вами о самом важном.	Asya asks your advice on the most important things.
+hearts_pryanik	hearts	pryanik:10	Тёплое место	The Warm Spot	Пряник спит у вас на коленях. Это редкая честь.	Pryanik sleeps on your lap. A rare honour.
+hearts_palych	hearts	palych:10	Молча рядом	Silent Company	Палыч делится с вами своим местом и молчанием.	Palych shares his spot and his silence with you.
+hearts_zina	hearts	zina:10	Без торга	No Haggling	Тётя Зина отдаёт вам семена без торга. Неслыханно.	Aunt Zina gives you seeds without haggling. Unheard of.
+hearts_prokhor	hearts	prokhor:10	Горбушка	The Crust	Прохор оставляет вам горячую горбушку.	Prokhor saves you the hot crust.
+hearts_kuzmich	hearts	kuzmich:10	Попутчик	Fellow Traveller	Кузьмич зовёт вас в свой огород.	Kuzmich invites you into his own garden.
+fair_30	fair	30	Почин	First Sale	Выручили на ярмарке тридцать грошей за день.	Took thirty groats at the fair in a day.
+fair_100	fair	100	Бойкая торговля	Brisk Trade	Сто грошей за ярмарочный день.	A hundred groats in one fair day.
+fair_250	fair	250	Лучший прилавок	Best Stall	Двести пятьдесят грошей за день. Тётя Зина ревнует.	Two hundred and fifty groats in a day. Aunt Zina is jealous.
+fair_500	fair	500	Королевская ярмарка	A Royal Fair	Пятьсот грошей за один ярмарочный день.	Five hundred groats in a single fair day.
+days_7	days	7	Первая неделя	The First Week	Неделя на Зелёной улице.	A week on Green Street.
+days_30	days	30	Первый месяц	The First Month	Месяц, как вы здесь.	A month since you came.
+days_100	days	100	Сто дней	A Hundred Days	Сто дней с первой грядки.	A hundred days since the first bed.
+days_182	days	182	Полгода	Half a Year	Полгода на Зелёной улице.	Half a year on Green Street.
+days_365	days	365	Первая зима позади	One Winter Behind	Год с первой грядки. Двор зовёт вас своим.	A year since the first bed. The courtyard calls you one of its own.
+days_730	days	730	Две зимы	Two Winters	Два года на Зелёной улице.	Two years on Green Street.
+days_1095	days	1095	Три зимы	Three Winters	Три года. Улица помнит вас по имени.	Three years. The street knows you by name.
+days_1461	days	1461	Старожил	Old-timer	Четыре года. Теперь уже вы рассказываете новичкам, как тут было.	Four years. Now you're the one telling newcomers how it used to be.
+season_spring	season	spring	Весна без перерыва	Spring Without a Gap	Урожай каждую неделю весны.	A harvest every week of spring.
+season_summer	season	summer	Лето на всю катушку	Summer in Full	Урожай каждую неделю лета.	A harvest every week of summer.
+season_autumn	season	autumn	Осень в корзине	Autumn in a Basket	Урожай каждую неделю осени.	A harvest every week of autumn.
+season_winter	season	winter	Зелёная зима	A Green Winter	Урожай каждую неделю зимы — подоконник не подвёл.	A harvest every week of winter. The windowsill delivered.
+request_1	request	1	Выручили	A Helping Hand	Выполнили первую просьбу соседа.	Fulfilled a neighbour's first request.
+request_10	request	10	На вас можно положиться	Dependable	Десять выполненных просьб.	Ten requests fulfilled.
+request_50	request	50	Добрый сосед	A Good Neighbour	Пятьдесят выполненных просьб.	Fifty requests fulfilled.
+request_150	request	150	Палочка-выручалочка	The Fixer	Сто пятьдесят просьб. Без вас район как без рук.	A hundred and fifty requests. The district would be lost without you.
+request_300	request	300	Весь район в долгу	The District Owes You	Триста выполненных просьб.	Three hundred requests fulfilled.
+fest_new_year	fest	new_year	Новый год	New Year	Встретили Новый год во дворе.	Saw the New Year in at the courtyard.
+fest_old_new_year	fest	old_new_year	Старый Новый год	Old New Year	Отпраздновали Новый год второй раз.	Celebrated the New Year a second time.
+fest_seed_swap_day	fest	seed_swap_day	День обмена семенами	Seed Swap Day	Поменялись семенами в библиотеке.	Swapped seeds at the library.
+fest_maslenitsa	fest	maslenitsa	Масленица	Maslenitsa	Проводили зиму блинами.	Saw the winter off with pancakes.
+fest_first_thaw	fest	first_thaw	Первая капель	First Thaw	Встретили первую капель.	Welcomed the first thaw.
+fest_birds_return	fest	birds_return	Жаворонки	Larks Day	Позвали весну булочками-жаворонками.	Called the spring with lark buns.
+fest_subbotnik	fest	subbotnik	Весенний субботник	Spring Clean-up	Вышли на весенний субботник.	Turned out for the spring clean-up.
+fest_sowing_start	fest	sowing_start	Егорий вешний	Sowing Day	Начали сев на Егория.	Started sowing on Yegory's day.
+fest_city_day	fest	city_day	День города	City Day	Погуляли на Дне города.	Strolled through City Day.
+fest_solstice_s	fest	solstice_s	Белые ночи	White Nights	Не спали белой ночью.	Stayed up through a white night.
+fest_kupala	fest	kupala	Иван Купала	Ivan Kupala Night	Собрали травы в купальскую ночь.	Gathered herbs on Kupala night.
+fest_jam_day	fest	jam_day	День варенья	Jam Day	Варили варенье всем двором.	Made jam with the whole courtyard.
+fest_honey_spas	fest	honey_spas	Медовый Спас	Honey Feast	Попробовали новый мёд.	Tasted the new honey.
+fest_apple_spas	fest	apple_spas	Яблочный Спас	Apple Feast	Встретили Яблочный Спас.	Kept the Apple Feast.
+fest_courtyard_concert	fest	courtyard_concert	Концерт во дворе	Courtyard Concert	Слушали виолончель во дворе.	Listened to the cello in the courtyard.
+fest_knowledge_day	fest	knowledge_day	День знаний	Knowledge Day	Проводили детей в школу.	Saw the children off to school.
+fest_harvest_fair	fest	harvest_fair	Осенняя ярмарка	Harvest Fair	Торговали на осенней ярмарке.	Traded at the Harvest Fair.
+fest_pokrov	fest	pokrov	Покров	Pokrov	Рубили капусту на Покров.	Chopped cabbage on Pokrov.
+fest_first_snow	fest	first_snow	Первый снег	First Snow	Встретили первый снег.	Welcomed the first snow.
+fest_tit_day	fest	tit_day	Синичкин день	Tit Day	Повесили кормушку для синиц.	Hung a feeder for the tits.
+fest_first_ice	fest	first_ice	Первый лёд	First Ice	Вышли на первый лёд.	Stepped out onto the first ice.
+fest_solstice_w	fest	solstice_w	Самая длинная ночь	The Longest Night	Зажгли свечу в самую длинную ночь.	Lit a candle on the longest night.
