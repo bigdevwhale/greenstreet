@@ -29,6 +29,8 @@ data class YardLife(
     val kind: String = "well",
     /** Who came out to talk: their look, drawn front and centre; "cat" in it means Pryanik. */
     val guest: Map<String, String>? = null,
+    /** Things bought for the yard at Mikhalych's: lights, birdhouse, feeder, tyre, gnome, barrel. */
+    val decor: Set<String> = emptySet(),
 )
 
 /** The yard at home. It changes with the kind of home, the hour, the weather, the season, the years and the stories. */
@@ -60,8 +62,46 @@ class YardScene(val m: Moment, val life: YardLife = YardLife()) : Scene(128, 104
         hives(b)
         season(b)
         b.r(96, 90, 22, 2, R.wood[5]); b.r(96, 92, 22, 1, R.wood[2]); b.r(97, 93, 1, 4, R.iron[1]); b.r(116, 93, 1, 4, R.iron[1]); b.r(96, 86, 22, 2, R.wood[4])
+        decor(b)
         people(b)
         cat(b)
+    }
+
+    // ---------- things bought for the yard ----------
+
+    private fun decor(b: Buf) {
+        val d = life.decor
+        if ("barrel" in d) {
+            b.rr(29, 77, 7, 11, R.wood) { i, j -> .62 - i * .05 + (if (j == 2 || j == 8) -.25 else 0.0) }
+            b.r(29, 77, 7, 1, R.iron[2]); b.r(29, 87, 7, 1, R.iron[1]); b.r(30, 76, 5, 1, R.glass[3])
+            for (j in 77..87) { b.p(28, j, R.INK); b.p(36, j, R.INK) }
+        }
+        if ("feeder" in d) {
+            b.r(44, 70, 1, 18, R.wood[2])
+            b.r(40, 69, 9, 1, R.INK); b.rr(41, 66, 7, 3, R.wood) { i, _ -> .7 - i * .04 }; b.r(40, 65, 9, 1, R.roofR[3])
+            b.p(42, 68, R.honey[4]); b.p(45, 68, R.honey[3])
+            if (m.winter || m.month in listOf(3, 11)) for (k in 0 until 3) {
+                val bx = 40 + k * 4; val by = 64 + (k % 2)
+                b.p(bx, by, if (k == 1) R.honey[4] else R.wood[3]); b.p(bx + 1, by, R.wood[2]); b.p(bx, by - 1, R.INK)
+            }
+        }
+        if ("tyre" in d) {
+            for (i in -6..6) for (j in -2..2) { val e = (i * i) / 36.0 + (j * j) / 4.0; if (e <= 1.0) b.p(40 + i, 97 + j, if (e > .45) (if (j < 0) R.enamel[4] else R.enamel[2]) else G.dirt[2]) }
+            if (!m.winter) for ((dx, dy) in listOf(-3 to -2, 0 to -3, 3 to -2, -1 to -1, 2 to -1)) { b.p(40 + dx, 96 + dy, R.autumn[4]); b.p(40 + dx, 97 + dy, R.green[3]) }
+            else for (i in -5..5) b.p(40 + i, 95, R.cream[5])
+        }
+        if ("gnome" in d) {
+            b.rr(88, 95, 5, 5, R.roofB) { i, _ -> .6 - i * .06 }
+            b.ball(90, 93, 2, R.skin, R.INK); b.r(88, 94, 5, 2, R.cream[5])
+            for (k in 0 until 4) b.r(90 - (3 - k) / 2, 87 + k, 1 + (3 - k), 1, R.red[3 + (k % 2)])
+            b.r(88, 100, 5, 1, R.INK)
+        }
+        if ("birdhouse" in d) {
+            b.r(122, 62, 1, 36, R.wood[2]); b.r(123, 62, 1, 36, R.wood[1])
+            b.rr(119, 56, 7, 7, R.wood) { i, j -> .72 - i * .05 - j * .02 }
+            for (k in 0 until 4) b.r(118 + k, 55 - k, 9 - 2 * k, 1, R.roofR[3 + (k % 2)])
+            b.ball(122, 59, 1, R.iron, null); b.p(122, 61, R.wood[1])
+        }
     }
 
     // ---------- the three homes ----------
@@ -255,8 +295,9 @@ class YardScene(val m: Moment, val life: YardLife = YardLife()) : Scene(128, 104
         for (x in 0 until w) b.mul(x, 74, G.SHADOW, .4f)
         if (!country && (m.sky.rain || m.month in 3..4)) for (i in 0 until 26) for (j in 0 until 3) if (abs(i - 13) / 13.0 + j / 3.0 < 1) b.p(50 + i, 92 + j, R.glass[4], .45f)
         if (!country && m.month in 5..8 && !m.sky.rain) {
-            for (k in 0 until 4) { val cx = 56 + k * 5; b.r(cx, 98, 5, 1, R.cream[5]); b.r(cx, 102, 5, 1, R.cream[5]); b.r(cx, 98, 1, 5, R.cream[5]); b.r(cx + 5, 98, 1, 5, R.cream[5]) }
-            b.p(73, 99, R.red[4])
+            // chalk hopscotch, faint as chalk is
+            for (k in 0 until 4) { val cx = 56 + k * 5; for (i in 0..5) { b.p(cx + i, 98, R.cream[5], .45f); b.p(cx + i, 102, R.cream[5], .45f) }; for (j in 98..102) { b.p(cx, j, R.cream[5], .45f); b.p(cx + 5, j, R.cream[5], .45f) } }
+            b.p(73, 100, R.red[4], .8f)
         }
     }
 
@@ -295,12 +336,11 @@ class YardScene(val m: Moment, val life: YardLife = YardLife()) : Scene(128, 104
             b.p(3 + i, top - 1, R.INK, .5f)
         }
         b.rr(12, 75, 6, 9, R.wood) { _, _ -> .2 }; b.r(4, 84, 22, 1, G.SHADOW)
-        for (k in 0 until min(3, life.eggs)) b.ball(7 + k * 3, 88, 1, R.cream, null)
-        fun hen(x: Int, y: Int, red: Boolean) {
-            b.rr(x, y, 4, 3, if (red) R.ginger else R.cream) { _, j -> .8 - j * .15 }
-            b.p(x + 3, y - 1, if (red) R.ginger[4] else R.cream[5]); b.p(x + 4, y - 1, R.honey[4]); b.p(x + 3, y - 2, R.apple[3]); b.p(x + 1, y + 3, R.honey[2]); b.p(x + 3, y + 3, R.honey[2])
-        }
-        if (m.dark < .3f && !(m.winter && m.sky.snow)) for (k in 0 until 3) hen(16 + (hash(day, k * 5) * 30).toInt(), 88 + (hash(k, day) * 9).toInt(), k == 1)
+        // a ramp up to the hen door
+        for (k in 0 until 6) b.r(14 + k / 2, 84 + k, 3, 1, R.wood[3 - k % 2])
+        // the nest by the coop: straw, and today's eggs in it
+        for (i in -6..6) for (j in -2..2) { val e = i * i / 36.0 + j * j / 4.0; if (e <= 1.0) b.p(9 + i, 91 + j, if (e > .6) R.wood[2] else rp(R.honey, .45 + hash(i, j) * .3 - j * .08, i, j)) }
+        for (k in 0 until min(6, life.eggs)) { val ex = 5 + (k % 3) * 3; val ey = 89 + k / 3; b.r(ex, ey, 2, 2, R.cream[5]); b.p(ex + 1, ey + 1, R.cream[3]); b.p(ex, ey, R.cream[5]) }
         if (life.kind == "house") {
             // the dog's kennel by the coop, and the dog when it's light
             b.rr(28, 80, 9, 7, R.wood) { _, j -> .5 - j * .03 }; b.rr(27, 77, 11, 3, R.roofR) { i, _ -> .6 - i * .02 }; b.rr(31, 83, 3, 4, R.wood) { _, _ -> .15 }
@@ -422,9 +462,77 @@ class YardScene(val m: Moment, val life: YardLife = YardLife()) : Scene(128, 104
         b.p(x + 1, y + 1, R.ginger[5]); b.p(x + 3, y + 1, R.INK); b.r(x + 8, y + 3, 4, 1, R.ginger[2])
     }
 
+    // ---------- the hens ----------
+
+    private val HEN = listOf(
+        "......rr..",
+        ".....wwwb.",
+        "..t..wewk.",
+        ".ttwwwww..",
+        "twwwwwdw..",
+        ".wwwwddw..",
+        "..wwwww...",
+        "...y.y....",
+    )
+    private val PECK = listOf(
+        "..........",
+        "..........",
+        "..t.......",
+        ".ttwwwwrr.",
+        "twwwwwwwww",
+        ".wwwwddwek",
+        "..wwwww.b.",
+        "...y.y....",
+    )
+
+    /** A hen: white, ginger or speckled; pecking or looking about; facing right or left. Feet at (x, y). */
+    private fun hen(b: Buf, x: Int, y: Int, breed: Int, peck: Boolean, left: Boolean) {
+        val body = when (breed) { 0 -> R.cream; 1 -> R.ginger; else -> R.stone }
+        val rows = if (peck) PECK else HEN
+        val oy = y - rows.size
+        val shape = Array(rows.size) { BooleanArray(10) }
+        for (j in rows.indices) for (i in 0 until 10) {
+            val ch = rows[j][if (left) 9 - i else i]
+            if (ch == '.') continue
+            shape[j][i] = true
+            val c = when (ch) {
+                'r', 'k' -> R.red[4]; 'b' -> R.honey[5]; 'e' -> R.INK; 'y' -> R.honey[3]
+                't' -> body[2]; 'd' -> body[3]
+                else -> if (breed == 2 && (i + j) % 3 == 0) R.cream[5] else body[if (j < 4) 5 else 4]
+            }
+            b.p(x + i - 5, oy + j, c)
+        }
+        // a dark outline so the hen reads against the yard
+        for (j in -1..rows.size) for (i in -1..10) {
+            if (j in rows.indices && i in 0..9 && shape[j][i]) continue
+            val n = listOf(i - 1 to j, i + 1 to j, i to j - 1, i to j + 1).any { (a, c) -> c in rows.indices && a in 0..9 && shape[c][a] && rows[c][if (left) 9 - a else a] != 'y' }
+            if (n) b.p(x + i - 5, oy + j, R.INK, .8f)
+        }
+    }
+
     override fun anim(b: Buf, t: Int) {
+        // three hens about the yard in daylight: wandering, stopping to peck
+        if (m.dark < .3f && !(m.winter && m.sky.snow)) for (k in 0 until 3) {
+            val phase = (t / 6 + k * 7) % 40
+            val walking = phase < 14
+            val drift = (kotlin.math.sin((t + k * 50) / 37.0) * 9).toInt()
+            val x = 26 + k * 10 + drift + (hash(day, k * 5) * 6).toInt()
+            val y = 94 + (hash(k, day) * 6).toInt()
+            val left = kotlin.math.cos((t + k * 50) / 37.0) < 0
+            hen(b, x, y, k, !walking && (t / 3 + k) % 4 < 2, left)
+        }
         b.precipitation(m, t)
         b.night(m, keep)
+        if ("lights" in life.decor) {
+            // a string of bulbs sagging across the yard, lit in the dusk
+            for (x in 2..126) { val y = 50 + ((x - 64) * (x - 64)) / 700; b.p(x, y, R.INK, .8f) }
+            for (k in 0 until 15) {
+                val x = 6 + k * 8; val y = 51 + ((x - 64) * (x - 64)) / 700
+                val col = listOf(R.honey[5], R.red[4], R.green[5], R.roofB[5])[k % 4]
+                if (m.dark > .15f) { b.lamplight(x, y + 1, 4, .35f); b.p(x, y + 1, col); b.p(x, y + 2, col, .7f) }
+                else { b.p(x, y + 1, R.glass[3]) }
+            }
+        }
         if (m.dark > .15f) b.lamplight(lampX, lampY, 14, .7f)
         // smoke from the stove in the cold months
         if (life.kind == "house" && (m.winter || m.month in listOf(3, 10, 11))) for (k in 0 until 5) {

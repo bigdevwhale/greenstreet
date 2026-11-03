@@ -246,3 +246,46 @@ class FishScene(val m: Moment, val big: Boolean, var state: String = "idle") : S
         b.night(m)
     }
 }
+
+/** Meeting a neighbour out for a walk: a park path between trees, houses beyond, a lamp, the season on the grass. */
+class StrollScene(val look: Look, val m: Moment, val seed: Int) : Scene(128, 100) {
+    override val key get() = listOf(seed, m.minute / 10, m.sky, m.month, m.day)
+    private val keep = BooleanArray(w * h)
+
+    override fun base(b: Buf) {
+        b.skyBand(0, 0, w, 46, m, 0)
+        // houses beyond the park
+        var x = -4
+        var k = 0
+        while (x < w) {
+            val bw = 18 + (hash(seed + k, 3) * 16).toInt(); val bh = 14 + (hash(seed + k, 7) * 18).toInt()
+            val fac = G.FAC[(hash(seed + k, 11) * G.FAC.size).toInt()]
+            b.rr(x, 46 - bh, bw, bh, fac) { _, j -> .5 - j * .004 }
+            for (wy in 46 - bh + 3 until 44 step 5) for (wx in x + 2 until x + bw - 2 step 4) b.p(wx, wy, if (m.dark > .15f && hash(wx, wy + seed) < .5) G.WARM else fac[1])
+            x += bw + 1; k++
+        }
+        // the lawn, the path, the season
+        val winter = m.winter
+        b.rr(0, 46, w, 54, if (winter) R.cream else R.green) { i, j -> (if (winter) .8 else .5) + (fbm(i * .2, j * .3) - .5) * .2 + j * .003 }
+        for (j in 0 until 54) {
+            val half = 10 + j * 3 / 4; val cx = 64 + ((j - 30) * (j - 30)) / 60
+            for (i in cx - half..cx + half) b.p(i, 46 + j, rp(G.dirt, .55 + (fbm(i * .3, j * .3) - .5) * .2 + if (i == cx - half || i == cx + half) -.2 else 0.0, i, j))
+        }
+        if (m.month in 9..11) for (i in 0 until 40) b.p((hash(i, seed) * w).toInt(), 50 + (hash(seed, i) * 48).toInt(), rp(R.autumn, .3 + hash(i, 2) * .6, i, 0))
+        // trees along the path
+        for ((tx, ty) in listOf(14 to 60, 112 to 62, 30 to 50, 98 to 50)) {
+            b.r(tx, ty - 4, 2, 12, R.wood[2]); b.r(tx + 2, ty - 4, 1, 12, R.wood[1])
+            val crown = if (winter || m.month in listOf(11, 3)) null else if (m.month in 9..10) R.autumn else R.green
+            if (crown != null) b.ball(tx + 1, ty - 12, 9, crown, R.INK)
+            else for (k2 in 0 until 6) b.line(tx + 1, ty - 4, tx - 6 + k2 * 3, ty - 16 - (k2 % 2) * 3, R.wood[2])
+        }
+        // a lamp post and a bench
+        b.r(90, 54, 1, 34, R.iron[1]); b.r(88, 52, 5, 3, R.iron[2]); b.p(90, 55, if (m.dark > .15f) R.honey[5] else R.glass[3])
+        b.r(16, 80, 18, 2, R.wood[4]); b.r(16, 76, 18, 2, R.wood[3]); b.r(17, 82, 1, 4, R.iron[1]); b.r(32, 82, 1, 4, R.iron[1])
+        b.person(64, 96, look)
+        b.night(m, keep)
+        if (m.dark > .15f) b.lamplight(90, 56, 16, .6f)
+    }
+
+    override fun anim(b: Buf, t: Int) { b.precipitation(m, t) }
+}

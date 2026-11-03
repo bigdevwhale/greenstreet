@@ -85,11 +85,85 @@ fun Buf.walker(x: Int, y: Int, step: Int, left: Boolean) {
 }
 
 /** A neighbour's place on the map: a little signboard with their icon. */
-fun Buf.sign(x: Int, y: Int, icon: IntArray, open: Boolean) {
+fun Buf.sign(x: Int, y: Int, icon: IntArray, open: Boolean, shut: Boolean = false) {
     r(x - 4, y - 11, 9, 8, R.INK)
     for (j in 0 until 6) for (i in 0 until 7) p(x - 3 + i, y - 10 + j, rp(if (open) R.cream else R.stone, .85 - j * .05, i, j))
     for (j in 0 until 5) for (i in 0 until 5) if (icon[j * 5 + i] != 0) p(x - 2 + i, y - 10 + j, if (open) R.red[2] else R.iron[3])
     r(x, y - 3, 1, 3, R.iron[2])
+    // closed: a rolled-down shutter over the board
+    if (shut) for (j in 0 until 6) for (i in 0 until 7) p(x - 3 + i, y - 10 + j, if (j % 2 == 0) R.iron[2] else R.iron[1], .75f)
+}
+
+/**
+ * A neighbour out for a walk, drawn small for the map but recognisable: their own coat, hair, hat or kerchief,
+ * beard or glasses, and the thing they carry for their trade. Feet at (x, y).
+ */
+fun Buf.villager(x: Int, y: Int, l: Look, step: Int, kind: String = "") {
+    val e = l.extras
+    val skirt = "long" in e || "bun" in e || "earrings" in e || e.any { it.startsWith("kerchief") }
+    val half = if (kind in setOf("bakery", "market", "garage", "hardware")) 4 else if (kind in setOf("library", "salon")) 2 else 3
+    val tall = if (kind in setOf("station", "library", "theatre", "park")) 2 else 0
+    val top = y - 12 - tall          // the coat's top row
+    for (i in -half - 1..half + 1) mul(x + i, y, G.SHADOW, .4f)
+    // legs, one stepping
+    val legs = if (skirt) l.skin[2] else R.iron[1]
+    r(x - 2, y - 4, 2, 4, R.INK); r(x + 1, y - 4, 2, 4, R.INK)
+    p(x - 2, y - 3, legs); p(x + 2, y - 3, legs)
+    if (step == 1) { p(x - 2, y - 1, R.INK); p(x - 3, y - 1, R.INK) } else { p(x + 2, y - 1, R.INK); p(x + 3, y - 1, R.INK) }
+    // the coat or dress, outlined and lit from the left; a skirt flares at the hem
+    val rows = 8 + tall + if (skirt) 1 else 0
+    for (j in 0 until rows) {
+        val flare = if (skirt && j >= rows - 3) j - (rows - 3) + 1 else 0
+        val hw = half + flare - (if (j == 0) 1 else 0)
+        for (i in -hw - 1..hw + 1) {
+            val edge = i == -hw - 1 || i == hw + 1 || j == rows - 1
+            val shade = if (i < -hw / 2) 4 else if (i <= hw / 2) 3 else 2
+            p(x + i, top + j, if (edge) R.INK else l.cloth[shade.coerceAtMost(l.cloth.size - 1)])
+        }
+    }
+    r(x - half, top - 1, half * 2 + 1, 1, R.INK)
+    if ("apron" in e) for (j in 2 until rows - 1) for (i in -half + 1..half - 1) p(x + i, top + j, R.cream[if (i < 0) 5 else 4])
+    p(x - half - 1, top + 5, l.skin[3]); p(x + half + 1, top + 5, l.skin[2])   // hands
+    val hy0 = top - 6                 // the head's top row
+    r(x - 3, hy0 - 1, 7, 7, R.INK)
+    for (j in 0 until 5) for (i in 0 until 5) p(x - 2 + i, hy0 + j, l.skin[if (i < 2) 4 else 3])
+    p(x - 1, hy0 + 2, R.INK); p(x + 1, hy0 + 2, R.INK)
+    val hr = l.hair
+    r(x - 2, hy0, 5, 1, hr[3]); p(x - 2, hy0 + 1, hr[2]); p(x + 2, hy0 + 1, hr[2])
+    if ("long" in e) { r(x - 3, hy0 + 1, 1, 6, hr[3]); r(x + 3, hy0 + 1, 1, 6, hr[2]) }
+    if ("bun" in e) { r(x - 1, hy0 - 3, 3, 2, hr[3]); p(x, hy0 - 4, R.INK) }
+    if ("curls" in e) for (k in -2..2 step 2) p(x + k, hy0 - 1, hr[4])
+    if ("pigtails" in e) { p(x - 4, hy0 + 3, hr[3]); p(x + 4, hy0 + 3, hr[3]) }
+    if ("beard" in e) { r(x - 2, hy0 + 3, 5, 2, hr[3]); p(x - 1, hy0 + 5, hr[2]); p(x, hy0 + 5, hr[3]); p(x + 1, hy0 + 5, hr[2]) }
+    if ("moustache" in e) r(x - 1, hy0 + 3, 3, 1, hr[2])
+    if ("glasses" in e) { p(x - 1, hy0 + 2, R.glass[5]); p(x + 1, hy0 + 2, R.glass[5]); p(x, hy0 + 2, R.INK) }
+    if ("earrings" in e) { p(x - 3, hy0 + 3, R.gold[4]); p(x + 3, hy0 + 3, R.gold[4]) }
+    when {
+        e.any { it.startsWith("hat=toque") } -> { r(x - 2, hy0 - 4, 5, 4, R.cream[5]); r(x - 3, hy0 - 1, 7, 1, R.cream[3]); r(x - 3, hy0 - 5, 7, 1, R.INK) }
+        e.any { it.startsWith("kerchief") } && l.hat != null -> { r(x - 3, hy0 - 1, 7, 3, l.hat[3]); r(x - 3, hy0 - 1, 7, 1, l.hat[4]); p(x - 3, hy0 + 2, l.hat[2]); p(x + 3, hy0 + 2, l.hat[2]) }
+        "cap" in e || e.any { it == "hat=cap" } -> { val c = l.hat ?: G.navy; r(x - 3, hy0 - 2, 7, 2, c[3]); r(x - 3, hy0, 8, 1, R.INK) }
+    }
+    val hr2 = hr
+    // what they carry for their trade
+    val hx = x + half + 2; val hy = top + 4
+    when (kind) {
+        "bakery" -> { r(hx, hy - 1, 4, 2, R.honey[3]); p(hx + 1, hy - 1, R.honey[5]); p(hx + 3, hy, R.honey[2]) }
+        "water" -> { for (k in 0 until 9) p(hx + k / 2, hy - k, R.wood[2]); p(hx + 4, hy - 9, R.cream[5]); p(hx + 5, hy - 6, R.glass[4]) }
+        "vet" -> { r(hx + 3, y - 3, 4, 2, R.wood[3]); p(hx + 7, y - 4, R.wood[3]); p(hx + 7, y - 5, R.wood[4]); p(hx + 3, y - 1, R.wood[1]); p(hx + 6, y - 1, R.wood[1]); for (k in 0 until 4) p(hx + k / 2, hy + k, R.red[3]) }
+        "post" -> { r(hx - 1, hy - 1, 4, 4, R.wood[3]); p(hx, hy - 2, R.wood[2]); p(hx + 1, hy, R.cream[5]) }
+        "florist" -> { for ((dx, dy) in listOf(0 to -3, 1 to -2, -1 to -2, 2 to -3)) p(hx + dx, hy + dy, listOf(R.red[4], R.autumn[4], R.lilac[4], R.honey[5])[(dx + 2) % 4]); p(hx, hy - 1, R.green[3]); p(hx, hy, R.green[2]) }
+        "school", "library" -> { r(hx, hy - 1, 3, 4, if (kind == "school") R.roofB[3] else R.red[2]); r(hx, hy - 1, 3, 1, R.cream[5]) }
+        "sports" -> { r(hx, hy - 1, 3, 3, R.cream[5]); p(hx + 1, hy, R.INK) }
+        "park" -> { for (k in 0 until 10) p(hx, hy + 3 - k, R.wood[2]); r(hx - 1, hy - 7, 3, 1, R.iron[3]) }
+        "garage", "hardware" -> { r(hx, hy, 4, 3, if (kind == "hardware") R.red[3] else R.iron[3]); r(hx + 1, hy - 1, 2, 1, R.INK) }
+        "market" -> { r(hx - 1, hy, 5, 3, R.wood[3]); p(hx, hy - 1, R.apple[4]); p(hx + 2, hy - 1, R.green[4]) }
+        "cafe" -> { r(hx, hy, 2, 3, R.cream[5]); p(hx + 2, hy + 1, R.cream[4]); p(hx, hy - 2, R.cream[3]) }
+        "pharmacy" -> { for (k in 0 until 3) { p(hx + k, hy - 1, R.green[3 + k % 2]); p(hx + k, hy, R.green[2]) } }
+        "tailor" -> { r(hx, hy, 3, 3, R.enamel[4]); p(hx + 1, hy + 1, R.enamel[2]) }
+        "theatre" -> { for (k in 0 until 7) p(x - half + k, top + 1 + k / 3, R.red[4]) }
+        "salon" -> { r(x - 3, hy0 - 2, 7, 2, hr2[4]); p(x - 4, hy0, hr2[3]); p(x + 4, hy0, hr2[3]) }
+        "station" -> { r(hx, hy - 1, 3, 4, R.iron[3]); p(hx + 1, hy, R.honey[5]) }
+    }
 }
 
 /** Night, glints and weather over the visible window of the map. [ox], [oy]: the window's corner on the map. */

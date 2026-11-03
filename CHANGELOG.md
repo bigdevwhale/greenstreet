@@ -6,6 +6,27 @@ line "<!-- tg", then 2-4 short lines in Russian for users (what is new, what is 
 then close it like any HTML comment. The release notes carry it, and the chat bot posts those lines.
 -->
 
+## [0.10.0] - 2026-11-03
+
+### Added
+- Neighbours keep hours and days off: at work in their place, out for a walk along the district's paths otherwise, asleep at night; closed places get a shutter.
+- A first meeting with every neighbour: who they are, what they are good for and what presents give.
+- A notebook per neighbour: five facts that open with friendship, each with where you learned it.
+- The neighbour's card: portrait, where they are now, ten hearts with progress, tabs for the person, the notebook and their tastes.
+- Mikhalych's hardware shop: decor for the yard (lights, birdhouse, feeder, tyre bed, gnome, barrel), feed, a hoe and surprise seed packets.
+- Neighbours on the map look different: height, build, skirts, hats, beards, glasses, things of their trade.
+
+### Changed
+- Beds stand at least 25 m apart and are drawn with a frame and a flag, so they no longer merge.
+- The yard: new hens of three breeds that wander and peck, a nest with the eggs, a ramp to the coop, labels on what is where (tap to hide).
+
+<!-- tg
+Соседи теперь живут по своему расписанию: работают, гуляют по району, ночью спят
+При первой встрече сосед рассказывает о себе, а в блокноте постепенно открывается его история
+У Михалыча открылись хозтовары: вещи для двора и для огорода
+Грядки стоят не ближе 25 метров друг к другу, во дворе новые куры и подписи
+-->
+
 ## [0.9.0] - 2026-11-02
 
 First public beta.

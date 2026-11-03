@@ -49,6 +49,8 @@ import app.greenstreet.container
 import app.greenstreet.data.Place
 import app.greenstreet.domain.Geo
 import app.greenstreet.domain.metres
+import app.greenstreet.domain.Whereabouts
+import app.greenstreet.ui.art.villager
 import app.greenstreet.ui.art.Buf
 import app.greenstreet.ui.art.Icons
 import app.greenstreet.ui.art.MapPainter
@@ -152,6 +154,11 @@ fun MapScreen(open: (Sheet) -> Unit) {
     var zoom by remember { mutableIntStateOf(1) }
     val lt = LocalDateTime.now()
     val moment = Moment(lt.hour * 60 + lt.minute, now.sky, now.month, now.day)
+    // the neighbours walk: where everyone is is worked out again every second
+    var clock by remember { mutableStateOf(LocalDateTime.now()) }
+    LaunchedEffect(Unit) { while (true) { kotlinx.coroutines.delay(1000); clock = LocalDateTime.now() } }
+    val status = c.places.keys.associateWith { c.whereabouts(it, clock) }
+    val walkers = status.filterValues { it == Whereabouts.OUT }.keys.mapNotNull { id -> c.spotNow(id, clock)?.let { id to it } }.toMap()
 
     Column(Modifier.fillMaxSize()) {
         // the map takes all the room the panel below leaves; its height in map pixels follows the box
@@ -184,6 +191,8 @@ fun MapScreen(open: (Sheet) -> Unit) {
                             val ax = cx + o.x / k; val ay = cy + o.y / k
                             val bed = s.beds.filter { c.content.variety[it.variety]?.place == Place.VERGE }.minByOrNull { Math.hypot(d.x(it.lon) - ax.toDouble(), d.y(it.lat) - ay.toDouble()) }
                             if (bed != null && Math.hypot(d.x(bed.lon) - ax.toDouble(), d.y(bed.lat) - ay.toDouble()) < 7) { open(Sheet.BedInfo(bed.id)); return@detectTapGestures }
+                            val walker = walkers.entries.minByOrNull { Math.hypot(it.value.x - ax.toDouble(), it.value.y - 6 - ay.toDouble()) }
+                            if (walker != null && Math.hypot(walker.value.x - ax.toDouble(), walker.value.y - 6 - ay.toDouble()) < 8) { open(Sheet.Place(walker.key)); return@detectTapGestures }
                             val who = c.places.entries.minByOrNull { Math.hypot(it.value.x - ax.toDouble(), it.value.y - 6 - ay.toDouble()) }
                             if (who != null && Math.hypot(who.value.x - ax.toDouble(), who.value.y - 6 - ay.toDouble()) < 9) open(Sheet.Place(who.key))
                         },
@@ -215,7 +224,15 @@ fun MapScreen(open: (Sheet) -> Unit) {
                     val p = c.content.person[id] ?: continue
                     val sx = sp.x.roundToInt() - cx; val sy = sp.y.roundToInt() - cy
                     if (sx < -6 || sy < -2 || sx > vw + 6 || sy > vh + 12) continue
-                    objs += sy to { view.sign(sx, sy, Icons.forKind(p.kind), s.bonds[id]?.isOpen == true) }
+                    objs += sy to { view.sign(sx, sy, Icons.forKind(p.kind), s.bonds[id]?.isOpen == true, status[id] != Whereabouts.WORK) }
+                }
+                for ((id, sp) in walkers) {
+                    val p = c.content.person[id] ?: continue
+                    val sx = sp.x.roundToInt() - cx; val sy = sp.y.roundToInt() - cy
+                    if (sx < -6 || sy < -2 || sx > vw + 6 || sy > vh + 16) continue
+                    val look = app.greenstreet.ui.art.Look.of(p.look)
+                    val moving = c.walkingNow(id)
+                    objs += sy to { view.villager(sx, sy, look, if (moving) ((tick / 3) + id.length) % 2 else 0, p.kind) }
                 }
                 s.home?.let { h -> val hx = d.x(h.lon).roundToInt() - cx; val hy = d.y(h.lat).roundToInt() - cy; objs += hy to { view.sign(hx, hy, Icons.home, true) } }
                 objs += my - cy to { view.walker(mx - cx, my - cy, if (walking) (tick / 2) % 2 else 0, false) }
@@ -231,21 +248,40 @@ fun MapScreen(open: (Sheet) -> Unit) {
             val ccx = clampCam(mx - vw / 2 + pan.x, t.w, vw); val ccy = clampCam(my - vh * 11 / 20 + pan.y, t.h, vh)
             val placed = ArrayList<FloatArray>()
             val order = c.places.entries.sortedByDescending { (id, _) -> (if (s.bonds[id]?.isOpen == true) 2 else 0) + (if (c.game.request(s, id) != null) 1 else 0) }
-            for ((id, sp) in order) {
+            // a closed place keeps its owner's name, pale, so you know whose it is
+            for ((id, place) in order) {
+                if (status[id] != Whereabouts.OUT || s.bonds[id]?.isOpen != true) continue
                 val p = c.content.person[id] ?: continue
-                val sx = sp.x - ccx; val sy = sp.y - ccy
+                val sx = place.x - ccx; val sy = place.y - ccy
                 if (sx < 0 || sy < 10 || sx > vw || sy > vh) continue
-                val opened = s.bonds[id]?.isOpen == true
-                val asks = opened && c.game.request(s, id) != null
-                val label = if (opened) p.name(ru).substringBefore(' ') + if (asks) " !" else "" else "?"
+                val label = p.name(ru).substringBefore(' ')
                 val lw = label.length * 8.6f + 10f
                 val bw = boxW.value
                 val lx = (bw * (sx / vw) - lw / 2).coerceIn(2f, bw - lw - 2f)
                 val ly = bw * (sy / vw) - 46f
                 if (placed.any { r -> lx < r[0] + r[2] && lx + lw > r[0] && ly < r[1] + 20f && ly + 20f > r[1] }) continue
                 placed += floatArrayOf(lx, ly, lw)
-                Text(label, style = T.Small.copy(color = if (asks) C.light else if (opened) C.ink else C.muted),
-                    modifier = Modifier.offset(x = lx.dp, y = ly.dp).pixelBox(if (asks) C.red else if (opened) C.light else C.paper2, bevel = null, lip = null)
+                Text(label, style = T.Small.copy(color = C.muted), modifier = Modifier.offset(x = lx.dp, y = ly.dp)
+                    .pixelBox(C.paper2.copy(alpha = .8f), bevel = null, lip = null).padding(horizontal = 5.dp, vertical = 1.dp), maxLines = 1)
+            }
+            for ((id, place) in order) {
+                val p = c.content.person[id] ?: continue
+                val st = status[id]
+                val sp = walkers[id] ?: place
+                val sx = sp.x - ccx; val sy = sp.y - ccy - if (walkers[id] != null) 9 else 0
+                if (sx < 0 || sy < 10 || sx > vw || sy > vh) continue
+                val opened = s.bonds[id]?.isOpen == true
+                val awake = st != Whereabouts.ASLEEP
+                val asks = opened && awake && c.game.request(s, id) != null
+                val label = if (!opened) "?" else p.name(ru).substringBefore(' ') + (if (asks) " !" else "") + if (!awake) " zz" else ""
+                val lw = label.length * 8.6f + 10f
+                val bw = boxW.value
+                val lx = (bw * (sx / vw) - lw / 2).coerceIn(2f, bw - lw - 2f)
+                val ly = bw * (sy / vw) - 46f
+                if (placed.any { r -> lx < r[0] + r[2] && lx + lw > r[0] && ly < r[1] + 20f && ly + 20f > r[1] }) continue
+                placed += floatArrayOf(lx, ly, lw)
+                Text(label, style = T.Small.copy(color = if (asks) C.light else if (opened && awake) C.ink else C.muted),
+                    modifier = Modifier.offset(x = lx.dp, y = ly.dp).pixelBox(if (asks) C.red else if (opened && awake) C.light else C.paper2, bevel = null, lip = null)
                         .padding(horizontal = 5.dp, vertical = 1.dp), maxLines = 1)
             }
             Column(Modifier.align(Alignment.TopStart).padding(8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -293,9 +329,9 @@ fun MapScreen(open: (Sheet) -> Unit) {
             val spot = t.nearestVerge(mx, my, 3)
             if (spot != null) {
                 val sowable = s.seeds.keys.mapNotNull { c.content.variety[it] }.filter { it.place == Place.VERGE && c.game.canSow(s, now, it) }
-                val tooClose = s.beds.any { Geo(it.lat, it.lon).metres(Geo(d.lat(spot[1].toFloat()), d.lon(spot[0].toFloat()))) < 8 }
+                val tooClose = c.game.tooClose(s, Geo(d.lat(spot[1] + .5f), d.lon(spot[0] + .5f)))
                 when {
-                    tooClose -> Text(w(ru, "Рядом уже есть грядка: между грядками — не меньше восьми шагов.", "There's a bed close by: beds need eight paces between them."), style = T.Small)
+                    tooClose -> Text(w(ru, "Рядом уже есть грядка. Между грядками — не меньше 25 метров, иначе им тесно.", "There's a bed close by. Beds need 25 metres between them, or they crowd each other."), style = T.Small)
                     sowable.isEmpty() -> Text(w(ru, "Газон свободен, но сеять сейчас нечего: семена дают соседи и рынок.", "The verge is free, but there's nothing to sow now: neighbours and the market give seeds."), style = T.Small)
                     else -> FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         Text(w(ru, "Посеять:", "Sow:"), style = T.Body, modifier = Modifier.align(Alignment.CenterVertically))
@@ -314,9 +350,18 @@ fun MapScreen(open: (Sheet) -> Unit) {
                     PixelButton(w(ru, "Собрать: ", "Pick: ") + c.content.name(c.content.variety.getValue(b.variety).crop)(ru).lowercase(), { open(Sheet.Harvest(b.id)) }, kind = Kind.LAMP)
                 }
                 c.places.keys.filter { c.near(it, me) }.forEach { id ->
-                    PixelButton(w(ru, "Зайти: ", "Visit: ") + c.content.person.getValue(id).name(ru), { open(Sheet.Visit(id)) })
+                    val met = s.bonds[id]?.isOpen == true
+                    val who = c.content.person.getValue(id)
+                    val label = when {
+                        !met && status[id] == Whereabouts.OUT -> w(ru, "Познакомиться", "Say hello")
+                        !met -> w(ru, "Зайти: ", "Visit: ") + who.role(ru)
+                        status[id] == Whereabouts.OUT -> w(ru, "Поговорить: ", "Talk to ") + who.name(ru)
+                        else -> w(ru, "Зайти: ", "Visit: ") + who.name(ru)
+                    }
+                    PixelButton(label, { open(Sheet.Visit(id)) })
                 }
                 if (t.nearWater(mx, my, 6)) PixelButton(w(ru, "Закинуть удочку", "Cast a line"), { open(Sheet.Fish(isBigWater(t, mx, my))) }, kind = Kind.GHOST)
+                if (c.near("mikhalych", me)) PixelButton(w(ru, "Хозтовары", "Hardware"), { open(Sheet.Shop) }, kind = Kind.GHOST)
                 if (c.near("zina", me)) PixelButton(if (now.saturday) w(ru, "Ярмарка", "The fair") else w(ru, "Семенной ряд", "Seed stall"), { open(Sheet.Market) }, kind = Kind.GHOST)
                 if (c.atHome(me)) PixelButton(w(ru, "Во двор", "Into the courtyard"), { open(Sheet.Tab(1)) }, kind = Kind.GHOST)
                 PixelButton(if (walking) w(ru, "Закончить прогулку", "End the walk") else w(ru, "Выйти на прогулку", "Go for a walk"),
@@ -348,7 +393,7 @@ fun bedState(c: app.greenstreet.AppContainer, b: app.greenstreet.domain.Bed, tod
 /** The street name nearest to the player, or a general word. */
 fun placeName(c: app.greenstreet.AppContainer, at: Geo, ru: Boolean): String {
     if (c.atHome(at)) return w(ru, "У дома", "At home")
-    c.places.keys.firstOrNull { c.near(it, at) }?.let { return c.content.person.getValue(it).role(ru).replaceFirstChar { ch -> ch.uppercase() } }
+    c.places.keys.firstOrNull { c.whereabouts(it) == Whereabouts.WORK && c.near(it, at) }?.let { return c.content.person.getValue(it).role(ru).replaceFirstChar { ch -> ch.uppercase() } }
     val d = c.district ?: return ""
     val x = d.x(at.lon); val y = d.y(at.lat)
     var best: String? = null; var bd = 14.0
@@ -370,14 +415,14 @@ fun nextStep(c: app.greenstreet.AppContainer, me: Geo, ru: Boolean): Pair<String
             return w(ru, "Созрела грядка: ", "A bed is ripe: ") + c.content.name(c.content.variety.getValue(b.variety).crop)(ru).lowercase() + " · " + where(me, g, ru) to g
         }
     val people = c.places.keys.filter { s.bonds[it]?.isOpen == true }
-    people.mapNotNull { id -> c.game.request(s, id)?.takeIf { c.game.canFulfil(s, it.needs) }?.let { id to c.placeGeo(id) } }
+    people.mapNotNull { id -> c.game.request(s, id)?.takeIf { c.game.canFulfil(s, it.needs) }?.let { id to c.spotNow(id)?.let { sp -> c.geoOf(sp) } } }
         .filter { it.second != null && !c.near(it.first, me) }.minByOrNull { it.second!!.metres(me) }?.let { (id, g) ->
             return w(ru, "Можно отнести: %s ждёт то, что у вас есть · ", "You can deliver: %s is waiting for what you have · ").format(c.content.person.getValue(id).name(ru)) + where(me, g!!, ru) to g
         }
-    people.filter { c.game.seedsToday(s, now, it) != null && !c.near(it, me) }.mapNotNull { id -> c.placeGeo(id)?.let { id to it } }.minByOrNull { it.second.metres(me) }?.let { (id, g) ->
+    people.filter { c.game.seedsToday(s, now, it) != null && !c.near(it, me) }.mapNotNull { id -> c.spotNow(id)?.let { sp -> c.geoOf(sp) }?.let { id to it } }.minByOrNull { it.second.metres(me) }?.let { (id, g) ->
         return w(ru, "Семена на сегодня ждут у: %s · ", "Today's seeds are waiting at %s's · ").format(c.content.person.getValue(id).name(ru)) + where(me, g, ru) to g
     }
-    c.places.keys.filter { s.bonds[it]?.isOpen != true }.mapNotNull { id -> c.placeGeo(id)?.let { id to it } }.minByOrNull { it.second.metres(me) }?.let { (id, g) ->
+    c.places.keys.filter { s.bonds[it]?.isOpen != true }.mapNotNull { id -> c.spotNow(id)?.let { sp -> c.geoOf(sp) }?.let { id to it } }.minByOrNull { it.second.metres(me) }?.let { (id, g) ->
         return w(ru, "Здесь ещё не были: %s · ", "Not visited yet: %s · ").format(c.content.person.getValue(id).role(ru)) + where(me, g, ru) to g
     }
     return null

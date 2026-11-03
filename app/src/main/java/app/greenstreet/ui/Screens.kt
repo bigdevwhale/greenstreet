@@ -1,6 +1,10 @@
 package app.greenstreet.ui
 
 import androidx.compose.foundation.layout.Arrangement
+import app.greenstreet.ui.components.pixelBox
+import androidx.compose.ui.unit.sp
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.foundation.layout.offset
 import androidx.compose.runtime.setValue
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
@@ -60,7 +64,7 @@ fun YardScreen(open: (Sheet) -> Unit) {
     val home = c.atHome()
     LaunchedEffect(ver) { if (home && c.game.tendHome(s, now) > 0) c.changed() }
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(vertical = 8.dp)) {
-        PixelView(remember(ver, now.day) { YardScene(moment(c), yardLife(c)) }, Modifier.padding(horizontal = 12.dp))
+        YardWithLabels(c, ver, ru)
         if (!home) Text(w(ru, "Вы не дома. Готовить, собирать яйца и сеять в горшки можно только во дворе.", "You're not home. Cooking, collecting eggs and potting up happen only in the courtyard."),
             style = T.Small, modifier = Modifier.padding(12.dp))
         Section(w(ru, "Соседи по двору", "The yard's people")) {
@@ -68,7 +72,10 @@ fun YardScreen(open: (Sheet) -> Unit) {
             FlowRow(Modifier.padding(top = 6.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 c.content.people.filter { it.yard }.forEach { p ->
                     val asks = c.game.request(s, p.id) != null
-                    ItemSlot(portrait(c, p.id), null, false, dim = !home, mark = if (asks) "!" else null) { if (home) open(Sheet.Visit(p.id)) }
+                    val awake = c.whereabouts(p.id) != app.greenstreet.domain.Whereabouts.ASLEEP
+                    ItemSlot(portrait(c, p.id), null, false, dim = !home || !awake, mark = if (!awake) "z" else if (asks) "!" else null) {
+                        if (home && awake) open(Sheet.Visit(p.id)) else open(Sheet.Place(p.id))
+                    }
                 }
             }
         }
@@ -201,14 +208,19 @@ fun PeopleScreen(open: (Sheet) -> Unit) {
                     Column(Modifier.padding(start = 10.dp).weight(1f)) {
                         Text(if (opened) p.name(ru) else "???", style = T.Heading)
                         Text(p.role(ru), style = T.Small)
+                        val st = c.whereabouts(p.id)
+                        Text(app.greenstreet.domain.Schedule.now(p, java.time.LocalDateTime.now())(ru).replaceFirstChar { it.uppercase() },
+                            style = T.Small.copy(color = if (st == app.greenstreet.domain.Whereabouts.ASLEEP) C.muted else C.green))
                         if (opened) {
                             val h = c.game.hearts(s, p.id)
-                            Text("♥".repeat((h + 1) / 2) + "♡".repeat(5 - (h + 1) / 2), style = T.Small.copy(color = C.red))
+                            Hearts(h, Modifier.padding(vertical = 3.dp))
                             c.game.request(s, p.id)?.let { r -> Text(w(ru, "Просит: ", "Asks for: ") + r.needs.joinToString { "${c.content.name(it.key)(ru).lowercase()} ×${it.qty}" }, style = T.Small.copy(color = C.ink)) }
                             val loves = b!!.known.filterValues { it == "love" || it == "like" }.keys
-                            if (loves.isNotEmpty()) Text(w(ru, "Любит: ", "Likes: ") + loves.joinToString { c.content.name(it)(ru).lowercase() }, style = T.Small)
+                            if (loves.isNotEmpty()) Text(w(ru, "Радуется: ", "Glad of: ") + loves.joinToString { c.content.name(it)(ru).lowercase() }, style = T.Small)
+                            val notes = p.facts.count { it.hearts <= h }
+                            Text(w(ru, "В блокноте записей: %d из %d", "Notebook: %d of %d lines").format(notes, p.facts.size), style = T.Small)
                         } else Text(if (p.yard) w(ru, "Живёт в вашем доме.", "Lives in your house.") else w(ru, "Ещё не знакомы. Загляните — место отмечено на карте.", "Not met yet. Look in — the place is marked on the map."), style = T.Small)
-                        if (!p.yard) c.placeGeo(p.id)?.let { g ->
+                        if (!p.yard) (c.spotNow(p.id)?.let { sp -> c.geoOf(sp) } ?: c.placeGeo(p.id))?.let { g ->
                             val here = c.here.value ?: s.home
                             if (here != null) Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 4.dp)) {
                                 Text(where(here, g, ru), style = T.Small.copy(color = C.green), modifier = Modifier.weight(1f))
@@ -274,4 +286,34 @@ fun envelope(unread: Boolean): Buf {
     for (x in 0 until 16) { b.p(x, 0, R.INK); b.p(x, 11, R.INK) }; for (y in 0 until 12) { b.p(0, y, R.INK); b.p(15, y, R.INK) }
     if (unread) { b.p(7, 6, R.red[3]); b.p(8, 6, R.red[4]); b.p(7, 7, R.red[2]); b.p(8, 7, R.red[3]) }
     return b
+}
+
+
+/** The yard picture with small signs on what is what: the hen house, your window, the boxes, the bench. Tap the picture to hide them. */
+@Composable
+private fun YardWithLabels(c: app.greenstreet.AppContainer, ver: Int, ru: Boolean) {
+    val now = c.now()
+    val life = remember(ver, now.day) { yardLife(c) }
+    var labels by remember { mutableStateOf(true) }
+    androidx.compose.foundation.layout.BoxWithConstraints(Modifier.padding(horizontal = 12.dp).clickable { labels = !labels }) {
+        val k = maxWidth.value / 128f
+        PixelView(remember(ver, now.day) { YardScene(moment(c), life) })
+        if (labels) {
+            val window = when (life.kind) { "block" -> 79f to 40f; "house" -> 77f to 58f; else -> 63f to 45f }
+            val spots = buildList {
+                add(Triple(15f, 66f, w(ru, "Курятник · яиц: %d", "Hen house · eggs: %d").format(c.state?.eggs ?: 0)))
+                add(Triple(window.first, window.second, if (life.balcony) w(ru, "Ваш балкон", "Your balcony") else w(ru, "Ваше окно", "Your window")))
+                add(Triple(74f, 78f, if (life.garden) w(ru, "Общий сад", "The shared garden") else w(ru, "Ящики с зеленью", "Herb boxes")))
+                add(Triple(107f, 101f, w(ru, "Скамейка", "The bench")))
+            }
+            for ((x, y, t) in spots) {
+                val tw = t.length * 7.2f + 8f
+                val lx = (x * k - tw / 2).coerceIn(0f, maxWidth.value - tw)
+                Text(t, style = T.Small.copy(color = C.ink, fontSize = 13.sp), maxLines = 1,
+                    modifier = Modifier.offset(x = lx.dp, y = (y * k - 18).dp).pixelBox(C.light.copy(alpha = .9f), bevel = null, lip = null).padding(horizontal = 4.dp))
+            }
+        }
+    }
+    Text(if (labels) w(ru, "Нажмите на двор, чтобы скрыть подписи.", "Tap the yard to hide the labels.") else w(ru, "Нажмите на двор, чтобы показать подписи.", "Tap the yard to show the labels."),
+        style = T.Small, modifier = Modifier.padding(horizontal = 12.dp, vertical = 2.dp))
 }

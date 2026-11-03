@@ -206,12 +206,16 @@ class Game(val c: Content) {
     fun sow(s: GameState, now: Now, variety: String, at: Geo): Bed? {
         val v = c.variety[variety] ?: return null
         if (!canSow(s, now, v)) return null
+        if (v.place == Place.VERGE && tooClose(s, at)) return null
         s.add(s.seeds, variety, -1)
         val b = Bed(s.nextId++, variety, at.lat, at.lon, now.day, lastTend = now.day, tended = 0)
         s.beds += b
         s.count("sown")
         return b
     }
+
+    /** Is there a bed by the road closer than [BED_GAP] to [at]? Beds packed tighter turn into a jumble on the map. */
+    fun tooClose(s: GameState, at: Geo) = s.beds.any { c.variety[it.variety]?.place == Place.VERGE && Geo(it.lat, it.lon).metres(at) < BED_GAP }
 
     fun ripe(b: Bed): Boolean {
         val v = c.variety[b.variety] ?: return false
@@ -532,6 +536,47 @@ class Game(val c: Content) {
         return true
     }
 
+    // ---------- Mikhalych's hardware shop ----------
+
+    fun owns(s: GameState, key: String) = "own.$key" in s.flags
+    fun stock(s: GameState, key: String) = s.tools["stock.$key"] ?: 0
+
+    /** Buys a ware; returns the variety key for a mystery packet, "" for anything else, null if it can't be bought. */
+    fun buyWare(s: GameState, now: Now, key: String, rnd: java.util.Random = java.util.Random()): String? {
+        val w = Wares.of(key)
+        if (s.coins < w.price || (w.once && owns(s, key))) return null
+        s.coins -= w.price; s.count("bought")
+        if (w.once) { s.flags += "own.$key"; return "" }
+        if (key == "surprise") {
+            val m = now.month
+            val pool = c.varieties.filter { it.place == Place.VERGE && (it.sow.isEmpty() || m in it.sow || (m % 12 + 1) in it.sow) }
+                .ifEmpty { c.varieties.filter { it.place == Place.SILL } }
+            val v = pool[rnd.nextInt(pool.size)]
+            s.add(s.seeds, v.key, 2)
+            return v.key
+        }
+        s.tools["stock.$key"] = stock(s, key) + 1
+        return ""
+    }
+
+    /** Plant food on a bed: three days of growth at once. */
+    fun feed(s: GameState, bedId: Long): Boolean {
+        val b = s.beds.firstOrNull { it.id == bedId } ?: return false
+        val v = c.variety[b.variety] ?: return false
+        if (stock(s, "feed") <= 0 || ripe(b) || b.grown >= v.days) return false
+        b.grown = minOf(v.days.toDouble(), b.grown + 3); b.tended += 3
+        s.tools["stock.feed"] = stock(s, "feed") - 1
+        return true
+    }
+
+    /** Weeds a bed gone wild, with the hoe. */
+    fun weed(s: GameState, bedId: Long): Boolean {
+        val b = s.beds.firstOrNull { it.id == bedId } ?: return false
+        if (!owns(s, "hoe") || !b.wild) return false
+        b.wild = false; b.idle = 0
+        return true
+    }
+
     /** The crop the fair wants this week: it sells for twice the price. Chosen from what can be ripe around now. */
     fun demand(s: GameState, now: Now): String? {
         val m = now.month
@@ -664,6 +709,8 @@ class Game(val c: Content) {
         val WEATHER = setOf("rain", "snow", "frost", "fog", "sun", "heat")
         val PARTS = setOf("morning", "day", "evening", "night")
         /** Points needed for each heart: about a season of regular visits for 4, a year for 7, three for 10. */
+        /** Metres between beds by the road. */
+        const val BED_GAP = 25.0
         val HEART_POINTS = intArrayOf(0, 6, 20, 45, 80, 130, 200, 290, 400, 540, 720)
 
         /** Sunday of Maslenitsa (Forgiveness Sunday): Orthodox Easter minus 49 days. */

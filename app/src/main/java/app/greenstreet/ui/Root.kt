@@ -25,6 +25,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -79,6 +80,7 @@ sealed interface Sheet {
     data class Tab(val n: Int) : Sheet
     data object Morning : Sheet
     data object Settings : Sheet
+    data object Shop : Sheet
 }
 
 @Composable
@@ -116,7 +118,8 @@ fun yardLife(c: AppContainer, guest: String? = null): app.greenstreet.ui.art.Yar
     return app.greenstreet.ui.art.YardLife(fac, block?.index ?: 0, c.game.year(s, now.day), s.eggs, c.game.flag(s, now, "hive"), c.game.flag(s, now, "balcony"),
         c.game.flag(s, now, "garden"), now.date.dayOfWeek.value, c.game.festival(s, now)?.key, s.flags.toSet(), pots,
         if (t != null && d != null && home != null) t.homeKind(d.x(home.lon), d.y(home.lat)) else "well",
-        guest?.let { c.content.person[it]?.look })
+        guest?.let { c.content.person[it]?.look },
+        s.flags.filter { it.startsWith("own.") }.map { it.removePrefix("own.") }.toSet())
 }
 
 fun moment(c: AppContainer): Moment {
@@ -291,6 +294,7 @@ private fun SheetView(sheet: Sheet, go: (Sheet) -> Unit, close: () -> Unit) {
                 Column(Modifier.verticalScroll(rememberScrollState())) {
                     when (sheet) {
                         is Sheet.Settings -> SettingsView()
+                        is Sheet.Shop -> ShopView(c)
                         is Sheet.Morning -> {
                             val m = c.morning
                             PixelView(YardScene(moment(c), yardLife(c)))
@@ -328,20 +332,17 @@ private fun SheetView(sheet: Sheet, go: (Sheet) -> Unit, close: () -> Unit) {
                                         val h = c.game.harvest(s, now, b.id); c.changed()
                                         if (h != null) go(Sheet.Letter("harvest:${h.variety}:${h.n}:${h.seedBack}:${h.first}"))
                                     }, kind = Kind.LAMP, enabled = close2)
+                                    if (!c.game.ripe(b) && c.game.stock(s, "feed") > 0)
+                                        PixelButton(w(ru, "Подкормить (%d)", "Feed (%d)").format(c.game.stock(s, "feed")), { c.game.feed(s, b.id); c.changed() }, kind = Kind.PRIMARY, enabled = close2)
+                                    if (b.wild && c.game.owns(s, "hoe"))
+                                        PixelButton(w(ru, "Прополоть", "Weed"), { c.game.weed(s, b.id); c.changed() }, kind = Kind.PRIMARY, enabled = close2)
                                     PixelButton(w(ru, "Перекопать", "Dig up"), { c.game.dig(s, b.id); c.changed(); close() }, kind = Kind.GHOST, enabled = close2)
                                 }
                                 if (here != null && !close2)
                                     Text(w(ru, "Чтобы собрать или перекопать, подойдите к грядке.", "Walk up to the bed to pick or dig it."), style = T.Small, modifier = Modifier.padding(top = 6.dp))
                             }
                         }
-                        is Sheet.Place -> {
-                            val p = c.content.person.getValue(sheet.id)
-                            val open = s.bonds[sheet.id]?.isOpen == true
-                            Text(if (open) p.name(ru) else w(ru, "Здесь кто-то есть", "Somebody keeps this place"), style = T.Title)
-                            Text(p.role(ru), style = T.Small)
-                            Text(if (open) p.about(ru) else w(ru, "Зайдите — познакомитесь.", "Drop in to meet them."), style = T.Body, modifier = Modifier.padding(top = 6.dp))
-                            c.places[sheet.id]?.name?.takeIf { it.isNotBlank() }?.let { Text(it, style = T.Small, modifier = Modifier.padding(top = 4.dp)) }
-                        }
+                        is Sheet.Place -> Profile(c, sheet.id, go, close)
                         is Sheet.Visit -> Visit(c, sheet.id, go)
                         is Sheet.Fish -> Fishing(c, sheet.big)
                         is Sheet.Market -> Market(c)
@@ -364,11 +365,29 @@ private fun Visit(c: AppContainer, id: String, go: (Sheet) -> Unit) {
     val now = c.now()
     val p = c.content.person.getValue(id)
     var said by remember { mutableStateOf<String?>(null) }
-    LaunchedEffect(id) { if (c.game.visit(s, now, id)) said = null; c.changed() }
-    if (p.yard) PixelView(remember(id, now.day) { YardScene(moment(c), yardLife(c, id)) }) else PixelView(remember(id, now.day) { facade(c, id) })
-    Text(p.name(ru), style = T.Title, modifier = Modifier.padding(top = 8.dp))
-    Text(p.role(ru) + " · " + "♥".repeat((c.game.hearts(s, id) + 1) / 2) + "♡".repeat(5 - (c.game.hearts(s, id) + 1) / 2), style = T.Small)
-    Text("«" + (said ?: c.game.line(s, now, id)?.text?.invoke(ru) ?: p.about(ru)) + "»", style = T.Letter, modifier = Modifier.padding(vertical = 8.dp))
+    var first by remember(id) { mutableStateOf(false) }
+    val seenAtOpen = remember(id) { s.bonds[id]?.seen ?: 0 }
+    LaunchedEffect(id) { if (c.game.visit(s, now, id)) first = true; c.changed() }
+    val strolling = remember(id) { c.whereabouts(id) == app.greenstreet.domain.Whereabouts.OUT }
+    if (p.yard) PixelView(remember(id, now.day) { YardScene(moment(c), yardLife(c, id)) })
+    else if (strolling) PixelView(remember(id, now.day) { app.greenstreet.ui.art.StrollScene(lookOf(c, id), moment(c), id.hashCode()) })
+    else PixelView(remember(id, now.day) { facade(c, id) })
+    PersonHeader(c, p, ru)
+    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(top = 6.dp)) {
+        Hearts(c.game.hearts(s, id), Modifier.weight(1f))
+        PixelButton(w(ru, "Блокнот %d/%d", "Notebook %d/%d").format(p.facts.count { it.hearts <= c.game.hearts(s, id) }, p.facts.size), { go(Sheet.Place(id)) }, kind = Kind.GHOST)
+    }
+    if (first && said == null) Meeting(c, p, ru)
+    else Says(said ?: c.game.line(s, now, id)?.text?.invoke(ru) ?: p.intro(ru).ifBlank { p.role(ru) })
+    // what the player has just learned about them
+    val unlocked = p.facts.count { it.hearts <= c.game.hearts(s, id) }
+    val fresh = p.facts.filter { it.hearts <= c.game.hearts(s, id) }.drop(seenAtOpen)
+    if (fresh.isNotEmpty()) {
+        Text(w(ru, "новое в блокноте", "new in your notebook"), style = T.Eyebrow.copy(color = C.green))
+        fresh.forEach { f -> Fact(f.text(ru)) }
+        Spacer(Modifier.height(8.dp))
+        SideEffect { s.bonds[id]?.let { b -> if (b.seen < unlocked) b.seen = unlocked } }
+    }
     c.game.lostOf(s, id)?.let { k ->
         PixelButton(w(ru, "Отдать находку: ", "Give back: ") + app.greenstreet.domain.Lost.things[k](ru), {
             c.game.returnLost(s, id); c.changed()
@@ -422,6 +441,58 @@ private fun Visit(c: AppContainer, id: String, go: (Sheet) -> Unit) {
             }
         }
     } else Text(w(ru, "Подарок сегодня уже был.", "You've already given a present today."), style = T.Small, modifier = Modifier.padding(top = 10.dp))
+}
+
+/** Mikhalych's hardware shop: things for the home (they appear in the yard) and for the garden. */
+@Composable
+private fun ShopView(c: AppContainer) {
+    val ru = ru()
+    c.version.collectAsState().value  // repaint after every change: the container itself never changes
+    val s = c.state ?: return
+    val now = c.now()
+    var msg by remember { mutableStateOf<String?>(null) }
+    Text(w(ru, "Хозтовары", "The hardware shop"), style = T.Title)
+    Text(w(ru, "«Всё для дома и огорода. Не нашли — спросите, закажем».", "'Everything for the home and garden. Can't find it? Ask, we'll order it.'"), style = T.Letter, modifier = Modifier.padding(vertical = 6.dp))
+    msg?.let { Text(it, style = T.Body.copy(color = C.green), modifier = Modifier.padding(bottom = 6.dp)) }
+    for (home in listOf(true, false)) {
+        Text(if (home) w(ru, "для дома — появится во дворе", "for the home — it shows in the yard") else w(ru, "для огорода", "for the garden"), style = T.Eyebrow, modifier = Modifier.padding(top = 8.dp))
+        for (ware in app.greenstreet.domain.Wares.all.filter { it.home == home }) {
+            val owned = ware.once && c.game.owns(s, ware.key)
+            Row(Modifier.fillMaxWidth().padding(top = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text(ware.name(ru) + if (!ware.once && c.game.stock(s, ware.key) > 0) "  ×${c.game.stock(s, ware.key)}" else "", style = T.Body)
+                    Text(ware.about(ru), style = T.Small)
+                }
+                if (owned) Text(w(ru, "есть", "yours"), style = T.Small.copy(color = C.green), modifier = Modifier.padding(start = 8.dp))
+                else PixelButton(money(ware.price, ru), {
+                    val r = c.game.buyWare(s, now, ware.key)
+                    if (r != null) {
+                        c.changed()
+                        msg = when {
+                            r.isNotEmpty() -> w(ru, "В пакетике: ", "In the packet: ") + c.content.name(r)(ru) + " ×2"
+                            ware.home -> w(ru, "Готово — загляните во двор.", "Done — have a look in the yard.")
+                            else -> w(ru, "Куплено.", "Bought.")
+                        }
+                    }
+                }, kind = if (s.coins >= ware.price) Kind.LAMP else Kind.GHOST, enabled = s.coins >= ware.price)
+            }
+        }
+    }
+}
+
+/** The first meeting: their own words, what they are good for, their hours, and what presents do. */
+@Composable
+private fun Meeting(c: AppContainer, p: app.greenstreet.data.Person, ru: Boolean) {
+    Says(p.intro(ru).ifBlank { p.about(ru) })
+    Panel(Modifier.fillMaxWidth().padding(bottom = 8.dp), fill = C.paper) {
+        Text(w(ru, "знакомство", "a new acquaintance"), style = T.Eyebrow)
+        if (p.perk(ru).isNotBlank()) Text(p.perk(ru), style = T.Body, modifier = Modifier.padding(top = 4.dp))
+        Text(w(ru, "Часы: ", "Hours: ") + app.greenstreet.domain.Schedule.hours(p)(ru), style = T.Small, modifier = Modifier.padding(top = 4.dp))
+        Text(w(ru,
+            "Сердечки растут, когда вы заходите, дарите подарки и помогаете. Чем их больше, тем больше сосед вам доверяет: рассказывает о себе (всё записывается в блокнот), просит о новом, пишет письма, а с четырёх сердечек даёт больше семян. Любимые вещи радуют сильнее всего, а нелюбимые могут и огорчить.",
+            "Hearts grow when you drop in, give presents and help. The more there are, the more a neighbour trusts you: they tell you about themselves (it all goes into your notebook), ask for new things, write letters, and from four hearts give more seeds. Favourite things please them most; disliked ones can upset them."),
+            style = T.Small, modifier = Modifier.padding(top = 6.dp))
+    }
 }
 
 fun rewards(c: AppContainer, rs: List<Reward>, ru: Boolean): String = rs.joinToString {

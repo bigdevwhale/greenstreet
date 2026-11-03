@@ -1,7 +1,7 @@
 """The cast: people.tsv. Text and voices are in docs/WORLD.md."""
 from common import write
 
-COLS = "id home kind osm seeds likes loves dislikes look name_ru name_en role_ru role_en about_ru about_en".split()
+COLS = "id home kind osm seeds likes loves dislikes look name_ru name_en role_ru role_en about_ru about_en hours".split()
 
 # look: drawing parameters for the shared person sprite (skin, hair, cloth ramp, extras)
 P = [
@@ -146,8 +146,20 @@ P = [
 ]
 
 
+# Working hours "open-close" (24h clock) and days off after "/" (ISO: 1 = Monday … 7 = Sunday).
+# Out of hours a town neighbour walks the district until ten at night and then sleeps; the yard's people are home while awake.
+HOURS = {
+    "prokhor": "7-19/1", "agafya": "8-21/7", "mila": "9-22/2", "vera": "8-16/6,7", "kuzmich": "6-15/3",
+    "sych": "11-19/1", "zina": "8-18/1", "lilya": "9-20/3", "mikhalych": "9-19/7", "tanya": "9-18/7",
+    "zhanna": "10-20/1", "gena": "9-21/7", "efim": "7-15/6", "palych": "5-12", "slava": "9-18/7",
+    "ada": "12-22/1", "olga": "9-19/7", "zoya": "10-19/7",
+    "semyonych": "6-21", "nina": "8-21", "asya": "10-21", "gosha": "11-23", "pryanik": "0-24",
+}
+
+
 def main():
-    write("people.tsv", COLS, P)
+    assert set(HOURS) == {p[0] for p in P}, set(HOURS) ^ {p[0] for p in P}
+    write("people.tsv", COLS, [p + (HOURS[p[0]],) for p in P])
 
 
 # variety keys the cast hands out: the economy module must define each of these

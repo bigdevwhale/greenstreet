@@ -16,7 +16,10 @@ import app.greenstreet.domain.Geo
 import app.greenstreet.domain.Morning
 import app.greenstreet.domain.Now
 import app.greenstreet.domain.Quest
+import app.greenstreet.domain.K
 import app.greenstreet.domain.Quests
+import app.greenstreet.domain.Schedule
+import app.greenstreet.domain.Whereabouts
 import app.greenstreet.domain.Terrain
 import app.greenstreet.domain.Weather
 import app.greenstreet.domain.metres
@@ -125,10 +128,130 @@ class AppContainer(context: Context) {
         return Geo(d.lat(s.y), d.lon(s.x))
     }
 
-    /** Is the player near enough to a neighbour's place to visit (yard neighbours: at home)? */
+    /** Where a neighbour is now: at work, out walking or asleep. */
+    fun whereabouts(id: String, t: LocalDateTime = LocalDateTime.now()): Whereabouts =
+        content.person[id]?.let { Schedule.status(it, t) } ?: Whereabouts.ASLEEP
+
+    private var walkFor: Terrain? = null
+    private var walkPts = IntArray(0)
+
+    /** Paths and pavements to stroll on: every fourth walkway pixel, as x,y pairs. */
+    private fun walks(t: Terrain): IntArray {
+        if (walkFor === t) return walkPts
+        val out = ArrayList<Int>()
+        for (y in 2 until t.h - 2 step 4) for (x in 2 until t.w - 2 step 4) if (t.at(x, y) == K.WALK) { out += x; out += y }
+        walkPts = out.toIntArray(); walkFor = t
+        return walkPts
+    }
+
+    /**
+     * Where to find a neighbour right now, in map pixels: their place in working hours, a spot on a path
+     * not far from it while out walking (changing every forty minutes), null while asleep.
+     */
+    fun spotNow(id: String, t: LocalDateTime = LocalDateTime.now()): Spot? {
+        val p = content.person[id] ?: return null
+        if (p.yard) return null
+        val place = places[id] ?: return null
+        return when (Schedule.status(p, t)) {
+            Whereabouts.WORK -> place
+            Whereabouts.ASLEEP -> null
+            Whereabouts.OUT -> stroll(id, place, t)
+        }
+    }
+
+    /** Where a strolling neighbour is facing: true when walking left. */
+    fun walkingLeft(id: String): Boolean = strollState[id]?.left ?: false
+
+    /** Is a strolling neighbour on the move this second (or stopped to look around)? */
+    fun walkingNow(id: String): Boolean = strollState[id]?.moving ?: false
+
+    private class Leg(val key: Long, val path: IntArray)
+    private class StrollState(var left: Boolean, var moving: Boolean)
+    private val legs = HashMap<String, Leg>()
+    private val strollState = HashMap<String, StrollState>()
+
+    /** A waypoint of a neighbour's stroll: a pavement or path spot within a couple of hundred metres of their place. */
+    private fun waypoint(id: String, place: Spot, k: Long): IntArray? {
+        val ter = terrain ?: return null
+        val pts = walks(ter)
+        if (pts.isEmpty()) return null
+        val pool = pools.getOrPut(id) {
+            fun within(r: Int) = (0 until pts.size / 2).filter { i -> Math.hypot(pts[2 * i] - place.x.toDouble(), pts[2 * i + 1] - place.y.toDouble()) in 12.0..r.toDouble() }
+            within(110).ifEmpty { within(240) }.ifEmpty { (0 until pts.size / 2).toList() }.toIntArray()
+        }
+        val i = pool[Math.floorMod((id.hashCode() * 31L + k * 7919L).toInt(), pool.size)]
+        return intArrayOf(pts[2 * i], pts[2 * i + 1])
+    }
+    private val pools = HashMap<String, IntArray>()
+
+    /** A path along walkways from a to b (breadth-first over the terrain, in a box around them); straight if none. */
+    private fun route(ter: Terrain, a: IntArray, b: IntArray): IntArray {
+        val pad = 40
+        val x0 = maxOf(0, minOf(a[0], b[0]) - pad); val y0 = maxOf(0, minOf(a[1], b[1]) - pad)
+        val x1 = minOf(ter.w - 1, maxOf(a[0], b[0]) + pad); val y1 = minOf(ter.h - 1, maxOf(a[1], b[1]) + pad)
+        val bw = x1 - x0 + 1; val bh = y1 - y0 + 1
+        fun ok(x: Int, y: Int) = ter.at(x, y).let { it == K.WALK || it == K.DIRT || it == K.STEPS || it == K.BRIDGE }
+        val prev = IntArray(bw * bh) { -2 }
+        val q = IntArray(bw * bh); var qh = 0; var qt = 0
+        val start = (a[1] - y0) * bw + (a[0] - x0); val goal = (b[1] - y0) * bw + (b[0] - x0)
+        prev[start] = -1; q[qt++] = start
+        val dx = intArrayOf(1, -1, 0, 0, 1, 1, -1, -1); val dy = intArrayOf(0, 0, 1, -1, 1, -1, 1, -1)
+        while (qh < qt) {
+            val c = q[qh++]
+            if (c == goal) break
+            val cx = c % bw; val cy = c / bw
+            for (d in 0 until 8) {
+                val nx = cx + dx[d]; val ny = cy + dy[d]
+                if (nx < 0 || ny < 0 || nx >= bw || ny >= bh) continue
+                val n = ny * bw + nx
+                if (prev[n] != -2 || !ok(nx + x0, ny + y0)) continue
+                prev[n] = c; q[qt++] = n
+            }
+        }
+        if (prev[goal] == -2) {
+            // no way along the paths: walk straight
+            val n = maxOf(1, Math.hypot((b[0] - a[0]).toDouble(), (b[1] - a[1]).toDouble()).toInt())
+            return IntArray(2 * (n + 1)) { j -> val f = (j / 2) / n.toDouble(); if (j % 2 == 0) (a[0] + (b[0] - a[0]) * f).toInt() else (a[1] + (b[1] - a[1]) * f).toInt() }
+        }
+        val out = ArrayList<Int>()
+        var c = goal
+        while (c >= 0) { out += c; c = prev[c] }
+        out.reverse()
+        return IntArray(out.size * 2) { j -> val cc = out[j / 2]; if (j % 2 == 0) cc % bw + x0 else cc / bw + y0 }
+    }
+
+    /**
+     * A neighbour strolling: every six minutes they set off from one waypoint to the next along the paths at
+     * an easy pace (about a metre a second), then stop and look about until it's time to go on.
+     */
+    private fun stroll(id: String, place: Spot, t: LocalDateTime): Spot? {
+        val ter = terrain ?: return null
+        val secs = t.toLocalDate().toEpochDay() * 86400L + t.toLocalTime().toSecondOfDay()
+        val k = secs / 360
+        val leg = legs[id]?.takeIf { it.key == k } ?: run {
+            val a = waypoint(id, place, k) ?: return place
+            val b = waypoint(id, place, k + 1) ?: return place
+            Leg(k, route(ter, a, b)).also { legs[id] = it }
+        }
+        val n = leg.path.size / 2
+        val step = ((secs - k * 360) * 0.65).toInt()
+        val i = minOf(step, n - 1)
+        val st = strollState.getOrPut(id) { StrollState(false, false) }
+        st.moving = step < n - 1
+        if (i + 3 < n) st.left = leg.path[2 * (i + 3)] < leg.path[2 * i]
+        return Spot(leg.path[2 * i].toFloat(), leg.path[2 * i + 1].toFloat(), "", "")
+    }
+
+    fun geoOf(s: Spot): Geo? { val d = district ?: return null; return Geo(d.lat(s.y), d.lon(s.x)) }
+
+    /** Can the player talk to a neighbour now: near their place while it's open, near them while they walk, or home with the yard's people awake. */
     fun near(id: String, at: Geo? = here.value): Boolean {
-        val g = placeGeo(id) ?: return false
-        return at != null && g.metres(at) <= 40
+        val p = content.person[id] ?: return false
+        if (at == null) return false
+        if (p.yard) return whereabouts(id) == Whereabouts.WORK && atHome(at)
+        val st = whereabouts(id)
+        val g = spotNow(id)?.let(::geoOf) ?: return false
+        return g.metres(at) <= if (st == Whereabouts.OUT) 30 else 40
     }
 
     fun atHome(at: Geo? = here.value): Boolean { val h = state?.home ?: return false; return at != null && h.metres(at) <= 40 }

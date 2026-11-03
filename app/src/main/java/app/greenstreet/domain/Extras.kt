@@ -88,3 +88,22 @@ object Moments {
         Moment2(setOf(12), Tx("В окне напротив наряжают ёлку. Кто-то машет вам рукой.", "Across the way they're trimming a tree. Someone waves at you.")),
     )
 }
+
+/** A thing from Mikhalych's hardware shop: for the home (drawn in the yard, bought once) or for the garden. */
+class Ware(val key: String, val home: Boolean, val price: Int, val once: Boolean, val name: Tx, val about: Tx)
+
+object Wares {
+    val all = listOf(
+        Ware("lights", true, 70, true, Tx("Гирлянда с лампочками", "A string of lights"), Tx("Натянуть через двор. По вечерам светится.", "Strung across the yard. Glows in the evenings.")),
+        Ware("birdhouse", true, 40, true, Tx("Скворечник", "A birdhouse"), Tx("На шесте у скамейки. Весной в нём кто-нибудь поселится.", "On a pole by the bench. Someone moves in come spring.")),
+        Ware("feeder", true, 25, true, Tx("Кормушка", "A bird feeder"), Tx("Зимой к ней слетаются воробьи и синицы.", "Sparrows and tits flock to it in winter.")),
+        Ware("tyre", true, 35, true, Tx("Клумба из шины", "A tyre flowerbed"), Tx("Покрашенная, как положено во дворе, с бархатцами.", "Painted, as every yard's should be, with marigolds.")),
+        Ware("gnome", true, 50, true, Tx("Садовый гном", "A garden gnome"), Tx("Красный колпак. Пряник его сначала боится.", "A red cap. Pryanik is wary of him at first.")),
+        Ware("barrel", true, 60, true, Tx("Бочка для дождевой воды", "A rain barrel"), Tx("У курятника, под водостоком.", "By the hen house, under the drainpipe.")),
+        Ware("feed", false, 12, false, Tx("Подкормка", "Plant food"), Tx("Грядка сразу подрастает на три дня. Нужно подойти к ней.", "A bed grows three days at once. Walk up to it first.")),
+        Ware("hoe", false, 60, true, Tx("Мотыга", "A hoe"), Tx("Одичавшую грядку можно прополоть, и она снова как новая.", "Weed a bed gone wild and it's good as new.")),
+        Ware("surprise", false, 8, false, Tx("Пакетик-сюрприз", "A mystery packet"), Tx("Семена без подписи. Что вырастет — узнаете, когда откроете.", "Unlabelled seeds. You'll know what when you open it.")),
+    )
+
+    fun of(key: String) = all.first { it.key == key }
+}

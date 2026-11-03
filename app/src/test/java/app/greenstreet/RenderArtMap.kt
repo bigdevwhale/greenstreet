@@ -5,6 +5,7 @@ import app.greenstreet.domain.Terrain
 import app.greenstreet.ui.art.Buf
 import app.greenstreet.ui.art.MapPainter
 import app.greenstreet.ui.art.bed
+import app.greenstreet.ui.art.villager
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -53,6 +54,16 @@ class RenderArtMap {
             k++
         }
         Png.write(File(out, "beds_map.png"), v, 6)
+    }
+
+    @Test
+    fun villagers() {
+        val content = app.greenstreet.data.Content.read({ p -> File("src/main/assets/content", p).takeIf { it.exists() }?.inputStream() })
+        val town = content.people.filter { !it.yard }
+        val b = Buf(town.size * 16 + 8, 30)
+        for (y in 0 until b.h) for (x in 0 until b.w) b.p(x, y, app.greenstreet.ui.art.R.stone[3])
+        town.forEachIndexed { i, p -> b.villager(10 + i * 16, 26, app.greenstreet.ui.art.Look.of(p.look), i % 2, p.kind) }
+        Png.write(File(out, "villagers.png"), b, 6)
     }
 
     private fun crop(b: Buf, x: Int, y: Int, w: Int, h: Int): Buf {

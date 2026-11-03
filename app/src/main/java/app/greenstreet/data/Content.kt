@@ -83,7 +83,19 @@ data class Person(
     val name: Tx,
     val role: Tx,
     val about: Tx,
+    /** Working hours: from [open] to [close] o'clock, not on [off] days (ISO, 1 = Monday). */
+    val open: Int = 9,
+    val close: Int = 19,
+    val off: Set<Int> = emptySet(),
+    /** Their own words at the first meeting, and what they are good for. */
+    val intro: Tx = Tx("", ""),
+    val perk: Tx = Tx("", ""),
+    /** The notebook: what the player learns about them, by hearts. */
+    val facts: List<Fact> = emptyList(),
 )
+
+/** A line in the player's notebook about a neighbour, opened at [hearts]. */
+data class Fact(val hearts: Int, val text: Tx)
 
 /** What has to hold for a line or a note: seasons, weather, time, years, hearts, festivals, flags. */
 data class When(val tokens: List<String>) {
@@ -248,12 +260,20 @@ class Content(
                 Recipe(it.getValue("key"), needs(it["needs"]), it.getValue("makes"), it.int("qty", 1), it["station"].orEmpty(),
                     it["unlock"].orEmpty(), it.int("price", 1), it.tx("name"), it.tx("about"))
             }
+            val acq = rows("acquaint.tsv").associateBy { it["id"].orEmpty() }
+            val facts = rows("facts.tsv").groupBy { it["who"].orEmpty() }
             val people = rows("people.tsv").map {
+                val h = it["hours"].orEmpty()
+                val span = h.substringBefore('/').split('-').mapNotNull { x -> x.trim().toIntOrNull() }
+                val id = it.getValue("id")
                 Person(it.getValue("id"), it["home"] == "yard", it["kind"].orEmpty(),
                     it["osm"].orEmpty().split('|').filter { s -> '=' in s }.map { s -> s.substringBefore('=') to s.substringAfter('=') },
                     list(it["seeds"]), list(it["likes"]).toSet(), list(it["loves"]).toSet(), list(it["dislikes"]).toSet(),
                     list(it["look"]).associate { s -> s.substringBefore('=') to s.substringAfter('=', "1") },
-                    it.tx("name"), it.tx("role"), it.tx("about"))
+                    it.tx("name"), it.tx("role"), it.tx("about"),
+                    span.getOrElse(0) { 9 }, span.getOrElse(1) { 19 }, months(h.substringAfter('/', "")),
+                    acq[id]?.tx("intro") ?: Tx("", ""), acq[id]?.tx("perk") ?: Tx("", ""),
+                    facts[id].orEmpty().map { f -> Fact(f.int("hearts"), Tx(f["ru"].orEmpty(), f["en"].orEmpty())) }.sortedBy { f -> f.hearts })
             }
             val lines = HashMap<String, List<Line>>()
             val reqs = HashMap<String, List<Request>>()

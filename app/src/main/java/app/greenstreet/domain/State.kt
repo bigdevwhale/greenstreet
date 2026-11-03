@@ -38,6 +38,8 @@ class Bond(
     var visited: Long = -1,
     var gifted: Long = -1,
     var seeded: Long = -1,
+    /** How many notebook facts about them the player has already read. */
+    var seen: Int = 0,
     /** What the player found out about tastes: key → "love" / "like" / "dislike" / "plain". */
     val known: MutableMap<String, String> = HashMap(),
 ) {
@@ -112,7 +114,7 @@ class GameState {
             bonds.forEach { (id, b) ->
                 put(id, JSONObject().put("open", b.open).put("points", b.points).put("req", b.req).put("reqShown", b.reqShown)
                     .put("reqDone", b.reqDone).put("note", b.note).put("noteDone", b.noteDone).put("visited", b.visited)
-                    .put("gifted", b.gifted).put("seeded", b.seeded).put("known", JSONObject(b.known as Map<*, *>)))
+                    .put("gifted", b.gifted).put("seeded", b.seeded).put("seen", b.seen).put("known", JSONObject(b.known as Map<*, *>)))
             }
         })
         put("inbox", JSONArray().apply { inbox.forEach { put(JSONObject().put("k", it.key).put("d", it.day).put("r", it.read)) } })
@@ -142,7 +144,7 @@ class GameState {
                 j.keys().forEach { id ->
                     val b = j.getJSONObject(id)
                     bonds[id] = Bond(b.optLong("open", -1), b.optInt("points"), b.optInt("req"), b.optLong("reqShown", -1), b.optLong("reqDone", -1),
-                        b.optInt("note"), b.optLong("noteDone", -1), b.optLong("visited", -1), b.optLong("gifted", -1), b.optLong("seeded", -1)).also { bond ->
+                        b.optInt("note"), b.optLong("noteDone", -1), b.optLong("visited", -1), b.optLong("gifted", -1), b.optLong("seeded", -1), b.optInt("seen")).also { bond ->
                         b.optJSONObject("known")?.let { k -> k.keys().forEach { key -> bond.known[key] = k.getString(key) } }
                     }
                 }

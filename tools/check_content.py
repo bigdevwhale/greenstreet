@@ -63,11 +63,13 @@ COLS = {
     "crops.tsv": "key crop place sow days tends regrow yield price art ramp unlock name_ru name_en about_ru about_en",
     "goods.tsv": "key kind months where time weather price rare name_ru name_en about_ru about_en",
     "recipes.tsv": "key needs makes qty station unlock price name_ru name_en about_ru about_en",
-    "people.tsv": "id home kind osm seeds likes loves dislikes look name_ru name_en role_ru role_en about_ru about_en",
+    "people.tsv": "id home kind osm seeds likes loves dislikes look name_ru name_en role_ru role_en about_ru about_en hours",
     "festivals.tsv": "key md rule year name_ru name_en notice_ru notice_en gift ribbon",
     "almanac.tsv": "md text_ru text_en",
     "board.tsv": "key months needs reward text_ru text_en",
     "ribbons.tsv": "key kind arg name_ru name_en about_ru about_en",
+    "acquaint.tsv": "id intro_ru intro_en perk_ru perk_en",
+    "facts.tsv": "who hearts ru en",
 }
 _doc = (ROOT / "docs/CONTENT.md").read_text(encoding="utf-8")
 FIXED_VARIETIES = set(re.findall(r"(?<![a-z_])[a-z]+(?:_[a-z]+)*_[a-z]+(?![a-z_])", _doc.split("## Fixed variety keys", 1)[1])) if "## Fixed variety keys" in _doc else set()

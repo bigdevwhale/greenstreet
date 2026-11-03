@@ -43,7 +43,7 @@ object DemoSeed {
                 val x = hx + (r * Math.cos(a * Math.PI / 12)).toInt(); val y = hy + (r * Math.sin(a * Math.PI / 12)).toInt()
                 if (!t.verge(x, y)) continue
                 val g = Geo(d.lat(y + .5f), d.lon(x + .5f))
-                if (s.beds.any { b -> Math.hypot((d.x(b.lon) - x).toDouble(), (d.y(b.lat) - y).toDouble()) < 8 }) continue
+                if (s.beds.any { b -> Math.hypot((d.x(b.lon) - x).toDouble(), (d.y(b.lat) - y).toDouble()) * d.mpp < app.greenstreet.domain.Game.BED_GAP }) continue
                 val v = c.content.variety[kinds[k].first] ?: run { k++; null } ?: continue
                 s.beds += app.greenstreet.domain.Bed(s.nextId++, v.key, g.lat, g.lon, now.day - 20, grown = v.days * kinds[k].second, tended = (v.tends * kinds[k].second).toInt() + 1, lastTend = now.day - 1)
                 k++
