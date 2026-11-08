@@ -36,9 +36,22 @@ class FirstWeeksTest {
         var sill = 0
         var nextRipe = "-"
         var coins = 0
+        /** Coins earned today by source: fair, requests, finds, tasks, other. */
+        val earned = HashMap<String, Int>()
+        var spent = 0
+        val bought = ArrayList<String>()
+        /** Units of harvest picked, sold at the fair, and lying in the bag tonight. */
+        var picked = 0
+        var sold = 0
+        var held = 0
+        /** Requests showing that the bag can't fill. */
+        var waiting = 0
         /** Something that ends a loop: a harvest, a request done, a task done, a dish, a new neighbour. */
         val payoff get() = harvests + got.count { !it.startsWith("seeds") }
     }
+
+    /** Upgrades in the order a sensible player buys them, then the yard's things from Mikhalych. */
+    private val wishes = listOf("cart", "mulch", "coop", "sill", "satchel", "cover", "compost", "stall")
 
     private fun play(start: LocalDate, days: Int = 14): List<Day> {
         val home = Geo(59.95, 30.31)
@@ -54,51 +67,90 @@ class FirstWeeksTest {
             val sky = Sky(rain = d % 4 == 2, snow = m in listOf(12, 1, 2) && d % 5 == 1,
                 temp = when (m) { 12, 1, 2 -> -5.0; 3, 11 -> 2.5; 4, 10 -> 8.0; else -> 16.0 })
             val now = Now(date, 18, sky, sky)
+            val cMorning = s.coins
             game.catchUp(s, now) { sky to sky }
+            val morningCoins = s.coins - cMorning
             val walk = d % 7 !in listOf(2, 5)
             val day = Day(d, walk)
             val req0 = s.counts["request"] ?: 0; val cook0 = s.counts["cook"] ?: 0
-            fun settle() = Quests.settle(s) { game.give(s, it) }.forEach { day.got += "task:${it.key}" }
+            fun <T> earn(src: String, f: () -> T): T { val c0 = s.coins; val r = f(); if (s.coins != c0) day.earned.merge(src, s.coins - c0, Int::plus); return r }
+            /** Everything the neighbours are asking for right now. */
+            fun wanted() = s.bonds.keys.mapNotNull { game.request(s, it) }.flatMap { it.needs }
+            fun wants(k: String) = wanted().any { content.matches(it.key, k) }
+            fun settle() = earn("tasks") { Quests.settle(s) { game.give(s, it) } }.forEach { day.got += "task:${it.key}" }
+            fun harvest(id: Long) { earn("other") { game.harvest(s, now, id, rnd.nextDouble()) }?.let { day.picked += it.n } }
+            val c0 = s.coins
 
             // at home, morning: the yard, eggs, the windowsill, the kitchen
             if (game.visit(s, now, "semyonych")) day.got += "met:semyonych"
             game.collectEggs(s)
             game.tendHome(s, now)
-            for (b in s.beds.filter { game.ripe(it) && content.variety[it.variety]?.place == Place.SILL }.toList()) { game.harvest(s, now, b.id, rnd.nextDouble()); day.harvests++ }
+            for (b in s.beds.filter { game.ripe(it) && content.variety[it.variety]?.place == Place.SILL }.toList()) { harvest(b.id); day.harvests++ }
             for (k in s.seeds.keys.toList()) { val v = content.variety[k] ?: continue; while (v.place == Place.SILL && game.canSow(s, now, v)) { game.sow(s, now, k, home); day.sown++ } }
             settle()
 
             if (walk) {
                 var pos = 0
                 repeat(150) { i ->
-                    game.walked(s, now, 10.0, setOf("street", "park", "lawn"), rnd)?.let { day.finds++ }
+                    earn("finds") { game.walked(s, now, 10.0, if (d % 3 == 0) setOf("street", "water") else setOf("street", "park", "lawn"), rnd) }?.let { day.finds++ }
                     if (i % 9 == 0 && pos < beds.size) {
                         val at = beds[pos++]
                         game.pass(s, now, at)
-                        s.beds.firstOrNull { Geo(it.lat, it.lon).metres(at) < 1 && game.ripe(it) }?.let { game.harvest(s, now, it.id, rnd.nextDouble()); day.harvests++; day.outdoor++ }
+                        s.beds.firstOrNull { Geo(it.lat, it.lon).metres(at) < 1 && game.ripe(it) }?.let { harvest(it.id); day.harvests++; day.outdoor++ }
                         if (s.beds.none { Geo(it.lat, it.lon).metres(at) < 1 }) {
                             val v = s.seeds.filterValues { it > 0 }.keys.mapNotNull { content.variety[it] }
-                                .filter { it.place == Place.VERGE && game.canSow(s, now, it) }.minByOrNull { it.days }
+                                .filter { it.place == Place.VERGE && game.canSow(s, now, it) }.sortedBy { it.days }.let { l -> l.firstOrNull { wants(it.key) } ?: l.firstOrNull() }
                             if (v != null && game.sow(s, now, v.key, at) != null) day.sown++
                         }
                     }
                     s.km += 0.01; s.kmToday += 0.01
+                }
+                // by the water: a cast or two (the fishing sheet's catch, minus the float)
+                if (d % 3 == 0) repeat(2) {
+                    val fish = content.goods.filter { it.kind == app.greenstreet.data.GoodKind.FISH && (it.months.isEmpty() || m in it.months) }
+                    if (fish.isNotEmpty() && rnd.nextDouble() < .6) { val f = fish[rnd.nextInt(fish.size)]; s.add(s.bag, f.key, 1); s.album += f.key; s.count("fish") }
+                }
+                // at the market once Aunt Zina is known: buy what a request needs and the stalls have
+                if (s.bonds["zina"]?.isOpen == true) for ((k, price) in game.market(now)) {
+                    if (content.variety[k] == null && wants(k) && (s.bag[k] ?: 0) < 3 && s.coins >= price + 40) { s.coins -= price; s.add(s.bag, k, 1); day.spent += price }
                 }
                 // a new neighbour every other walk, then a round of the ones already met (three a walk)
                 if (met < town.size && (met == 0 || d % 2 == 0)) { if (game.visit(s, now, town[met])) day.got += "met:${town[met]}"; met++ }
                 for (id in town.take(met).shuffled(rnd).take(3)) {
                     game.visit(s, now, id)
                     game.takeSeeds(s, now, id)?.let { day.got += "seeds:${it.first}" }
-                    s.bag.filterValues { it > 0 }.keys.firstOrNull()?.let { game.gift(s, now, id, it) }
-                    if (game.request(s, id)?.let { game.canFulfil(s, it.needs) } == true) game.fulfil(s, now, id)
-                    game.returnLost(s, id)
+                    s.bag.filterValues { it > 0 }.keys.firstOrNull { !wants(it) }?.let { game.gift(s, now, id, it) }
+                    if (game.request(s, id)?.let { game.canFulfil(s, it.needs) } == true) earn("requests") { game.fulfil(s, now, id) }
+                    earn("other") { game.returnLost(s, id) }
                 }
-                for (id in s.bonds.keys.toList()) if (game.request(s, id)?.let { game.canFulfil(s, it.needs) } == true) game.fulfil(s, now, id)
+                for (id in s.bonds.keys.toList()) if (game.request(s, id)?.let { game.canFulfil(s, it.needs) } == true) earn("requests") { game.fulfil(s, now, id) }
             }
             // home in the evening: cook what can be cooked, sell on Saturdays
-            for (r in game.known(s)) if (game.cook(s, now, r.key)) break
-            if (now.saturday) for (k in s.bag.keys.filter { content.variety[it] != null }.toList()) game.sell(s, now, k, s.bag[k] ?: 0)
+            val menu = game.known(s).sortedByDescending { wants(it.makes) }
+            for (r in menu) if (game.cook(s, now, r.key)) break
+            if (now.saturday) for (k in s.bag.keys.filter { content.variety[it] != null }.toList()) {
+                val keep = wanted().filter { content.matches(it.key, k) }.sumOf { it.qty }
+                val n = (s.bag[k] ?: 0) - keep
+                val v = if (n > 0) game.sell(s, now, k, n) else 0; if (v > 0) { day.earned.merge("fair", v, Int::plus); day.sold += n }
+            }
             settle()
+            // the household: the next upgrade on the list as soon as it's affordable, then the yard's things
+            while (true) {
+                val k = wishes.firstOrNull { game.nextPrice(s, it) != null } ?: break
+                val price = game.nextPrice(s, k)!!
+                if (s.coins < price) break
+                game.buyUpgrade(s, k); day.spent += price; day.bought += k
+            }
+            if (wishes.all { game.nextPrice(s, it) == null })
+                for (w in app.greenstreet.domain.Wares.all.filter { it.once }) if (!game.owns(s, w.key) && s.coins >= w.price) { game.buyWare(s, now, w.key); day.spent += w.price; day.bought += w.key }
+            if (morningCoins != 0) day.earned.merge("other", morningCoins, Int::plus)
+            val unexplained = s.coins - c0 + day.spent - day.earned.values.sum()
+            if (unexplained != 0) day.earned.merge("other", unexplained, Int::plus)
+            day.held = s.bag.filterKeys { content.variety[it] != null }.values.sum()
+            day.waiting = s.bonds.keys.count { id -> game.request(s, id)?.let { !game.canFulfil(s, it.needs) } == true }
+            if (d == days - 1 && days >= 60) for (id in s.bonds.keys) game.request(s, id)?.takeIf { !game.canFulfil(s, it.needs) }?.let { r ->
+                println("stuck $id since day ${s.bonds[id]!!.reqShown - now.day + d + 1}: " + r.needs.joinToString { n -> "${n.key}×${n.qty} (have ${s.bag[n.key] ?: 0})" })
+            }
 
             repeat((s.counts["request"] ?: 0) - req0) { day.got += "request" }
             repeat((s.counts["cook"] ?: 0) - cook0) { day.got += "cook" }
@@ -121,6 +173,29 @@ class FirstWeeksTest {
         val outdoor = days.firstOrNull { it.outdoor > 0 }?.d?.plus(1)
         println("first harvest: day ${first ?: "none in ${days.size}"}; first from the verge: day ${outdoor ?: "none"}; from the verge: ${days.sumOf { it.outdoor }}; harvests: ${days.sumOf { it.harvests }}; days with no payoff: $empty of ${days.size}; finds: ${days.sumOf { it.finds }}")
         return days
+    }
+
+    /** Ten-day stretches: what came in from where, what went on the household, how much harvest piled up. */
+    private fun economy(title: String, days: List<Day>) {
+        println()
+        println("== $title: the economy ==")
+        println("days    fair  req finds tasks other | spent coins | picked sold held | waiting  bought")
+        for (chunk in days.chunked(10)) {
+            fun e(k: String) = chunk.sumOf { it.earned[k] ?: 0 }
+            println("%3d-%-3d %4d %4d %5d %5d %5d | %5d %5d | %6d %4d %4d | %7d  %s".format(chunk.first().d + 1, chunk.last().d + 1,
+                e("fair"), e("requests"), e("finds"), e("tasks"), e("other"), chunk.sumOf { it.spent }, chunk.last().coins,
+                chunk.sumOf { it.picked }, chunk.sumOf { it.sold }, chunk.last().held, chunk.last().waiting, chunk.flatMap { it.bought }.joinToString(" ")))
+        }
+        val all = days.flatMap { it.earned.entries }.groupBy({ it.key }, { it.value }).mapValues { it.value.sum() }
+        val upgrades = days.flatMap { it.bought }.filter { it in wishes }
+        println("earned ${all.values.sum()} (${all.entries.sortedByDescending { it.value }.joinToString { "${it.key} ${it.value}" }}), spent ${days.sumOf { it.spent }}, " +
+            "upgrades ${upgrades.size} of ${app.greenstreet.domain.Upgrades.all.sumOf { it.max }}, all bought by day ${days.lastOrNull { d -> d.bought.any { it in wishes } }?.d?.plus(1)}")
+    }
+
+    @Test
+    fun threeMonthsOfGroats() {
+        economy("start 1 May, 90 days", play(LocalDate.of(2027, 5, 1), 90))
+        economy("start 1 September, 90 days", play(LocalDate.of(2027, 9, 1), 90))
     }
 
     @Test

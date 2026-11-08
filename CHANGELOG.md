@@ -17,10 +17,12 @@ then close it like any HTML comment. The release notes carry it, and the chat bo
 - A neighbour out for a walk stops and waits while you are within 60 m, then walks on from where they stood; you can talk from 40 m, as at their place.
 
 ### Fixed
+- Feathers, honey and wax could not be had anywhere, so 52 requests, notices and recipes (candles, sbiten, medovik) waited forever, Tanya's very first request among them. The hens now leave a feather with every fourth egg, and a beekeeper at the market sells honey and wax until the yard keeps bees.
 - Neighbours no longer settle or stroll on ground closed to the public (private driveways, military land, places deep inside a block): a fenced-off place loses to an open one nearby, and if it is still chosen, its keeper waits on the nearest pavement (#2).
 - The bed card says plainly when the bed will be ripe, whether it has been watered today (by you, by the rain, or not yet, and how to water it), and warns before it goes wild or gets frost; growth and waterings show as bars. Lists say "ripe in ~5 days · watered today" (#3).
 
 <!-- tg
+Перо, мёд и воск теперь можно добыть: перья дают куры, мёд и воск продаёт пасечник на рынке — просьбы со свечами и сбитнем больше не застревают
 Соседи больше не появляются на закрытых территориях: если место за забором, сосед ждёт на ближайшем тротуаре
 В карточке грядки теперь понятно, когда она созреет и полита ли сегодня, а если нет — как её полить
 Сажать можно в любой месяц: зимой на улице растёт вдвое медленнее, рынок продаёт весенние семена

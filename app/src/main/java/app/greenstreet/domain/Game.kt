@@ -738,12 +738,16 @@ class Game(val c: Content) {
         return pool
     }
 
-    /** Market stalls: staples and common seeds. */
+    /**
+     * Market stalls: staples, common seeds, and a beekeeper's honey and wax (dearer than the fair pays for them),
+     * until the yard has hives of its own.
+     */
     fun market(now: Now): List<Pair<String, Int>> {
         val verge = seasonal(now.month, setOf("market"))
         val seeds = (c.varieties.filter { it.unlock == "market" && it.place != Place.VERGE && (it.sow.isEmpty() || now.month in it.sow) } + verge)
             .map { it.key to max(2, it.price / 2 + 1) }
-        val staples = c.goods.filter { it.kind == app.greenstreet.data.GoodKind.STAPLE }.map { it.key to it.price }
+        val staples = c.goods.filter { it.kind == app.greenstreet.data.GoodKind.STAPLE }.map { it.key to it.price } +
+            c.goods.filter { it.key in BEEKEEPER }.map { it.key to it.price * 2 }
         return seeds + staples
     }
 
@@ -763,7 +767,18 @@ class Game(val c: Content) {
         return true
     }
 
-    fun collectEggs(s: GameState): Int { val n = s.eggs; s.add(s.bag, "egg", n); s.eggs = 0; if (n > 0) { s.album += "egg"; s.count("eggs", n) }; return n }
+    /** Takes the eggs from the nests; every fourth egg comes with a feather left in the straw. */
+    fun collectEggs(s: GameState): Int {
+        val n = s.eggs; s.add(s.bag, "egg", n); s.eggs = 0
+        if (n > 0) {
+            s.album += "egg"
+            val before = s.counts["eggs"] ?: 0
+            s.count("eggs", n)
+            val feathers = (before + n) / 4 - before / 4
+            if (feathers > 0) { s.add(s.bag, "feather", feathers); s.album += "feather" }
+        }
+        return n
+    }
 
     /** A new game: some seeds in the pocket, a few eggs, the start recipes. */
     fun newGame(now: Now, home: Geo?): GameState = GameState().apply {
@@ -782,6 +797,8 @@ class Game(val c: Content) {
         /** Points needed for each heart: about a season of regular visits for 4, a year for 7, three for 10. */
         /** Metres between beds by the road. */
         const val BED_GAP = 25.0
+        /** What the beekeeper at the market sells. */
+        val BEEKEEPER = setOf("honey", "wax")
         val HEART_POINTS = intArrayOf(0, 6, 20, 45, 80, 130, 200, 290, 400, 540, 720)
 
         /** Sunday of Maslenitsa (Forgiveness Sunday): Orthodox Easter minus 49 days. */
