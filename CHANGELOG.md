@@ -6,7 +6,7 @@ line "<!-- tg", then 2-4 short lines in Russian for users (what is new, what is 
 then close it like any HTML comment. The release notes carry it, and the chat bot posts those lines.
 -->
 
-## [Unreleased]
+## [0.11.0] - 2026-11-08
 
 ### Added
 - An errand for today, once the opening tasks are done: one small thing from a neighbour you know, doable on one walk (look in on someone, bring a present, pass your beds, pick a ripe bed, help with a request your bag can fill, walk a kilometre or two, find two things). It pays a little of their liking and a token groat.
@@ -28,14 +28,10 @@ then close it like any HTML comment. The release notes carry it, and the chat bo
 - The bed card says plainly when the bed will be ripe, whether it has been watered today (by you, by the rain, or not yet, and how to water it), and warns before it goes wild or gets frost; growth and waterings show as bars. Lists say "ripe in ~5 days · watered today" (#3).
 
 <!-- tg
+Огород растёт вчетверо быстрее, а сажать можно в любой месяц: первый урожай — уже на первой неделе
 Каждый день — маленькое поручение от соседа, а во вкладке «Соседи» видно, что кому нужно и где это взять
-Перо, мёд и воск теперь можно добыть: перья дают куры, мёд и воск продаёт пасечник на рынке — просьбы со свечами и сбитнем больше не застревают
-Соседи больше не появляются на закрытых территориях: если место за забором, сосед ждёт на ближайшем тротуаре
-В карточке грядки теперь понятно, когда она созреет и полита ли сегодня, а если нет — как её полить
-Сажать можно в любой месяц: зимой на улице растёт вдвое медленнее, рынок продаёт весенние семена
-Гуляющий сосед останавливается и ждёт, когда вы подходите, — больше не нужно за ним гоняться
-Огород растёт вчетверо быстрее: редис за 7 дней, первый урожай с грядки — на первой неделе
-На ярмарке тётя Зина берёт по 6 штук каждого по полной цене, улучшения хозяйства подорожали — копить интереснее
+Соседи больше не стоят за заборами и не убегают на прогулке, а карточка грядки объясняет, когда она созреет и полита ли
+Исправлены просьбы, которые нельзя было выполнить: перья дают куры, мёд и воск продаёт пасечник на рынке
 -->
 
 ## [0.10.0] - 2026-11-03
