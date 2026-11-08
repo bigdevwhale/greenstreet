@@ -6,6 +6,15 @@ line "<!-- tg", then 2-4 short lines in Russian for users (what is new, what is 
 then close it like any HTML comment. The release notes carry it, and the chat bot posts those lines.
 -->
 
+## [0.11.1] - 2026-11-08
+
+### Fixed
+- Aunt Klava's "Water on the way" couldn't be done on the day the first bed was sown: sowing counts as watering, and a bed watered today didn't count when walked past. Walking by a bed sown today now counts (once a day, as for any bed), and the bed still grows on its first night.
+
+<!-- tg
+Задание тёти Клавы «Полить на ходу» теперь выполняется в день посадки: посадили грядку, прошли мимо — готово
+-->
+
 ## [0.11.0] - 2026-11-08
 
 ### Added
