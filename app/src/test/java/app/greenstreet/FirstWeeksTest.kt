@@ -46,6 +46,8 @@ class FirstWeeksTest {
         var held = 0
         /** Requests showing that the bag can't fill. */
         var waiting = 0
+        /** Today's errand: -1 none offered, 0 offered and not done, 1 done. */
+        var errand = -1
         /** Something that ends a loop: a harvest, a request done, a task done, a dish, a new neighbour. */
         val payoff get() = harvests + got.count { !it.startsWith("seeds") }
     }
@@ -116,7 +118,10 @@ class FirstWeeksTest {
                 }
                 // a new neighbour every other walk, then a round of the ones already met (three a walk)
                 if (met < town.size && (met == 0 || d % 2 == 0)) { if (game.visit(s, now, town[met])) day.got += "met:${town[met]}"; met++ }
-                for (id in town.take(met).shuffled(rnd).take(3)) {
+                // today's errand, if it names someone: they come first
+                app.greenstreet.domain.Errands.today(game, s, now)  // chooses it, if not yet
+                val first = s.flags.firstOrNull { it.startsWith("errand:${now.day}:visit:") || it.startsWith("errand:${now.day}:gift:") }?.split(':')?.getOrNull(4)
+                for (id in (listOfNotNull(first) + town.take(met).shuffled(rnd).take(3)).distinct()) {
                     game.visit(s, now, id)
                     game.takeSeeds(s, now, id)?.let { day.got += "seeds:${it.first}" }
                     s.bag.filterValues { it > 0 }.keys.firstOrNull { !wants(it) }?.let { game.gift(s, now, id, it) }
@@ -143,6 +148,8 @@ class FirstWeeksTest {
             }
             if (wishes.all { game.nextPrice(s, it) == null })
                 for (w in app.greenstreet.domain.Wares.all.filter { it.once }) if (!game.owns(s, w.key) && s.coins >= w.price) { game.buyWare(s, now, w.key); day.spent += w.price; day.bought += w.key }
+            if (app.greenstreet.domain.Errands.today(game, s, now) != null) day.errand = 0
+            earn("errands") { app.greenstreet.domain.Errands.settle(game, s, now) }?.let { day.errand = 1; day.got += "errand:${it.key.removePrefix("errand.")}" }
             if (morningCoins != 0) day.earned.merge("other", morningCoins, Int::plus)
             val unexplained = s.coins - c0 + day.spent - day.earned.values.sum()
             if (unexplained != 0) day.earned.merge("other", unexplained, Int::plus)
@@ -160,6 +167,7 @@ class FirstWeeksTest {
             day.coins = s.coins
             out += day
         }
+        println("after ${days} days the opening task is: ${Quests.current(s)?.key ?: "all done"}")
         return out
     }
 
@@ -171,6 +179,8 @@ class FirstWeeksTest {
         val first = days.firstOrNull { it.harvests > 0 }?.d?.plus(1)
         val empty = days.count { it.payoff == 0 }
         val outdoor = days.firstOrNull { it.outdoor > 0 }?.d?.plus(1)
+        val offered = days.count { it.errand >= 0 }
+        println("errands done: ${days.count { it.errand == 1 }} of $offered offered (on walks: ${days.count { it.walk && it.errand == 1 }} of ${days.count { it.walk && it.errand >= 0 }})")
         println("first harvest: day ${first ?: "none in ${days.size}"}; first from the verge: day ${outdoor ?: "none"}; from the verge: ${days.sumOf { it.outdoor }}; harvests: ${days.sumOf { it.harvests }}; days with no payoff: $empty of ${days.size}; finds: ${days.sumOf { it.finds }}")
         return days
     }
@@ -186,6 +196,8 @@ class FirstWeeksTest {
                 e("fair"), e("requests"), e("finds"), e("tasks"), e("other"), chunk.sumOf { it.spent }, chunk.last().coins,
                 chunk.sumOf { it.picked }, chunk.sumOf { it.sold }, chunk.last().held, chunk.last().waiting, chunk.flatMap { it.bought }.joinToString(" ")))
         }
+        val offered = days.count { it.errand >= 0 }
+        println("errands done: ${days.count { it.errand == 1 }} of $offered offered, first offered on day ${days.firstOrNull { it.errand >= 0 }?.d?.plus(1)}")
         val all = days.flatMap { it.earned.entries }.groupBy({ it.key }, { it.value }).mapValues { it.value.sum() }
         val upgrades = days.flatMap { it.bought }.filter { it in wishes }
         println("earned ${all.values.sum()} (${all.entries.sortedByDescending { it.value }.joinToString { "${it.key} ${it.value}" }}), spent ${days.sumOf { it.spent }}, " +

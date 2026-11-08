@@ -277,7 +277,7 @@ class Game(val c: Content) {
                 b.lastTend = now.day; out += b
             }
         }
-        if (out.isNotEmpty()) s.count("tend", out.size)
+        if (out.isNotEmpty()) { s.count("tend", out.size); s.count("tend_today", out.size) }
         return out
     }
 
@@ -302,6 +302,7 @@ class Game(val c: Content) {
         val seedBack = v.place == Place.SILL || rnd < 0.4
         if (seedBack) s.add(s.seeds, v.key, 1)
         s.count("harvest"); s.count("harvest:${v.crop}"); if (b.wild) s.count("wild")
+        s.counts["harvest_day"] = now.day.toInt()
         if (v.regrow > 0 && !b.self) {
             b.grown = (v.days - v.regrow).toDouble(); b.tended = v.tends; b.harvests++; b.wild = false; b.idle = 0
         } else s.beds.remove(b)
@@ -368,7 +369,7 @@ class Game(val c: Content) {
         val eggs = max(0, min(6 + 3 * up(s, "coop"), s.eggs + laid) - s.eggs)
         s.eggs += eggs
         s.kmToday = 0.0
-        s.counts.remove("finds_today")
+        s.counts.remove("finds_today"); s.counts.remove("tend_today")
         // the board: a new notice every third day
         s.board.removeAll { now.day - it.day > 12 }
         if (now.day % 3 == 0L) {
@@ -484,7 +485,7 @@ class Game(val c: Content) {
         val b = s.bond(id)
         b.req++; b.reqShown = -1; b.reqDone = now.day; b.points += 8
         if (r.sets.isNotBlank()) s.flags += r.sets
-        s.count("request")
+        s.count("request"); s.counts["request_day"] = now.day.toInt()
         return r
     }
 
@@ -796,6 +797,8 @@ class Game(val c: Content) {
         c.varieties.filter { it.place == Place.VERGE && it.unlock in setOf("market", "start") }.sortedBy { it.days }.take(2).forEach { seeds[it.key] = 2 }
         flags += "pace"
         bag["egg"] = 2
+        // a bottle of milk in the basket: enough for cottage cheese, so the kitchen can be tried before the market is found
+        bag["milk"] = 3
     }
 
     companion object {

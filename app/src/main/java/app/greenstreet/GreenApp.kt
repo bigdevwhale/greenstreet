@@ -7,6 +7,7 @@ import app.greenstreet.data.District
 import app.greenstreet.data.Spot
 import app.greenstreet.data.Store
 import app.greenstreet.data.Tiles
+import app.greenstreet.domain.Errands
 import app.greenstreet.domain.Extras
 import app.greenstreet.domain.Find
 import app.greenstreet.domain.Forecast
@@ -83,6 +84,7 @@ class AppContainer(context: Context) {
     fun changed() {
         state?.let { s ->
             Quests.settle(s) { game.give(s, it) }.lastOrNull()?.let { questDone.value = it }
+            Errands.settle(game, s, now())?.let { questDone.value = it }
             store.save(s)
         }
         version.value++

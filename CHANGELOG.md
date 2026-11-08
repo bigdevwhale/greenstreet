@@ -8,9 +8,14 @@ then close it like any HTML comment. The release notes carry it, and the chat bo
 
 ## [Unreleased]
 
+### Added
+- An errand for today, once the opening tasks are done: one small thing from a neighbour you know, doable on one walk (look in on someone, bring a present, pass your beds, pick a ripe bed, help with a request your bag can fill, walk a kilometre or two, find two things). It pays a little of their liking and a token groat.
+- "What the neighbours need" at the top of the Neighbours tab: every open request, what is still missing (have/need) and where to get it — in the bag, growing and ripe in N days, seeds you can sow, who gives the seeds, the market, a find by the water, the hen house, or a dish and what goes into it. Requests ready to take come first.
+
 ### Changed
 - The garden grows four times faster than a real one (a radish is ready in 7 days instead of 25, the median crop in about three weeks instead of three months), so the first weeks have harvests in them. Plant food now gives a day of growth instead of three, the same share as before. Beds of older games are rescaled once, keeping how far along they were.
 - The groats last the first year: the fair pays half the listed price (there is four times as much to sell), and past the first 6 of a kind on a Saturday Aunt Zina pays half again; the later upgrades cost more (the compost box 400 and 1200, your own stall 900, all of them 4540 instead of 1990). A steady player fills the household in about eight months instead of three.
+- Aunt Klava's basket has milk for cottage cheese, so the kitchen task can be done at home before the market is found (most players waited on it for weeks).
 - Aunt Klava's starting packets are the two quickest verge crops; every neighbour now has a quick crop among their seeds and gives the quickest one first.
 - The sow buttons put the quickest crops first and say the day each would be ripe ("by 18 May").
 - Windowsill shoots always leave a seed for the next pot, so the sill doesn't empty.
@@ -23,6 +28,7 @@ then close it like any HTML comment. The release notes carry it, and the chat bo
 - The bed card says plainly when the bed will be ripe, whether it has been watered today (by you, by the rain, or not yet, and how to water it), and warns before it goes wild or gets frost; growth and waterings show as bars. Lists say "ripe in ~5 days · watered today" (#3).
 
 <!-- tg
+Каждый день — маленькое поручение от соседа, а во вкладке «Соседи» видно, что кому нужно и где это взять
 Перо, мёд и воск теперь можно добыть: перья дают куры, мёд и воск продаёт пасечник на рынке — просьбы со свечами и сбитнем больше не застревают
 Соседи больше не появляются на закрытых территориях: если место за забором, сосед ждёт на ближайшем тротуаре
 В карточке грядки теперь понятно, когда она созреет и полита ли сегодня, а если нет — как её полить

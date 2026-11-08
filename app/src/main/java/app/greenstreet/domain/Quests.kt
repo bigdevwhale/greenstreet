@@ -12,6 +12,8 @@ class Quest(
     val how: Tx,
     val goal: Int,
     val reward: List<Reward>,
+    /** Progress is counted in 1/[unit] steps (a walk in tenths of a kilometre). */
+    val unit: Int = 1,
     val progress: (GameState) -> Int,
 )
 
@@ -46,7 +48,7 @@ object Quests {
             Tx("Подарите соседу что-нибудь из сумки. По ответу поймёте, что он любит, — сердечки растут быстрее.", "Give a neighbour something from your bag. Their answer shows what they like — hearts grow faster."),
             1, listOf(Reward.Coins(10))) { s -> c(s, "gift") },
         Quest("cook", "semyonych", Tx("Своя кухня", "Your own kitchen"),
-            Tx("Приготовьте что-нибудь на кухне во дворе. Нажмите на блюдо — покажет, чего не хватает.", "Cook something in the yard kitchen. Tap a dish to see what's missing."),
+            Tx("Приготовьте что-нибудь на кухне во дворе. Из молока в корзинке тёти Клавы выйдет творог. Нажмите на блюдо — покажет, чего не хватает.", "Cook something in the yard kitchen. Aunt Klava's milk makes cottage cheese. Tap a dish to see what's missing."),
             1, listOf(Reward.Coins(15))) { s -> c(s, "cook") },
         Quest("request", "klava", Tx("Помочь соседу", "Help a neighbour"),
             Tx("Выполните просьбу соседа — у его имени на карте «!». Просьбы приходят одна за другой и рассказывают их истории.", "Fulfil a neighbour's request — their name on the map has a '!'. Requests come one after another and tell their stories."),

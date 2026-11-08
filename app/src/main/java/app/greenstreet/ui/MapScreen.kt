@@ -301,12 +301,17 @@ fun MapScreen(open: (Sheet) -> Unit) {
                 Text(placeName(c, me, ru), style = T.Heading, modifier = Modifier.weight(1f), maxLines = 1)
                 Text(w(ru, "сегодня %.1f км", "today %.1f km").format(s.kmToday).replace('.', if (ru) ',' else '.'), style = T.Small)
             }
-            app.greenstreet.domain.Quests.current(s)?.let { q ->
-                Panel(Modifier.fillMaxWidth(), fill = C.light, onClick = { questOpen = !questOpen }) {
+            // the opening task, or once those are done, today's errand
+            val errand = app.greenstreet.domain.Quests.current(s) == null
+            (app.greenstreet.domain.Quests.current(s) ?: app.greenstreet.domain.Errands.today(c.game, s, now))?.let { q ->
+                val finished = errand && app.greenstreet.domain.Errands.done(s, now)
+                Panel(Modifier.fillMaxWidth(), fill = if (finished) C.paper2 else C.light, onClick = { questOpen = !questOpen }) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(1f)) {
-                            Text(w(ru, "задание · ", "task · ") + app.greenstreet.domain.Quests.from(q.from) { id -> c.content.person[id]?.name }(ru), style = T.Eyebrow)
-                            Text(q.title(ru) + if (q.goal > 1) "  ${q.progress(s).coerceAtMost(q.goal)}/${q.goal}" else "", style = T.Body, maxLines = 1)
+                            Text((if (errand) w(ru, "на сегодня · ", "for today · ") else w(ru, "задание · ", "task · ")) +
+                                app.greenstreet.domain.Quests.from(q.from) { id -> c.content.person[id]?.name }(ru) + if (finished) w(ru, " · сделано ✓", " · done ✓") else "", style = T.Eyebrow)
+                            Text(q.title(ru) + if (q.goal > 1 && !finished) "  ${progressText(q.progress(s).coerceAtMost(q.goal), q.unit, ru)}/${progressText(q.goal, q.unit, ru)}" else "",
+                                style = T.Body.copy(color = if (finished) C.muted else C.ink), maxLines = 1)
                         }
                         Text(if (questOpen) "▴" else "▾", style = T.Heading)
                     }
@@ -393,6 +398,10 @@ fun nothingToSow(c: app.greenstreet.AppContainer, now: app.greenstreet.domain.No
         "No more verge beds for now: you have %d of %d. Pick a harvest or dig up an old one.")
         .format(s.beds.count { c.content.variety[it.variety]?.place == Place.VERGE }, c.game.capacity(s, now, Place.VERGE))
 }
+
+/** A task's progress: whole steps, or tenths ("0,7") when counted in parts. */
+fun progressText(n: Int, unit: Int, ru: Boolean): String =
+    if (unit == 1) "$n" else "${n / unit}" + (if (n % unit == 0) "" else (if (ru) "," else ".") + "${n % unit}")
 
 /** "15 авг." / "15 Aug". */
 fun dayMonth(d: java.time.LocalDate, ru: Boolean): String =

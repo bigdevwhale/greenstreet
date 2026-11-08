@@ -188,6 +188,28 @@ fun PeopleScreen(open: (Sheet) -> Unit) {
     val ru = ru()
     val s = c.state ?: return
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(vertical = 8.dp)) {
+        // every open request in one place: what's still missing and where to get it, the ones ready to take first
+        val now = c.now()
+        val asks = s.bonds.keys.mapNotNull { id -> c.game.request(s, id)?.let { id to it } }
+            .sortedWith(compareByDescending<Pair<String, app.greenstreet.data.Request>> { c.game.canFulfil(s, it.second.needs) }.thenBy { s.bonds[it.first]?.reqShown ?: 0 })
+        if (asks.isNotEmpty()) Section(w(ru, "Что нужно соседям", "What the neighbours need")) {
+            for ((id, r) in asks) {
+                val ready = c.game.canFulfil(s, r.needs)
+                Panel(Modifier.fillMaxWidth().padding(top = 6.dp), fill = if (ready) C.light else C.paper, onClick = { open(Sheet.Place(id)) }) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(c.content.person[id]?.name?.invoke(ru) ?: id, style = T.Heading, modifier = Modifier.weight(1f))
+                        if (ready) Text(w(ru, "можно отнести", "ready to take"), style = T.Small.copy(color = C.light),
+                            modifier = Modifier.pixelBox(C.green, bevel = null, lip = null).padding(horizontal = 6.dp, vertical = 1.dp))
+                    }
+                    for (n in r.needs) {
+                        val have = app.greenstreet.domain.Sources.have(c.content, s, n.key).coerceAtMost(n.qty)
+                        Text("${c.content.name(n.key)(ru).replaceFirstChar { it.uppercase() }} $have/${n.qty}" +
+                            if (have < n.qty) " — " + app.greenstreet.domain.Sources.hint(c.game, s, now, n)(ru) else " ✓",
+                            style = T.Small.copy(color = if (have >= n.qty) C.green else C.ink), modifier = Modifier.padding(top = 2.dp))
+                    }
+                }
+            }
+        }
         val mail = s.inbox.sortedByDescending { it.day }
         Section(w(ru, "Почтовый ящик", "The letterbox")) {
             if (mail.isEmpty()) Text(w(ru, "Пока пусто. Соседи пишут, когда узнают вас получше.", "Empty so far. Neighbours write once they know you better."), style = T.Small)
