@@ -180,7 +180,7 @@ class FirstWeeksTest {
         println()
         println("== $title: the economy ==")
         println("days    fair  req finds tasks other | spent coins | picked sold held | waiting  bought")
-        for (chunk in days.chunked(10)) {
+        for (chunk in days.chunked(if (days.size > 120) 30 else 10)) {
             fun e(k: String) = chunk.sumOf { it.earned[k] ?: 0 }
             println("%3d-%-3d %4d %4d %5d %5d %5d | %5d %5d | %6d %4d %4d | %7d  %s".format(chunk.first().d + 1, chunk.last().d + 1,
                 e("fair"), e("requests"), e("finds"), e("tasks"), e("other"), chunk.sumOf { it.spent }, chunk.last().coins,
@@ -194,8 +194,15 @@ class FirstWeeksTest {
 
     @Test
     fun threeMonthsOfGroats() {
-        economy("start 1 May, 90 days", play(LocalDate.of(2027, 5, 1), 90))
-        economy("start 1 September, 90 days", play(LocalDate.of(2027, 9, 1), 90))
+        // the groats should last: the household fills up over the first year, not the first season
+        for ((title, start) in listOf("start 1 May" to LocalDate.of(2027, 5, 1), "start 1 September" to LocalDate.of(2027, 9, 1))) {
+            val days = play(start, 365)
+            economy("$title, a year", days)
+            val last = days.lastOrNull { d -> d.bought.any { it in wishes } }?.d ?: 365
+            val all = days.flatMap { it.bought }.count { it in wishes } == app.greenstreet.domain.Upgrades.all.sumOf { it.max }
+            assertTrue("$title: the household takes most of the first year (done by ${last + 1})", !all || last >= 180)
+            assertTrue("$title: something is bought in the first month", days.take(30).any { d -> d.bought.isNotEmpty() })
+        }
     }
 
     @Test

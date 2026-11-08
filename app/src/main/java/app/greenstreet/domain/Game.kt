@@ -565,9 +565,11 @@ class Game(val c: Content) {
         val have = s.bag[key] ?: 0
         val k = min(n, have)
         if (k <= 0 || !now.saturday) return 0
-        val v = salePrice(s, now, key) * k
+        if (s.fairDay != now.day) { s.fairDay = now.day; s.fair = 0; s.counts.keys.removeAll { it.startsWith("fair:") } }
+        // one at a time: past the first few of a kind, Aunt Zina pays half
+        var v = 0
+        repeat(k) { v += salePrice(s, now, key); s.count("fair:" + c.speciesOf(key)) }
         s.add(s.bag, key, -k); s.coins += v
-        if (s.fairDay != now.day) { s.fairDay = now.day; s.fair = 0 }
         s.fair += v
         s.counts["fair_best"] = max(s.counts["fair_best"] ?: 0, s.fair)
         if (now.month in 9..10) s.flags += "fair.first_autumn"
@@ -639,10 +641,16 @@ class Game(val c: Content) {
     }
 
     /** What one of [key] fetches at the fair today. */
+    /**
+     * What the fair pays for the next one. Half the listed price, as the garden runs [Content.PACE] times faster
+     * than a real one and there is far more to sell than the prices were set for; and half again past the first
+     * [FAIR_FULL] of a kind that Saturday, so a sea of radishes doesn't buy the whole household.
+     */
     fun salePrice(s: GameState, now: Now, key: String): Int {
-        var p = c.price(key)
+        var p = (c.price(key) + 1) / 2
         if (demand(s, now) == c.speciesOf(key)) p *= 2
         if (up(s, "stall") > 0) p = (p * 5 + 3) / 4
+        if (s.fairDay == now.day && (s.counts["fair:" + c.speciesOf(key)] ?: 0) >= FAIR_FULL) p /= 2
         return max(1, p)
     }
 
@@ -797,6 +805,8 @@ class Game(val c: Content) {
         /** Points needed for each heart: about a season of regular visits for 4, a year for 7, three for 10. */
         /** Metres between beds by the road. */
         const val BED_GAP = 25.0
+        /** How many of one kind the fair takes at full price on a Saturday; the rest go for half. */
+        const val FAIR_FULL = 6
         /** What the beekeeper at the market sells. */
         val BEEKEEPER = setOf("honey", "wax")
         val HEART_POINTS = intArrayOf(0, 6, 20, 45, 80, 130, 200, 290, 400, 540, 720)

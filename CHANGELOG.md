@@ -10,6 +10,7 @@ then close it like any HTML comment. The release notes carry it, and the chat bo
 
 ### Changed
 - The garden grows four times faster than a real one (a radish is ready in 7 days instead of 25, the median crop in about three weeks instead of three months), so the first weeks have harvests in them. Plant food now gives a day of growth instead of three, the same share as before. Beds of older games are rescaled once, keeping how far along they were.
+- The groats last the first year: the fair pays half the listed price (there is four times as much to sell), and past the first 6 of a kind on a Saturday Aunt Zina pays half again; the later upgrades cost more (the compost box 400 and 1200, your own stall 900, all of them 4540 instead of 1990). A steady player fills the household in about eight months instead of three.
 - Aunt Klava's starting packets are the two quickest verge crops; every neighbour now has a quick crop among their seeds and gives the quickest one first.
 - The sow buttons put the quickest crops first and say the day each would be ripe ("by 18 May").
 - Windowsill shoots always leave a seed for the next pot, so the sill doesn't empty.
@@ -28,6 +29,7 @@ then close it like any HTML comment. The release notes carry it, and the chat bo
 Сажать можно в любой месяц: зимой на улице растёт вдвое медленнее, рынок продаёт весенние семена
 Гуляющий сосед останавливается и ждёт, когда вы подходите, — больше не нужно за ним гоняться
 Огород растёт вчетверо быстрее: редис за 7 дней, первый урожай с грядки — на первой неделе
+На ярмарке тётя Зина берёт по 6 штук каждого по полной цене, улучшения хозяйства подорожали — копить интереснее
 -->
 
 ## [0.10.0] - 2026-11-03
