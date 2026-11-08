@@ -96,6 +96,23 @@ class ReachTest {
     }
 
     @Test
+    fun walkingByANewBedCountsOnDayOne() {
+        val day = LocalDate.of(2027, 6, 10)
+        val at = Geo(59.95, 30.31)
+        val s = game.newGame(Now(day), at)
+        val v = content.variety.getValue("radish_breakfast")
+        s.seeds[v.key] = 1
+        val b = game.sow(s, Now(day), v.key, at)!!
+        assertTrue("sowing waters it", game.outlook(s, b, Now(day)).watered)
+        assertEquals(null, s.counts["tend"])
+        assertEquals("walking by counts on the sowing day", 1, game.pass(s, Now(day), at).size)
+        assertEquals("Aunt Klava's 'Water on the way' moves on the sowing day", 1, s.counts["tend"])
+        assertEquals("but only once a day", 0, game.pass(s, Now(day), at).size)
+        val back = app.greenstreet.domain.GameState.fromJson(s.toJson()).beds.single()
+        assertEquals("the walk past is saved", day.toEpochDay(), back.passed)
+    }
+
+    @Test
     fun winterSowing() {
         val jan = LocalDate.of(2027, 1, 12)
         val cold = Sky(snow = true, temp = -6.0)

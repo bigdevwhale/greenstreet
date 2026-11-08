@@ -21,6 +21,8 @@ class Bed(
     /** Sown by the wind from the tram: grows on its own, comes up wild. */
     var self: Boolean = false,
     var harvests: Int = 0,
+    /** The day the player last walked by. Sowing waters a bed but isn't a walk past, so the two are kept apart. */
+    var passed: Long = -1,
 )
 
 /** The player's ties with one neighbour. */
@@ -103,7 +105,7 @@ class GameState {
             beds.forEach { b ->
                 put(JSONObject().put("id", b.id).put("v", b.variety).put("lat", b.lat).put("lon", b.lon).put("sown", b.sown)
                     .put("grown", b.grown).put("tended", b.tended).put("lastTend", b.lastTend).put("idle", b.idle)
-                    .put("wild", b.wild).put("self", b.self).put("harvests", b.harvests))
+                    .put("wild", b.wild).put("self", b.self).put("harvests", b.harvests).put("passed", b.passed))
             }
         })
         put("bag", JSONObject(bag as Map<*, *>)); put("seeds", JSONObject(seeds as Map<*, *>)); put("tools", JSONObject(tools as Map<*, *>))
@@ -133,7 +135,9 @@ class GameState {
                     val b = a.getJSONObject(i)
                     beds += Bed(b.getLong("id"), b.getString("v"), b.getDouble("lat"), b.getDouble("lon"), b.getLong("sown"),
                         b.optDouble("grown", 0.0), b.optInt("tended"), b.optLong("lastTend", -1), b.optInt("idle"),
-                        b.optBoolean("wild"), b.optBoolean("self"), b.optInt("harvests"))
+                        b.optBoolean("wild"), b.optBoolean("self"), b.optInt("harvests"),
+                        // older saves didn't keep it: a bed tended today was walked by today, unless it was sown today
+                        b.optLong("passed", b.optLong("lastTend", -1).takeIf { it != b.getLong("sown") } ?: -1))
                 }
             }
             fun ints(k: String, into: MutableMap<String, Int>) = o.optJSONObject(k)?.let { j -> j.keys().forEach { into[it] = j.getInt(it) } }

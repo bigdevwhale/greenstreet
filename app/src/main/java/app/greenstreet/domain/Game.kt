@@ -270,11 +270,12 @@ class Game(val c: Content) {
         val r = reach(s)
         val out = ArrayList<Bed>()
         for (b in s.beds) {
-            if (b.lastTend == now.day) continue
+            // sowing waters a bed but isn't a walk past, so walking by a bed sown today still counts
+            if (b.passed == now.day) continue
             val p = c.variety[b.variety]?.place ?: continue
             if (p != Place.VERGE && p != Place.GARDEN) continue
             if (Geo(b.lat, b.lon).metres(at) <= r) {
-                b.lastTend = now.day; out += b
+                b.lastTend = now.day; b.passed = now.day; out += b
             }
         }
         if (out.isNotEmpty()) { s.count("tend", out.size); s.count("tend_today", out.size) }
