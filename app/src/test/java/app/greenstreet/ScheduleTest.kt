@@ -62,7 +62,7 @@ class ScheduleTest {
         s.add(s.seeds, v.key, 1)
         val b = game.sow(s, now, v.key, Geo(59.95, 30.31))!!
         assertTrue(game.feed(s, b.id))
-        assertEquals(3.0, b.grown, 0.0)
+        assertEquals(1.0, b.grown, 0.0)
         assertEquals(0, game.stock(s, "feed"))
         b.wild = true
         assertTrue(!game.weed(s, b.id))

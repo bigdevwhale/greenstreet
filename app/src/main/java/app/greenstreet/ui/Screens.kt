@@ -93,7 +93,7 @@ fun YardScreen(open: (Sheet) -> Unit) {
                 pots.forEach { b ->
                     val v = c.content.variety.getValue(b.variety)
                     Row(Modifier.padding(top = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Text("${v.name(ru)} · ${bedState(c, b, now.day, ru)}", style = T.Small.copy(color = C.ink), modifier = Modifier.weight(1f))
+                        Text("${v.name(ru)} · ${bedState(c, b, now, ru)}", style = T.Small.copy(color = C.ink), modifier = Modifier.weight(1f))
                         if (c.game.ripe(b)) PixelButton(w(ru, "Собрать", "Pick"), { c.game.harvest(s, now, b.id); c.changed() }, kind = Kind.LAMP, enabled = home)
                     }
                 }
@@ -104,7 +104,11 @@ fun YardScreen(open: (Sheet) -> Unit) {
                         sowable.forEach { v -> ItemSlot(app.greenstreet.ui.art.ItemIcons.packet(c.content, v.key), s.seeds[v.key], false) { c.game.sow(s, now, v.key, s.home ?: Geo(0.0, 0.0)); c.changed() } }
                     }
                 }
-                if (pots.isEmpty() && sowable.isEmpty()) Text(w(ru, "Пусто. Семена для этого места дают соседи.", "Empty. Neighbours give seeds for this spot."), style = T.Small)
+                if (sowable.isNotEmpty() && !home) Text(w(ru, "Семена есть — посеять можно, когда вы дома.", "You have seeds: sow them when you're home."), style = T.Small, modifier = Modifier.padding(top = 6.dp))
+                if (pots.isEmpty() && sowable.isEmpty()) Text(
+                    if (place == Place.SILL) w(ru, "Пусто. Семена для подоконника — ростки, зелень, луковицы — круглый год продаёт рынок. Растут в любой месяц.",
+                        "Empty. The market sells windowsill seeds — shoots, greens, bulbs — all year. They grow in any month.")
+                    else w(ru, "Пусто. Семена для этого места дают соседи.", "Empty. Neighbours give seeds for this spot."), style = T.Small)
             }
         }
         Section(w(ru, "Кухня", "The kitchen")) { Kitchen(c, home) }

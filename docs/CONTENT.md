@@ -82,8 +82,8 @@ ada olga zoya`. Courtyard: `semyonych nina asya gosha pryanik`.
 | key | variety key `<crop>_<word>`, e.g. `radish_breakfast` |
 | crop | species key from the list |
 | place | `verge`, `sill`, `balcony`, `garden` |
-| sow | months when it may be sown (northern hemisphere), e.g. `4,5,6` |
-| days | real days to ripen when tended (7–365; autumn-sown bulbs, winter rye and bushes are long) |
+| sow | best months to sow (northern hemisphere), e.g. `4,5,6`; any month is allowed, this is advice and drives which seeds the market and finds offer |
+| days | real days to ripen when tended (7–365; autumn-sown bulbs, winter rye and bushes are long). The game runs the garden `Content.PACE` (4) times faster, so a 25-day radish is ready in 7; `tends` and `regrow` are divided the same way |
 | tends | tended days required (about 40–60 % of days) |
 | regrow | 0, or days until the next harvest after picking (herbs 7–60; bushes, bulbs, perennials ~365) |
 | yield | items per harvest (1–6) |

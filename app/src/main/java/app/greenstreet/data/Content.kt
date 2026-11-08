@@ -222,6 +222,14 @@ class Content(
     }
 
     companion object {
+        /**
+         * The game runs this many times faster than a real garden: crops.tsv keeps real days to ripen (a radish
+         * takes 25), the game divides them, so a radish is ready in 7 and the first harvest comes in the first
+         * fortnight. Waterings and regrowth are divided the same way.
+         */
+        const val PACE = 4
+        fun paced(days: Int) = if (days <= 0) 0 else maxOf(1, (days + PACE - 1) / PACE)
+
         val FLOWERS = setOf("chamomile", "calendula", "cornflower", "nasturtium", "marigold", "sweetpea", "aster", "cosmos", "tulip", "daffodil", "crocus", "lavender", "hyacinth", "amaryllis")
         val HERBS = setOf("dill", "parsley", "coriander", "mint", "basil", "thyme", "valerian", "catnip", "sorrel")
         val BERRIES = setOf("strawberry", "raspberry", "currant", "gooseberry", "honeysuckle", "wild_strawberry", "wild_raspberry", "rowan", "rosehip", "elderberry", "sea_buckthorn", "bird_cherry")
@@ -249,7 +257,7 @@ class Content(
 
             val varieties = rows("crops.tsv").map {
                 Variety(it.getValue("key"), it.getValue("crop"), Place.valueOf(it.getValue("place").uppercase()), months(it["sow"]),
-                    it.int("days", 30), it.int("tends", 10), it.int("regrow"), it.int("yield", 1), it.int("price", 1),
+                    paced(it.int("days", 30)), paced(it.int("tends", 10)), paced(it.int("regrow")), it.int("yield", 1), it.int("price", 1),
                     it["art"].orEmpty(), it["ramp"].orEmpty(), it["unlock"].orEmpty(), it.tx("name"), it.tx("about"))
             }
             val goods = rows("goods.tsv").map {

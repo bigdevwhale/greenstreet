@@ -6,6 +6,28 @@ line "<!-- tg", then 2-4 short lines in Russian for users (what is new, what is 
 then close it like any HTML comment. The release notes carry it, and the chat bot posts those lines.
 -->
 
+## [Unreleased]
+
+### Changed
+- The garden grows four times faster than a real one (a radish is ready in 7 days instead of 25, the median crop in about three weeks instead of three months), so the first weeks have harvests in them. Plant food now gives a day of growth instead of three, the same share as before. Beds of older games are rescaled once, keeping how far along they were.
+- Aunt Klava's starting packets are the two quickest verge crops; every neighbour now has a quick crop among their seeds and gives the quickest one first.
+- The sow buttons put the quickest crops first and say the day each would be ripe ("by 18 May").
+- Windowsill shoots always leave a seed for the next pot, so the sill doesn't empty.
+- Seeds can be sown in any month: the months on a packet are the best time, not a rule. Outdoors in the cold (December to February, or below 2 °C) beds grow at half pace instead of not at all. In winter the market, found packets and surprise packets offer the first varieties of spring.
+- A neighbour out for a walk stops and waits while you are within 60 m, then walks on from where they stood; you can talk from 40 m, as at their place.
+
+### Fixed
+- Neighbours no longer settle or stroll on ground closed to the public (private driveways, military land, places deep inside a block): a fenced-off place loses to an open one nearby, and if it is still chosen, its keeper waits on the nearest pavement (#2).
+- The bed card says plainly when the bed will be ripe, whether it has been watered today (by you, by the rain, or not yet, and how to water it), and warns before it goes wild or gets frost; growth and waterings show as bars. Lists say "ripe in ~5 days · watered today" (#3).
+
+<!-- tg
+Соседи больше не появляются на закрытых территориях: если место за забором, сосед ждёт на ближайшем тротуаре
+В карточке грядки теперь понятно, когда она созреет и полита ли сегодня, а если нет — как её полить
+Сажать можно в любой месяц: зимой на улице растёт вдвое медленнее, рынок продаёт весенние семена
+Гуляющий сосед останавливается и ждёт, когда вы подходите, — больше не нужно за ним гоняться
+Огород растёт вчетверо быстрее: редис за 7 дней, первый урожай с грядки — на первой неделе
+-->
+
 ## [0.10.0] - 2026-11-03
 
 ### Added

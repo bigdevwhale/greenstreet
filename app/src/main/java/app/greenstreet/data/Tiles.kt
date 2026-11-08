@@ -77,7 +77,7 @@ object Tiles {
     fun parse(blob: ByteArray, box: DoubleArray, mpp: Double = 1.6): District {
         val empty = District(box[0], box[1], box[2], box[3], mpp, emptyList(), emptyList(), emptyList(), emptyList(), emptyList(), emptyList(), emptyList())
         val buildings = ArrayList<Building>(); val roads = ArrayList<Road>(); val water = ArrayList<Poly>()
-        val greens = ArrayList<Green>(); val places = ArrayList<Spot>()
+        val greens = ArrayList<Green>(); val places = ArrayList<Spot>(); val closed = ArrayList<Poly>()
         DataInputStream(ByteArrayInputStream(blob)).use { inp ->
             inp.readInt()
             val n = inp.readInt()
@@ -105,12 +105,15 @@ object Tiles {
                             "landuse" -> {
                                 val k = when (tags["class"]) { "pitch", "stadium" -> "pitch"; "playground" -> "play"; "zoo", "theme_park" -> "park"; else -> null }
                                 if (k != null) polys(parts).forEach { greens += Green(k, it) }
+                                if (tags["class"] == "military") closed += polys(parts)
                             }
                             "transportation" -> if (f.type == 2) {
                                 val type = roadType(tags) ?: continue
                                 val bridge = tags["brunnel"] == "bridge"; val tunnel = tags["brunnel"] == "tunnel"
                                 if (tunnel && type in setOf("primary", "secondary", "tertiary", "residential", "service")) continue
-                                parts.forEach { roads += Road(type, it, bridge, tunnel, if (tags["surface"] == "unpaved") "unpaved" else "", "") }
+                                // OpenMapTiles marks access=no/private ways with access "no"
+                                val shut = tags["access"] in setOf("no", "private") || tags["foot"] in setOf("no", "private")
+                                parts.forEach { roads += Road(type, it, bridge, tunnel, if (tags["surface"] == "unpaved") "unpaved" else "", "", shut) }
                             }
                             "transportation_name" -> if (f.type == 2) {
                                 val nm = (tags["name"] as? String).orEmpty()
@@ -129,7 +132,7 @@ object Tiles {
         greens.sortBy { order[it.kind] ?: 0 }
         // the tiles reach past the district: keep only places inside it, so nobody settles beyond the edge of the map
         places.removeAll { it.x < 0 || it.y < 0 || it.x > empty.w || it.y > empty.h }
-        return District(box[0], box[1], box[2], box[3], mpp, buildings, roads, water, greens, emptyList(), emptyList(), places)
+        return District(box[0], box[1], box[2], box[3], mpp, buildings, roads, water, greens, emptyList(), emptyList(), places, closed)
     }
 
     /** MVT polygons: a ring with positive area starts a polygon, negative ones are its holes. */

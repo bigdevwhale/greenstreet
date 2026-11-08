@@ -100,7 +100,7 @@ object Wares {
         Ware("tyre", true, 35, true, Tx("Клумба из шины", "A tyre flowerbed"), Tx("Покрашенная, как положено во дворе, с бархатцами.", "Painted, as every yard's should be, with marigolds.")),
         Ware("gnome", true, 50, true, Tx("Садовый гном", "A garden gnome"), Tx("Красный колпак. Пряник его сначала боится.", "A red cap. Pryanik is wary of him at first.")),
         Ware("barrel", true, 60, true, Tx("Бочка для дождевой воды", "A rain barrel"), Tx("У курятника, под водостоком.", "By the hen house, under the drainpipe.")),
-        Ware("feed", false, 12, false, Tx("Подкормка", "Plant food"), Tx("Грядка сразу подрастает на три дня. Нужно подойти к ней.", "A bed grows three days at once. Walk up to it first.")),
+        Ware("feed", false, 12, false, Tx("Подкормка", "Plant food"), Tx("Грядка сразу подрастает на день. Нужно подойти к ней.", "A bed grows a day at once. Walk up to it first.")),
         Ware("hoe", false, 60, true, Tx("Мотыга", "A hoe"), Tx("Одичавшую грядку можно прополоть, и она снова как новая.", "Weed a bed gone wild and it's good as new.")),
         Ware("surprise", false, 8, false, Tx("Пакетик-сюрприз", "A mystery packet"), Tx("Семена без подписи. Что вырастет — узнаете, когда откроете.", "Unlabelled seeds. You'll know what when you open it.")),
     )

@@ -36,6 +36,13 @@ import kotlin.math.abs
 /** Half the side of the district square around home, metres. */
 const val DISTRICT_HALF = 800.0
 
+/** A place counts as open when the public ways pass within this many map pixels (about 20 m). */
+private const val REACH_PX = 12
+/** How much nearer, in map pixels (about 100 m), a fenced-off place must be to win over an open one. */
+private const val FENCE_PX = 60.0
+/** A strolling neighbour stops and waits while the player is this close, metres. */
+private const val WAIT_M = 60.0
+
 /** Holds the game for the whole app: content, the player's state, the district and the weather. */
 class AppContainer(context: Context) {
     val app: Context = context.applicationContext
@@ -106,20 +113,31 @@ class AppContainer(context: Context) {
         bind(d, home)
     }
 
-    /** Each town neighbour takes the nearest place of their kind, or else the nearest unclaimed shop. */
+    /**
+     * Each town neighbour takes the nearest place of their kind, or else the nearest unclaimed shop. A place
+     * the public ways don't reach (behind a fence, on closed land) loses to an open one unless that is much
+     * further; if it still wins, its keeper stands on the nearest pavement outside instead.
+     */
     private fun bind(d: District, home: Geo) {
         places.clear()
+        val ter = terrain
         val hx = d.x(home.lon); val hy = d.y(home.lat)
-        fun dist(p: Spot) = Math.hypot((p.x - hx).toDouble(), (p.y - hy).toDouble())
+        fun open(p: Spot) = ter == null || ter.reachable(p.x.toInt(), p.y.toInt(), REACH_PX)
+        fun dist(p: Spot) = Math.hypot((p.x - hx).toDouble(), (p.y - hy).toDouble()) + if (open(p)) 0.0 else FENCE_PX
+        fun settle(id: String, p: Spot) {
+            val out = if (ter == null || open(p)) p else ter.nearestOpen(p.x.toInt(), p.y.toInt(), 400)?.let { Spot(it[0].toFloat(), it[1].toFloat(), p.kind, p.name) } ?: p
+            places[id] = out
+        }
         val taken = HashSet<Spot>()
         for (p in content.people.filter { !it.yard }) {
             val match = d.places.filter { s -> p.osm.any { (k, v) -> s.kind == "$k=$v" } && s !in taken }.minByOrNull(::dist)
-            if (match != null) { places[p.id] = match; taken += match }
+            if (match != null) { settle(p.id, match); taken += match }
         }
         for (p in content.people.filter { !it.yard && it.id !in places }) {
             val any = d.places.filter { it !in taken && (it.kind.startsWith("shop=") || it.kind.startsWith("amenity=")) }.minByOrNull(::dist)
-            if (any != null) { places[p.id] = any; taken += any }
+            if (any != null) { settle(p.id, any); taken += any }
         }
+        pools.clear(); legs.clear()
     }
 
     fun placeGeo(id: String): Geo? {
@@ -139,7 +157,7 @@ class AppContainer(context: Context) {
     private fun walks(t: Terrain): IntArray {
         if (walkFor === t) return walkPts
         val out = ArrayList<Int>()
-        for (y in 2 until t.h - 2 step 4) for (x in 2 until t.w - 2 step 4) if (t.at(x, y) == K.WALK) { out += x; out += y }
+        for (y in 2 until t.h - 2 step 4) for (x in 2 until t.w - 2 step 4) if (t.at(x, y) == K.WALK && t.open[y * t.w + x]) { out += x; out += y }
         walkPts = out.toIntArray(); walkFor = t
         return walkPts
     }
@@ -184,13 +202,24 @@ class AppContainer(context: Context) {
     }
     private val pools = HashMap<String, IntArray>()
 
-    /** A path along walkways from a to b (breadth-first over the terrain, in a box around them); straight if none. */
-    private fun route(ter: Terrain, a: IntArray, b: IntArray): IntArray {
+    /**
+     * A path along the public walkways from a to b (breadth-first over the terrain, in a box around them);
+     * across the roadway and through arches if the pavements alone don't join; straight if nothing does.
+     */
+    private fun route(ter: Terrain, a: IntArray, b: IntArray): IntArray =
+        route(ter, a, b) { _, c -> c == K.WALK || c == K.DIRT || c == K.STEPS || c == K.BRIDGE }
+            ?: route(ter, a, b) { _, _ -> true }
+            ?: run {
+                val n = maxOf(1, Math.hypot((b[0] - a[0]).toDouble(), (b[1] - a[1]).toDouble()).toInt())
+                IntArray(2 * (n + 1)) { j -> val f = (j / 2) / n.toDouble(); if (j % 2 == 0) (a[0] + (b[0] - a[0]) * f).toInt() else (a[1] + (b[1] - a[1]) * f).toInt() }
+            }
+
+    private fun route(ter: Terrain, a: IntArray, b: IntArray, allow: (Int, Int) -> Boolean): IntArray? {
         val pad = 40
         val x0 = maxOf(0, minOf(a[0], b[0]) - pad); val y0 = maxOf(0, minOf(a[1], b[1]) - pad)
         val x1 = minOf(ter.w - 1, maxOf(a[0], b[0]) + pad); val y1 = minOf(ter.h - 1, maxOf(a[1], b[1]) + pad)
         val bw = x1 - x0 + 1; val bh = y1 - y0 + 1
-        fun ok(x: Int, y: Int) = ter.at(x, y).let { it == K.WALK || it == K.DIRT || it == K.STEPS || it == K.BRIDGE }
+        fun ok(x: Int, y: Int): Boolean { val i = y * ter.w + x; return ter.open[i] && allow(i, ter.at(x, y)) }
         val prev = IntArray(bw * bh) { -2 }
         val q = IntArray(bw * bh); var qh = 0; var qt = 0
         val start = (a[1] - y0) * bw + (a[0] - x0); val goal = (b[1] - y0) * bw + (b[0] - x0)
@@ -208,11 +237,7 @@ class AppContainer(context: Context) {
                 prev[n] = c; q[qt++] = n
             }
         }
-        if (prev[goal] == -2) {
-            // no way along the paths: walk straight
-            val n = maxOf(1, Math.hypot((b[0] - a[0]).toDouble(), (b[1] - a[1]).toDouble()).toInt())
-            return IntArray(2 * (n + 1)) { j -> val f = (j / 2) / n.toDouble(); if (j % 2 == 0) (a[0] + (b[0] - a[0]) * f).toInt() else (a[1] + (b[1] - a[1]) * f).toInt() }
-        }
+        if (prev[goal] == -2) return null
         val out = ArrayList<Int>()
         var c = goal
         while (c >= 0) { out += c; c = prev[c] }
@@ -222,11 +247,18 @@ class AppContainer(context: Context) {
 
     /**
      * A neighbour strolling: every six minutes they set off from one waypoint to the next along the paths at
-     * an easy pace (about a metre a second), then stop and look about until it's time to go on.
+     * an easy pace (about a metre a second), then stop and look about until it's time to go on. When the
+     * player comes near, they wait where they are, and walk on from there once the player has gone.
      */
     private fun stroll(id: String, place: Spot, t: LocalDateTime): Spot? {
         val ter = terrain ?: return null
-        val secs = t.toLocalDate().toEpochDay() * 86400L + t.toLocalTime().toSecondOfDay()
+        val real = t.toLocalDate().toEpochDay() * 86400L + t.toLocalTime().toSecondOfDay()
+        // the time they've stood waiting is taken off their walk, so they pick up where they stopped
+        val last = seen[id]
+        val waiting = last != null && real > last && real - last < 120 && waits(id)
+        if (waiting) held[id] = (held[id] ?: 0L) + (real - last!!)
+        if (last == null || real > last) seen[id] = real
+        val secs = real - (held[id] ?: 0L)
         val k = secs / 360
         val leg = legs[id]?.takeIf { it.key == k } ?: run {
             val a = waypoint(id, place, k) ?: return place
@@ -237,9 +269,21 @@ class AppContainer(context: Context) {
         val step = ((secs - k * 360) * 0.65).toInt()
         val i = minOf(step, n - 1)
         val st = strollState.getOrPut(id) { StrollState(false, false) }
-        st.moving = step < n - 1
+        st.moving = step < n - 1 && !waiting
         if (i + 3 < n) st.left = leg.path[2 * (i + 3)] < leg.path[2 * i]
-        return Spot(leg.path[2 * i].toFloat(), leg.path[2 * i + 1].toFloat(), "", "")
+        return Spot(leg.path[2 * i].toFloat(), leg.path[2 * i + 1].toFloat(), "", "").also { lastSpot[id] = it }
+    }
+
+    /** Last time each stroll was worked out, seconds; seconds each neighbour has stood waiting; where they were. */
+    private val seen = HashMap<String, Long>()
+    private val held = HashMap<String, Long>()
+    private val lastSpot = HashMap<String, Spot>()
+
+    /** Is the player close enough to a strolling neighbour that they stop and wait? */
+    private fun waits(id: String): Boolean {
+        val me = here.value ?: return false
+        val g = lastSpot[id]?.let(::geoOf) ?: return false
+        return g.metres(me) <= WAIT_M
     }
 
     fun geoOf(s: Spot): Geo? { val d = district ?: return null; return Geo(d.lat(s.y), d.lon(s.x)) }
@@ -251,7 +295,7 @@ class AppContainer(context: Context) {
         if (p.yard) return whereabouts(id) == Whereabouts.WORK && atHome(at)
         val st = whereabouts(id)
         val g = spotNow(id)?.let(::geoOf) ?: return false
-        return g.metres(at) <= if (st == Whereabouts.OUT) 30 else 40
+        return g.metres(at) <= 40
     }
 
     fun atHome(at: Geo? = here.value): Boolean { val h = state?.home ?: return false; return at != null && h.metres(at) <= 40 }
