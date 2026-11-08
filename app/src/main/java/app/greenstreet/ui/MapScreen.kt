@@ -64,6 +64,7 @@ import app.greenstreet.ui.components.Kind
 import app.greenstreet.ui.components.Panel
 import app.greenstreet.ui.components.pixelBox
 import app.greenstreet.ui.components.PixelButton
+import app.greenstreet.ui.components.Segments
 import app.greenstreet.ui.theme.C
 import app.greenstreet.ui.theme.T
 import app.greenstreet.work.Tracker
@@ -300,12 +301,17 @@ fun MapScreen(open: (Sheet) -> Unit) {
                 Text(placeName(c, me, ru), style = T.Heading, modifier = Modifier.weight(1f), maxLines = 1)
                 Text(w(ru, "сегодня %.1f км", "today %.1f km").format(s.kmToday).replace('.', if (ru) ',' else '.'), style = T.Small)
             }
-            app.greenstreet.domain.Quests.current(s)?.let { q ->
-                Panel(Modifier.fillMaxWidth(), fill = C.light, onClick = { questOpen = !questOpen }) {
+            // the opening task, or once those are done, today's errand
+            val errand = app.greenstreet.domain.Quests.current(s) == null
+            (app.greenstreet.domain.Quests.current(s) ?: app.greenstreet.domain.Errands.today(c.game, s, now))?.let { q ->
+                val finished = errand && app.greenstreet.domain.Errands.done(s, now)
+                Panel(Modifier.fillMaxWidth(), fill = if (finished) C.paper2 else C.light, onClick = { questOpen = !questOpen }) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(1f)) {
-                            Text(w(ru, "задание · ", "task · ") + app.greenstreet.domain.Quests.from(q.from) { id -> c.content.person[id]?.name }(ru), style = T.Eyebrow)
-                            Text(q.title(ru) + if (q.goal > 1) "  ${q.progress(s).coerceAtMost(q.goal)}/${q.goal}" else "", style = T.Body, maxLines = 1)
+                            Text((if (errand) w(ru, "на сегодня · ", "for today · ") else w(ru, "задание · ", "task · ")) +
+                                app.greenstreet.domain.Quests.from(q.from) { id -> c.content.person[id]?.name }(ru) + if (finished) w(ru, " · сделано ✓", " · done ✓") else "", style = T.Eyebrow)
+                            Text(q.title(ru) + if (q.goal > 1 && !finished) "  ${progressText(q.progress(s).coerceAtMost(q.goal), q.unit, ru)}/${progressText(q.goal, q.unit, ru)}" else "",
+                                style = T.Body.copy(color = if (finished) C.muted else C.ink), maxLines = 1)
                         }
                         Text(if (questOpen) "▴" else "▾", style = T.Heading)
                     }
@@ -323,21 +329,23 @@ fun MapScreen(open: (Sheet) -> Unit) {
             }
             for (b in near.take(2)) {
                 val v = c.content.variety.getValue(b.variety)
-                Text("${v.name(ru)} · ${bedState(c, b, now.day, ru)}", style = T.Small.copy(color = C.ink), maxLines = 1)
+                Text("${v.name(ru)} · ${bedState(c, b, now, ru)}", style = T.Small.copy(color = C.ink), maxLines = 1)
             }
             // sowing, when standing by a free verge
             val spot = t.nearestVerge(mx, my, 3)
             if (spot != null) {
-                val sowable = s.seeds.keys.mapNotNull { c.content.variety[it] }.filter { it.place == Place.VERGE && c.game.canSow(s, now, it) }
+                // quickest first, each with the day it would be ripe, so nobody fills every bed with winter rye by mistake
+                val sowable = s.seeds.keys.mapNotNull { c.content.variety[it] }.filter { it.place == Place.VERGE && c.game.canSow(s, now, it) }.sortedBy { it.days }
                 val tooClose = c.game.tooClose(s, Geo(d.lat(spot[1] + .5f), d.lon(spot[0] + .5f)))
                 when {
                     tooClose -> Text(w(ru, "Рядом уже есть грядка. Между грядками — не меньше 25 метров, иначе им тесно.", "There's a bed close by. Beds need 25 metres between them, or they crowd each other."), style = T.Small)
-                    sowable.isEmpty() -> Text(w(ru, "Газон свободен, но сеять сейчас нечего: семена дают соседи и рынок.", "The verge is free, but there's nothing to sow now: neighbours and the market give seeds."), style = T.Small)
+                    sowable.isEmpty() -> Text(nothingToSow(c, now, ru), style = T.Small)
                     else -> FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        if (c.game.cold(now)) Text(w(ru, "Холодно: на улице всё растёт вдвое дольше.", "It's cold: outdoors everything takes twice as long."), style = T.Small, modifier = Modifier.fillMaxWidth())
                         Text(w(ru, "Посеять:", "Sow:"), style = T.Body, modifier = Modifier.align(Alignment.CenterVertically))
                         sowable.forEach { v ->
                             val hot = c.game.demand(s, now) == v.crop
-                            PixelButton((if (hot) "★ " else "") + "${v.name(ru)} ×${s.seeds[v.key]} · ${v.days}" + w(ru, " дн.", " d"), {
+                            PixelButton((if (hot) "★ " else "") + "${v.name(ru)} ×${s.seeds[v.key]} · " + w(ru, "к ", "by ") + dayMonth(c.game.ripeOn(v, now), ru), {
                                 c.game.sow(s, now, v.key, Geo(d.lat(spot[1] + .5f), d.lon(spot[0] + .5f))); c.changed()
                             }, kind = Kind.LAMP)
                         }
@@ -380,14 +388,88 @@ private fun isBigWater(t: app.greenstreet.domain.Terrain, x: Int, y: Int): Boole
     return n > 120
 }
 
-fun bedState(c: app.greenstreet.AppContainer, b: app.greenstreet.domain.Bed, today: Long, ru: Boolean): String {
-    val v = c.content.variety.getValue(b.variety)
-    if (c.game.ripe(b)) return w(ru, "урожай готов", "ready to pick") + if (b.wild) w(ru, " · одичала", " · gone wild") else ""
-    val parts = ArrayList<String>()
-    parts += w(ru, "%d из %d дн.", "%d of %d days").format(b.grown.toInt(), v.days)
+/** Why nothing can go on this verge now: every verge bed is taken, or there are no seeds for outdoors. */
+fun nothingToSow(c: app.greenstreet.AppContainer, now: app.greenstreet.domain.Now, ru: Boolean): String {
+    val s = c.state ?: return ""
+    val mine = s.seeds.filterValues { it > 0 }.keys.mapNotNull { c.content.variety[it] }.filter { it.place == Place.VERGE }
+    if (mine.isEmpty()) return w(ru, "Газон свободен, но семян для улицы у вас нет: их дают соседи и продаёт рынок.",
+        "The verge is free, but you have no seeds for outdoors: neighbours give them and the market sells them.")
+    return w(ru, "Больше грядок у дороги сейчас не завести: их уже %d из %d. Соберите урожай или перекопайте старую.",
+        "No more verge beds for now: you have %d of %d. Pick a harvest or dig up an old one.")
+        .format(s.beds.count { c.content.variety[it.variety]?.place == Place.VERGE }, c.game.capacity(s, now, Place.VERGE))
+}
+
+/** A task's progress: whole steps, or tenths ("0,7") when counted in parts. */
+fun progressText(n: Int, unit: Int, ru: Boolean): String =
+    if (unit == 1) "$n" else "${n / unit}" + (if (n % unit == 0) "" else (if (ru) "," else ".") + "${n % unit}")
+
+/** "15 авг." / "15 Aug". */
+fun dayMonth(d: java.time.LocalDate, ru: Boolean): String =
+    "${d.dayOfMonth} " + if (ru) listOf("янв.", "февр.", "марта", "апр.", "мая", "июня", "июля", "авг.", "сент.", "окт.", "нояб.", "дек.")[d.monthValue - 1]
+    else java.time.Month.of(d.monthValue).name.take(3).lowercase().replaceFirstChar { it.uppercase() }
+
+/** When a bed ripens, in words: "ripe in ~5 days", "ripe by morning", "ready to pick". */
+fun ripeIn(o: app.greenstreet.domain.Game.Outlook, ru: Boolean): String = when (o.nights) {
+    0 -> w(ru, "урожай готов", "ready to pick")
+    1 -> w(ru, "созреет к утру", "ripe by morning")
+    else -> w(ru, "созреет через ~%d дн.", "ripe in ~%d days").format(o.nights)
+}
+
+/** Has the bed had its water today, in words. */
+fun wateredWord(o: app.greenstreet.domain.Game.Outlook, ru: Boolean): String = when {
+    o.watered -> w(ru, "сегодня полита", "watered today")
+    o.rain -> w(ru, "польёт дождь", "the rain waters it")
+    else -> w(ru, "сегодня не полита", "not watered today")
+}
+
+/** One line for lists: when it ripens and whether it has been watered today. */
+fun bedState(c: app.greenstreet.AppContainer, b: app.greenstreet.domain.Bed, now: app.greenstreet.domain.Now, ru: Boolean): String {
+    val s = c.state ?: return ""
+    val o = c.game.outlook(s, b, now)
+    if (o.nights == 0) return ripeIn(o, ru) + if (b.wild) w(ru, " · одичала", " · gone wild") else ""
+    val parts = arrayListOf(ripeIn(o, ru))
     if (b.wild) parts += w(ru, "одичала", "gone wild")
-    parts += if (b.lastTend == today) w(ru, "полита", "watered") else w(ru, "не полита", "not watered")
+    parts += wateredWord(o, ru)
     return parts.joinToString(" · ")
+}
+
+/** The bed card: how far it has grown, when it ripens, has it been watered, and what to watch out for. */
+@Composable
+fun BedDetails(c: app.greenstreet.AppContainer, b: app.greenstreet.domain.Bed, now: app.greenstreet.domain.Now, ru: Boolean) {
+    val s = c.state ?: return
+    val v = c.content.variety.getValue(b.variety)
+    val o = c.game.outlook(s, b, now)
+    Column(Modifier.fillMaxWidth().padding(top = 8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        // ripening: the main question, in big letters
+        Text(ripeIn(o, ru).replaceFirstChar { it.uppercase() } + if (o.nights > 1) w(ru, ", если поливать каждый день", " if watered every day") else "",
+            style = T.Body.copy(color = if (o.nights == 0) C.green else C.ink))
+        Text(w(ru, "Рост: %d из %d дн.", "Growth: %d of %d days").format(b.grown.toInt().coerceAtMost(v.days), v.days), style = T.Small)
+        Segments((b.grown / v.days).toFloat())
+        if (!o.indoors && o.nights != 0 && c.game.cold(now)) Text(w(ru, "Холодно: сейчас растёт вдвое медленнее.", "It's cold: growing at half pace for now."), style = T.Small)
+        if (!b.wild && v.tends > 0) {
+            Text(w(ru, "Поливов: %d из %d нужных", "Waterings: %d of %d needed").format(b.tended.coerceAtMost(v.tends), v.tends), style = T.Small, modifier = Modifier.padding(top = 2.dp))
+            Segments(b.tended.toFloat() / v.tends)
+        }
+        if (o.nights == 0) return@Column
+        // today's water: a coloured box, so it reads at a glance
+        val (fill, text) = when {
+            o.indoors && o.watered -> C.greenLight to w(ru, "Сегодня полита: вы были дома.", "Watered today: you were home.")
+            o.indoors -> C.paper2 to w(ru, "Сегодня не полита. Горшки поливаются сами, когда вы дома.", "Not watered today. Pots get watered whenever you're home.")
+            o.watered -> C.greenLight to w(ru, "Сегодня полита: вы прошли рядом.", "Watered today: you walked by.")
+            o.rain -> C.greenLight to w(ru, "Сегодня полита: идёт дождь, к ночи он польёт.", "Watered today: it's raining, the rain does it by night.")
+            else -> C.paper2 to w(ru, "Сегодня ещё не полита. Чтобы полить, пройдите в %d м от грядки — больше ничего не нужно.",
+                "Not watered yet today. To water it, walk within %d m of the bed — nothing else needed.").format(c.game.reach(s).toInt())
+        }
+        Text(text, style = T.Small.copy(color = if (fill == C.greenLight) C.light else C.ink),
+            modifier = Modifier.fillMaxWidth().padding(top = 4.dp).pixelBox(fill, bevel = null, lip = null).padding(horizontal = 8.dp, vertical = 5.dp))
+        // what can go wrong tonight
+        if (o.frost) Text(w(ru, "Ночью заморозок: проведайте грядку сегодня — она будет укрыта.", "Frost tonight: visit the bed today and it gets covered."), style = T.Small.copy(color = C.red))
+        if (b.wild) Text(w(ru, "Одичала: урожай будет вдвое меньше." + if (c.game.owns(s, "hoe")) " Прополите — станет как была." else " Прополоть можно тяпкой.",
+            "Gone wild: it will give half the harvest." + if (c.game.owns(s, "hoe")) " Weed it to set it right." else " A hoe can weed it."), style = T.Small.copy(color = C.red))
+        else if (o.wildIn != null && !o.watered && !o.rain && o.wildIn <= 2)
+            Text((if (o.wildIn == 1) w(ru, "Без полива сегодня к утру одичает.", "Without water today it goes wild by morning.")
+                else w(ru, "Без полива одичает через %d дн.", "Goes wild in %d days without water.").format(o.wildIn)), style = T.Small.copy(color = C.red))
+    }
 }
 
 /** The street name nearest to the player, or a general word. */

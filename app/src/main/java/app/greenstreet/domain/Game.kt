@@ -196,7 +196,7 @@ class Game(val c: Content) {
     }
 
     fun canSow(s: GameState, now: Now, v: Variety): Boolean =
-        (s.seeds[v.key] ?: 0) > 0 && placeOpen(s, now, v.place) && (v.sow.isEmpty() || now.month in v.sow) &&
+        (s.seeds[v.key] ?: 0) > 0 && placeOpen(s, now, v.place) &&
             s.beds.count { c.variety[it.variety]?.place == v.place } < capacity(s, now, v.place)
 
     fun capacity(s: GameState, now: Now, p: Place) = when (p) {
@@ -222,6 +222,49 @@ class Game(val c: Content) {
         return b.grown >= v.days && (b.wild || b.tended >= v.tends)
     }
 
+    /**
+     * What a bed is waiting for, in words the player can act on: nights left to ripen if it is tended every
+     * day at today's pace, whether it has been watered today, whether
+     * today's rain will water it tonight, how many untended nights before it goes wild (null if it can't
+     * now), and whether tonight's frost will nip it unless it is visited today.
+     */
+    data class Outlook(val nights: Int, val watered: Boolean, val rain: Boolean, val indoors: Boolean, val wildIn: Int?, val frost: Boolean)
+
+    fun outlook(s: GameState, b: Bed, now: Now): Outlook {
+        val v = c.variety.getValue(b.variety)
+        val indoors = v.place == Place.SILL || v.place == Place.BALCONY
+        val watered = b.lastTend == now.day || b.self
+        val rain = !indoors && (now.sky.rain || now.sky.snow)
+        val ripe = ripe(b)
+        val nights = when {
+            ripe -> 0
+            else -> {
+                val grow = kotlin.math.ceil(((v.days - b.grown) / growth(now, indoors) - 1e-9).coerceAtLeast(0.0)).toInt()
+                max(grow, if (b.wild) 0 else v.tends - b.tended).coerceAtLeast(1)
+            }
+        }
+        val wildIn = if (indoors || ripe || b.wild || b.self) null else max(1, wildAfter(s) - b.idle)
+        val frost = !indoors && !ripe && up(s, "cover") == 0 && now.tomorrow.frost && !watered && b.grown > 0 && !cold(now)
+        return Outlook(nights, watered, rain, indoors, wildIn, frost)
+    }
+
+    /** The day a variety sown now would be ripe if tended every day, at today's pace. */
+    fun ripeOn(v: Variety, now: Now): LocalDate {
+        val indoors = v.place == Place.SILL || v.place == Place.BALCONY
+        val n = max(kotlin.math.ceil(v.days / growth(now, indoors) - 1e-9).toInt(), v.tends).coerceAtLeast(1)
+        return now.date.plusDays(n.toLong())
+    }
+
+    fun cold(now: Now) = now.month in listOf(12, 1, 2) || now.sky.temp < 2
+    /** Days of growth a tended bed gains in one night: half outdoors in the cold, a little less in March and November. */
+    private fun growth(now: Now, indoors: Boolean) = when {
+        !indoors && cold(now) -> 0.5
+        now.month in listOf(3, 11) -> 0.6
+        else -> 1.0
+    }
+    /** Untended nights before a bed goes wild. */
+    private fun wildAfter(s: GameState) = 3 + 2 * up(s, "mulch")
+
     /** The player is at [at]: every verge bed within reach is tended today. Returns the beds tended now. */
     fun pass(s: GameState, now: Now, at: Geo): List<Bed> {
         val r = reach(s)
@@ -234,7 +277,7 @@ class Game(val c: Content) {
                 b.lastTend = now.day; out += b
             }
         }
-        if (out.isNotEmpty()) s.count("tend", out.size)
+        if (out.isNotEmpty()) { s.count("tend", out.size); s.count("tend_today", out.size) }
         return out
     }
 
@@ -255,9 +298,11 @@ class Game(val c: Content) {
         val n = (if (b.wild) max(1, v.yield / 2) else v.yield) + (s.tool("basket") - 1) + up(s, "compost")
         s.add(s.bag, v.key, n)
         val first = s.album.add(v.key)
-        val seedBack = rnd < 0.4
+        // shoots on the sill always leave a pinch of seed for the next pot
+        val seedBack = v.place == Place.SILL || rnd < 0.4
         if (seedBack) s.add(s.seeds, v.key, 1)
         s.count("harvest"); s.count("harvest:${v.crop}"); if (b.wild) s.count("wild")
+        s.counts["harvest_day"] = now.day.toInt()
         if (v.regrow > 0 && !b.self) {
             b.grown = (v.days - v.regrow).toDouble(); b.tended = v.tends; b.harvests++; b.wild = false; b.idle = 0
         } else s.beds.remove(b)
@@ -273,6 +318,7 @@ class Game(val c: Content) {
      * frost bites what wasn't covered, hens lay, notes and requests arrive. [past] gives the sky of a past day.
      */
     fun catchUp(s: GameState, now: Now, past: (Long) -> Pair<Sky, Sky>): Morning {
+        repace(s)
         if (s.day == 0L) { s.day = now.day; return Morning(year = year(s, now.day)) }
         var m = Morning(year = year(s, now.day))
         var d = s.day
@@ -293,22 +339,28 @@ class Game(val c: Content) {
         return m
     }
 
+    /** A game saved before the faster garden ([Content.PACE]) counts its beds' growth in real days: scale it once. */
+    fun repace(s: GameState) {
+        if ("pace" in s.flags) return
+        for (b in s.beds) { b.grown /= Content.PACE; b.tended = (b.tended + Content.PACE - 1) / Content.PACE }
+        s.flags += "pace"
+    }
+
     private fun night(s: GameState, now: Now, acc: Morning): Morning {
         var grew = acc.grew; var ripe = acc.ripe; var wild = acc.wild; var frost = acc.frost
-        val cold = now.month in listOf(12, 1, 2) || now.sky.temp < 2
+        val cold = cold(now)
         for (b in s.beds) {
             val v = c.variety[b.variety] ?: continue
             if (ripe(b)) continue
             val indoors = v.place == Place.SILL || v.place == Place.BALCONY
             val tended = b.lastTend == now.day || (!indoors && (now.sky.rain || now.sky.snow)) || b.self
-            val growing = indoors || !cold
             if (tended) {
-                if (growing) { b.grown += if (now.month in listOf(3, 11)) 0.6 else 1.0; grew++ }
+                b.grown += growth(now, indoors); grew++
                 b.tended++; b.idle = 0
             } else {
                 b.idle++
-                if (b.wild && growing) b.grown += 0.5
-                if (b.idle >= 3 + 2 * up(s, "mulch") && !b.wild && !indoors) { b.wild = true; wild++ }
+                if (b.wild) b.grown += growth(now, indoors) / 2
+                if (b.idle >= wildAfter(s) && !b.wild && !indoors) { b.wild = true; wild++ }
             }
             if (!indoors && up(s, "cover") == 0 && now.tomorrow.frost && b.lastTend != now.day && b.grown > 0 && !cold) { b.grown = max(0.0, b.grown - 1); frost++ }
             if (ripe(b)) ripe++
@@ -317,7 +369,7 @@ class Game(val c: Content) {
         val eggs = max(0, min(6 + 3 * up(s, "coop"), s.eggs + laid) - s.eggs)
         s.eggs += eggs
         s.kmToday = 0.0
-        s.counts.remove("finds_today")
+        s.counts.remove("finds_today"); s.counts.remove("tend_today")
         // the board: a new notice every third day
         s.board.removeAll { now.day - it.day > 12 }
         if (now.day % 3 == 0L) {
@@ -369,7 +421,8 @@ class Game(val c: Content) {
     fun seedsToday(s: GameState, now: Now, id: String): Pair<String, Int>? {
         val p = c.person[id] ?: return null
         if (p.seeds.isEmpty() || s.bond(id).seeded == now.day) return null
-        val k = p.seeds[(now.day % p.seeds.size).toInt()]
+        // the first handful is the quickest of theirs, so a new acquaintance soon shows on the verge
+        val k = if (s.bond(id).seeded < 0) p.seeds.minBy { c.variety[it]?.days ?: Int.MAX_VALUE } else p.seeds[(now.day % p.seeds.size).toInt()]
         return k to if (hearts(s, id) >= 4) 3 else 2
     }
 
@@ -432,7 +485,7 @@ class Game(val c: Content) {
         val b = s.bond(id)
         b.req++; b.reqShown = -1; b.reqDone = now.day; b.points += 8
         if (r.sets.isNotBlank()) s.flags += r.sets
-        s.count("request")
+        s.count("request"); s.counts["request_day"] = now.day.toInt()
         return r
     }
 
@@ -513,9 +566,11 @@ class Game(val c: Content) {
         val have = s.bag[key] ?: 0
         val k = min(n, have)
         if (k <= 0 || !now.saturday) return 0
-        val v = salePrice(s, now, key) * k
+        if (s.fairDay != now.day) { s.fairDay = now.day; s.fair = 0; s.counts.keys.removeAll { it.startsWith("fair:") } }
+        // one at a time: past the first few of a kind, Aunt Zina pays half
+        var v = 0
+        repeat(k) { v += salePrice(s, now, key); s.count("fair:" + c.speciesOf(key)) }
         s.add(s.bag, key, -k); s.coins += v
-        if (s.fairDay != now.day) { s.fairDay = now.day; s.fair = 0 }
         s.fair += v
         s.counts["fair_best"] = max(s.counts["fair_best"] ?: 0, s.fair)
         if (now.month in 9..10) s.flags += "fair.first_autumn"
@@ -549,7 +604,7 @@ class Game(val c: Content) {
         if (w.once) { s.flags += "own.$key"; return "" }
         if (key == "surprise") {
             val m = now.month
-            val pool = c.varieties.filter { it.place == Place.VERGE && (it.sow.isEmpty() || m in it.sow || (m % 12 + 1) in it.sow) }
+            val pool = seasonal(m)
                 .ifEmpty { c.varieties.filter { it.place == Place.SILL } }
             val v = pool[rnd.nextInt(pool.size)]
             s.add(s.seeds, v.key, 2)
@@ -559,12 +614,12 @@ class Game(val c: Content) {
         return ""
     }
 
-    /** Plant food on a bed: three days of growth at once. */
+    /** Plant food on a bed: a day of growth at once (in the faster garden a day is what three real ones were). */
     fun feed(s: GameState, bedId: Long): Boolean {
         val b = s.beds.firstOrNull { it.id == bedId } ?: return false
         val v = c.variety[b.variety] ?: return false
         if (stock(s, "feed") <= 0 || ripe(b) || b.grown >= v.days) return false
-        b.grown = minOf(v.days.toDouble(), b.grown + 3); b.tended += 3
+        b.grown = minOf(v.days.toDouble(), b.grown + 1); b.tended += 1
         s.tools["stock.feed"] = stock(s, "feed") - 1
         return true
     }
@@ -587,10 +642,16 @@ class Game(val c: Content) {
     }
 
     /** What one of [key] fetches at the fair today. */
+    /**
+     * What the fair pays for the next one. Half the listed price, as the garden runs [Content.PACE] times faster
+     * than a real one and there is far more to sell than the prices were set for; and half again past the first
+     * [FAIR_FULL] of a kind that Saturday, so a sea of radishes doesn't buy the whole household.
+     */
     fun salePrice(s: GameState, now: Now, key: String): Int {
-        var p = c.price(key)
+        var p = (c.price(key) + 1) / 2
         if (demand(s, now) == c.speciesOf(key)) p *= 2
         if (up(s, "stall") > 0) p = (p * 5 + 3) / 4
+        if (s.fairDay == now.day && (s.counts["fair:" + c.speciesOf(key)] ?: 0) >= FAIR_FULL) p /= 2
         return max(1, p)
     }
 
@@ -648,7 +709,7 @@ class Game(val c: Content) {
                 "Someone has dropped " + t.en + " on the pavement. It looks like " + who.en + "'s. Drop it off when you pass."))
         }
         // a forgotten packet of seeds
-        val seeds = c.varieties.filter { it.place == Place.VERGE && it.unlock in setOf("market", "start") && (it.sow.isEmpty() || now.month in it.sow || (now.month % 12 + 1) in it.sow) }
+        val seeds = seasonal(now.month, setOf("market", "start"))
         if (seeds.isNotEmpty() && r < .74) {
             val v = seeds[rnd.nextInt(seeds.size)]
             return Find("seeds", v.key, 1 + rnd.nextInt(2), Tx("На скамейке забыли пакетик семян: " + v.name.ru + ". Не пропадать же.", "A packet of seeds left on a bench: " + v.name.en + ". Shame to waste it."))
@@ -672,10 +733,30 @@ class Game(val c: Content) {
     }
 
 
-    /** Market stalls: staples and common seeds. */
+    /**
+     * Verge varieties worth sowing about now: those whose best months are this or next month, or, in the
+     * winter gap when none are, those of the first sowing month ahead (they can go in any time, only slower).
+     */
+    fun seasonal(month: Int, unlock: Set<String>? = null): List<Variety> {
+        val pool = c.varieties.filter { it.place == Place.VERGE && (unlock == null || it.unlock in unlock) }
+        for (ahead in 0 until 12) {
+            val m = (month - 1 + ahead) % 12 + 1; val n = m % 12 + 1
+            val out = pool.filter { it.sow.isEmpty() || m in it.sow || (ahead == 0 && n in it.sow) }
+            if (out.isNotEmpty()) return out
+        }
+        return pool
+    }
+
+    /**
+     * Market stalls: staples, common seeds, and a beekeeper's honey and wax (dearer than the fair pays for them),
+     * until the yard has hives of its own.
+     */
     fun market(now: Now): List<Pair<String, Int>> {
-        val seeds = c.varieties.filter { it.unlock == "market" && (it.sow.isEmpty() || now.month in it.sow) }.map { it.key to max(2, it.price / 2 + 1) }
-        val staples = c.goods.filter { it.kind == app.greenstreet.data.GoodKind.STAPLE }.map { it.key to it.price }
+        val verge = seasonal(now.month, setOf("market"))
+        val seeds = (c.varieties.filter { it.unlock == "market" && it.place != Place.VERGE && (it.sow.isEmpty() || now.month in it.sow) } + verge)
+            .map { it.key to max(2, it.price / 2 + 1) }
+        val staples = c.goods.filter { it.kind == app.greenstreet.data.GoodKind.STAPLE }.map { it.key to it.price } +
+            c.goods.filter { it.key in BEEKEEPER }.map { it.key to it.price * 2 }
         return seeds + staples
     }
 
@@ -695,13 +776,29 @@ class Game(val c: Content) {
         return true
     }
 
-    fun collectEggs(s: GameState): Int { val n = s.eggs; s.add(s.bag, "egg", n); s.eggs = 0; if (n > 0) { s.album += "egg"; s.count("eggs", n) }; return n }
+    /** Takes the eggs from the nests; every fourth egg comes with a feather left in the straw. */
+    fun collectEggs(s: GameState): Int {
+        val n = s.eggs; s.add(s.bag, "egg", n); s.eggs = 0
+        if (n > 0) {
+            s.album += "egg"
+            val before = s.counts["eggs"] ?: 0
+            s.count("eggs", n)
+            val feathers = (before + n) / 4 - before / 4
+            if (feathers > 0) { s.add(s.bag, "feather", feathers); s.album += "feather" }
+        }
+        return n
+    }
 
     /** A new game: some seeds in the pocket, a few eggs, the start recipes. */
     fun newGame(now: Now, home: Geo?): GameState = GameState().apply {
         start = now.day; day = now.day; this.home = home
         c.varieties.filter { it.unlock == "start" && (it.place == Place.VERGE || it.place == Place.SILL) }.take(4).forEach { seeds[it.key] = 2 }
+        // Aunt Klava's packets: the two quickest verge crops, so the first bed is ripe within days whatever the month
+        c.varieties.filter { it.place == Place.VERGE && it.unlock in setOf("market", "start") }.sortedBy { it.days }.take(2).forEach { seeds[it.key] = 2 }
+        flags += "pace"
         bag["egg"] = 2
+        // a bottle of milk in the basket: enough for cottage cheese, so the kitchen can be tried before the market is found
+        bag["milk"] = 3
     }
 
     companion object {
@@ -711,6 +808,10 @@ class Game(val c: Content) {
         /** Points needed for each heart: about a season of regular visits for 4, a year for 7, three for 10. */
         /** Metres between beds by the road. */
         const val BED_GAP = 25.0
+        /** How many of one kind the fair takes at full price on a Saturday; the rest go for half. */
+        const val FAIR_FULL = 6
+        /** What the beekeeper at the market sells. */
+        val BEEKEEPER = setOf("honey", "wax")
         val HEART_POINTS = intArrayOf(0, 6, 20, 45, 80, 130, 200, 290, 400, 540, 720)
 
         /** Sunday of Maslenitsa (Forgiveness Sunday): Orthodox Easter minus 49 days. */

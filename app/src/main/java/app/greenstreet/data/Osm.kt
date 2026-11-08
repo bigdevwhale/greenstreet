@@ -11,7 +11,11 @@ import kotlin.math.cos
 class Poly(val rings: List<FloatArray>)
 
 class Building(val poly: Poly, val levels: Float, val kind: String, val name: String)
-class Road(val type: String, val pts: FloatArray, val bridge: Boolean, val tunnel: Boolean, val surface: String, val name: String)
+class Road(
+    val type: String, val pts: FloatArray, val bridge: Boolean, val tunnel: Boolean, val surface: String, val name: String,
+    /** Private or no entry on foot (a factory's or a guarded yard's driveway): drawn, but nobody walks it. */
+    val closed: Boolean = false,
+)
 class Green(val kind: String, val poly: Poly)
 class Spot(val x: Float, val y: Float, val kind: String, val name: String)
 
@@ -30,6 +34,8 @@ class District(
     val lamps: List<Spot>,
     /** Shops and amenities with their main tag, e.g. kind = "shop=bakery". */
     val places: List<Spot>,
+    /** Ground closed to the public (military land): neighbours neither keep shop nor stroll there. */
+    val closed: List<Poly> = emptyList(),
 ) {
     private val kx = cos(Math.toRadians((south + north) / 2)) * 111_320.0 / mpp
     private val ky = 110_574.0 / mpp
@@ -60,7 +66,7 @@ class District(
                  way["highway"]; way["railway"="tram"];
                  way["natural"="water"]; relation["natural"="water"]; way["waterway"~"^(riverbank|stream|ditch|drain)$"];
                  way["leisure"~"^(park|garden|playground|pitch)$"]; relation["leisure"~"^(park|garden)$"];
-                 way["landuse"~"^(grass|forest|recreation_ground|meadow|village_green)$"];
+                 way["landuse"~"^(grass|forest|recreation_ground|meadow|village_green|military)$"]; relation["landuse"="military"];
                  way["natural"~"^(wood|scrub|sand|beach)$"];
                  node["natural"="tree"]; node["highway"="street_lamp"];
                  nwr["shop"];
@@ -161,6 +167,7 @@ class District(
             }
             val buildings = ArrayList<Building>(); val roads = ArrayList<Road>(); val water = ArrayList<Poly>()
             val greens = ArrayList<Green>(); val trees = ArrayList<Spot>(); val lamps = ArrayList<Spot>(); val places = ArrayList<Spot>()
+            val closed = ArrayList<Poly>()
             for (i in 0 until els.length()) {
                 val e = els.getJSONObject(i)
                 val t = tagsOf(e)
@@ -183,11 +190,12 @@ class District(
                     type == "way" && "highway" in t -> {
                         val hw = t.getValue("highway")
                         if (hw !in setOf("corridor", "construction", "proposed", "elevator", "platform")) pts(e)?.let {
-                            roads += Road(hw, it, t["bridge"].let { b -> b != null && b != "no" }, t["tunnel"] in setOf("building_passage", "yes"), t["surface"].orEmpty(), t["name"].orEmpty())
+                            roads += Road(hw, it, t["bridge"].let { b -> b != null && b != "no" }, t["tunnel"] in setOf("building_passage", "yes"), t["surface"].orEmpty(), t["name"].orEmpty(), shut(t))
                         }
                     }
                     type == "way" && t["railway"] == "tram" -> pts(e)?.let { roads += Road("tram", it, t["bridge"] != null && t["bridge"] != "no", false, "", "") }
                     t["natural"] == "water" || t["waterway"] == "riverbank" -> poly?.let { water += it }
+                    t["landuse"] == "military" -> poly?.let { closed += it }
                     type == "way" && t["waterway"] in setOf("stream", "ditch", "drain", "canal", "river") && !closed(e) ->
                         if (t["waterway"] in setOf("stream", "ditch", "drain")) pts(e)?.let { roads += Road("stream", it, false, false, "", "") }
                     else -> greenKind(t)?.let { k -> poly?.let { greens += Green(k, it) } }
@@ -195,7 +203,15 @@ class District(
             }
             val order = mapOf("park" to 0, "grass" to 1, "wood" to 2, "scrub" to 2, "sand" to 3, "play" to 4, "pitch" to 4)
             greens.sortBy { order[it.kind] ?: 0 }
-            return District(box[0], box[1], box[2], box[3], mpp, buildings, roads, water, greens, trees, lamps, places)
+            return District(box[0], box[1], box[2], box[3], mpp, buildings, roads, water, greens, trees, lamps, places, closed)
+        }
+
+        /** A way the public may not walk: access=private/no, unless feet are let through. */
+        private fun shut(t: Map<String, String>): Boolean {
+            val no = setOf("private", "no", "military")
+            val foot = t["foot"]
+            if (foot in setOf("yes", "designated", "permissive")) return false
+            return foot in no || t["access"] in no
         }
 
         private fun greenKind(t: Map<String, String>): String? = when {

@@ -6,6 +6,34 @@ line "<!-- tg", then 2-4 short lines in Russian for users (what is new, what is 
 then close it like any HTML comment. The release notes carry it, and the chat bot posts those lines.
 -->
 
+## [0.11.0] - 2026-11-08
+
+### Added
+- An errand for today, once the opening tasks are done: one small thing from a neighbour you know, doable on one walk (look in on someone, bring a present, pass your beds, pick a ripe bed, help with a request your bag can fill, walk a kilometre or two, find two things). It pays a little of their liking and a token groat.
+- "What the neighbours need" at the top of the Neighbours tab: every open request, what is still missing (have/need) and where to get it — in the bag, growing and ripe in N days, seeds you can sow, who gives the seeds, the market, a find by the water, the hen house, or a dish and what goes into it. Requests ready to take come first.
+
+### Changed
+- The garden grows four times faster than a real one (a radish is ready in 7 days instead of 25, the median crop in about three weeks instead of three months), so the first weeks have harvests in them. Plant food now gives a day of growth instead of three, the same share as before. Beds of older games are rescaled once, keeping how far along they were.
+- The groats last the first year: the fair pays half the listed price (there is four times as much to sell), and past the first 6 of a kind on a Saturday Aunt Zina pays half again; the later upgrades cost more (the compost box 400 and 1200, your own stall 900, all of them 4540 instead of 1990). A steady player fills the household in about eight months instead of three.
+- Aunt Klava's basket has milk for cottage cheese, so the kitchen task can be done at home before the market is found (most players waited on it for weeks).
+- Aunt Klava's starting packets are the two quickest verge crops; every neighbour now has a quick crop among their seeds and gives the quickest one first.
+- The sow buttons put the quickest crops first and say the day each would be ripe ("by 18 May").
+- Windowsill shoots always leave a seed for the next pot, so the sill doesn't empty.
+- Seeds can be sown in any month: the months on a packet are the best time, not a rule. Outdoors in the cold (December to February, or below 2 °C) beds grow at half pace instead of not at all. In winter the market, found packets and surprise packets offer the first varieties of spring.
+- A neighbour out for a walk stops and waits while you are within 60 m, then walks on from where they stood; you can talk from 40 m, as at their place.
+
+### Fixed
+- Feathers, honey and wax could not be had anywhere, so 52 requests, notices and recipes (candles, sbiten, medovik) waited forever, Tanya's very first request among them. The hens now leave a feather with every fourth egg, and a beekeeper at the market sells honey and wax until the yard keeps bees.
+- Neighbours no longer settle or stroll on ground closed to the public (private driveways, military land, places deep inside a block): a fenced-off place loses to an open one nearby, and if it is still chosen, its keeper waits on the nearest pavement (#2).
+- The bed card says plainly when the bed will be ripe, whether it has been watered today (by you, by the rain, or not yet, and how to water it), and warns before it goes wild or gets frost; growth and waterings show as bars. Lists say "ripe in ~5 days · watered today" (#3).
+
+<!-- tg
+Огород растёт вчетверо быстрее, а сажать можно в любой месяц: первый урожай — уже на первой неделе
+Каждый день — маленькое поручение от соседа, а во вкладке «Соседи» видно, что кому нужно и где это взять
+Соседи больше не стоят за заборами и не убегают на прогулке, а карточка грядки объясняет, когда она созреет и полита ли
+Исправлены просьбы, которые нельзя было выполнить: перья дают куры, мёд и воск продаёт пасечник на рынке
+-->
+
 ## [0.10.0] - 2026-11-03
 
 ### Added

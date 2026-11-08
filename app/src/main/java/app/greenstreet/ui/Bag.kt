@@ -112,7 +112,7 @@ fun BagScreen() {
                 for ((k, n) in keys) {
                     val known = when (tab) { 2 -> k in s.album; 3 -> k in s.ribbons; else -> true }
                     val icon = when (tab) { 0 -> ItemIcons.packet(c.content, k); 3 -> ribbonIcon(k); else -> if (known) ItemIcons.of(c.content, k) else null }
-                    val dim = (tab == 0 && c.content.variety[k]?.sow?.contains(now.month) == false) || (tab == 3 && !known)
+                    val dim = tab == 3 && !known
                     ItemSlot(icon, n, picked == k, dim) { picked = if (picked == k) null else k }
                 }
             }
@@ -152,7 +152,7 @@ private fun Detail(c: AppContainer, k: String, tab: Int, month: Int) {
                         Text(about(c, k, ru), style = T.Small)
                         val v = c.content.variety[k]
                         if (v != null && tab == 0) {
-                            Text(w(ru, "Когда сеять:", "When to sow:"), style = T.Small.copy(color = C.ink), modifier = Modifier.padding(top = 4.dp))
+                            Text(w(ru, "Лучше всего сеять (можно в любой месяц):", "Best sown in (any month will do):"), style = T.Small.copy(color = C.ink), modifier = Modifier.padding(top = 4.dp))
                             Months(v.sow, month)
                             Text(w(ru, "Созреет за %d дн. · где: %s", "Ripens in %d days · where: %s").format(v.days, place(v.place, ru)), style = T.Small, modifier = Modifier.padding(top = 4.dp))
                         } else Text(w(ru, "На ярмарке: ", "At the fair: ") + money(c.game.salePrice(c.state!!, c.now(), k), ru) + (if (c.game.demand(c.state!!, c.now()) == c.content.speciesOf(k)) w(ru, " ★ спрос недели", " ★ in demand") else ""), style = T.Small.copy(color = C.green), modifier = Modifier.padding(top = 4.dp))

@@ -13,21 +13,21 @@ class Upgrade(val key: String, val prices: List<Int>, val name: Tx, val effect: 
  */
 object Upgrades {
     val all = listOf(
-        Upgrade("cart", listOf(80, 260), Tx("Тачка и лопата", "A barrow and a spade"))
+        Upgrade("cart", listOf(120, 480), Tx("Тачка и лопата", "A barrow and a spade"))
             { l -> Tx("ещё ${2 * l} места под грядки у дорог", "${2 * l} more bed places by the roads") },
-        Upgrade("coop", listOf(60, 200), Tx("Новый насест", "A new perch"))
+        Upgrade("coop", listOf(90, 360), Tx("Новый насест", "A new perch"))
             { l -> Tx("куры несут на $l ${if (l == 1) "яйцо" else "яйца"} в день больше", "hens lay $l more egg${if (l == 1) "" else "s"} a day") },
-        Upgrade("mulch", listOf(70, 180), Tx("Мульча из листьев", "Leaf mulch"))
+        Upgrade("mulch", listOf(100, 330), Tx("Мульча из листьев", "Leaf mulch"))
             { l -> Tx("грядки дичают через ${3 + 2 * l} дней без присмотра, а не через 3", "beds go wild after ${3 + 2 * l} days alone, not 3") },
-        Upgrade("satchel", listOf(90), Tx("Корзинка грибника", "A forager's basket"))
+        Upgrade("satchel", listOf(160), Tx("Корзинка грибника", "A forager's basket"))
             { _ -> Tx("находки по дороге попадаются чаще", "finds turn up more often on the way") },
-        Upgrade("cover", listOf(120), Tx("Укрывной спанбонд", "Frost fleece"))
+        Upgrade("cover", listOf(220), Tx("Укрывной спанбонд", "Frost fleece"))
             { _ -> Tx("заморозки больше не трогают грядки", "frost no longer touches the beds") },
-        Upgrade("sill", listOf(110), Tx("Полка на окно", "A window shelf"))
+        Upgrade("sill", listOf(180), Tx("Полка на окно", "A window shelf"))
             { _ -> Tx("на подоконнике 6 горшков, а не 4", "6 pots on the sill instead of 4") },
-        Upgrade("compost", listOf(160, 420), Tx("Компостный ящик", "A compost box"))
+        Upgrade("compost", listOf(400, 1200), Tx("Компостный ящик", "A compost box"))
             { l -> Tx("каждая грядка даёт на $l больше урожая", "every bed yields $l more") },
-        Upgrade("stall", listOf(240), Tx("Свой прилавок на ярмарке", "Your own stall at the fair"))
+        Upgrade("stall", listOf(900), Tx("Свой прилавок на ярмарке", "Your own stall at the fair"))
             { _ -> Tx("на ярмарке всё продаётся на четверть дороже", "everything sells a quarter dearer at the fair") },
     )
 
@@ -100,7 +100,7 @@ object Wares {
         Ware("tyre", true, 35, true, Tx("Клумба из шины", "A tyre flowerbed"), Tx("Покрашенная, как положено во дворе, с бархатцами.", "Painted, as every yard's should be, with marigolds.")),
         Ware("gnome", true, 50, true, Tx("Садовый гном", "A garden gnome"), Tx("Красный колпак. Пряник его сначала боится.", "A red cap. Pryanik is wary of him at first.")),
         Ware("barrel", true, 60, true, Tx("Бочка для дождевой воды", "A rain barrel"), Tx("У курятника, под водостоком.", "By the hen house, under the drainpipe.")),
-        Ware("feed", false, 12, false, Tx("Подкормка", "Plant food"), Tx("Грядка сразу подрастает на три дня. Нужно подойти к ней.", "A bed grows three days at once. Walk up to it first.")),
+        Ware("feed", false, 12, false, Tx("Подкормка", "Plant food"), Tx("Грядка сразу подрастает на день. Нужно подойти к ней.", "A bed grows a day at once. Walk up to it first.")),
         Ware("hoe", false, 60, true, Tx("Мотыга", "A hoe"), Tx("Одичавшую грядку можно прополоть, и она снова как новая.", "Weed a bed gone wild and it's good as new.")),
         Ware("surprise", false, 8, false, Tx("Пакетик-сюрприз", "A mystery packet"), Tx("Семена без подписи. Что вырастет — узнаете, когда откроете.", "Unlabelled seeds. You'll know what when you open it.")),
     )

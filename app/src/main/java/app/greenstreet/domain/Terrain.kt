@@ -48,6 +48,13 @@ class Terrain(val d: District) {
     val lane = BooleanArray(n)
     val pass = BooleanArray(n)
     val bid = IntArray(n) { -1 }
+    /** Ground the public can't walk: private driveways and closed land. */
+    val shut = BooleanArray(n)
+    /**
+     * The public way network: the biggest connected stretch of pavements, paths, roads, bridges and
+     * passages through houses, off shut ground. Anything this can't reach is behind a fence.
+     */
+    val open = BooleanArray(n)
     val blocks = ArrayList<Block>()
     val trees = ArrayList<Tree>()
     val lamps = ArrayList<IntArray>()
@@ -146,7 +153,67 @@ class Terrain(val d: District) {
             blocks += Block(bi, pts.toIntArray(), x0, y0, x1, y1, hh, b.kind, b.name, cx / pts.size, cy / pts.size, b.levels, b.poly.rings.size > 1)
         }
         for (r in roads) if (r.tunnel) stroke(r.pts, RW[r.type] ?: 2f) { x, y, _ -> pass[y * w + x] = true }
+        closeOff()
         plant()
+    }
+
+    /** Marks the shut ground, then floods the public way network from its biggest piece. */
+    private fun closeOff() {
+        for (p in d.closed) fill(p) { x, y -> shut[y * w + x] = true }
+        if (d.roads.any { it.closed }) {
+            val drive = BooleanArray(n)
+            for (r in d.roads) if (r.closed && !r.bridge) stroke(r.pts, RW[r.type] ?: 3f) { x, y, _ -> drive[y * w + x] = true }
+            // where a public way crosses a private one, the crossing stays public
+            for (r in d.roads) if (!r.closed && RW[r.type] != null) stroke(r.pts, RW.getValue(r.type)) { x, y, _ -> drive[y * w + x] = false }
+            for (i in 0 until n) if (drive[i]) shut[i] = true
+        }
+        fun way(i: Int): Boolean {
+            if (shut[i]) return false
+            val c = cls[i].toInt()
+            return c == K.WALK || c == K.DIRT || c == K.STEPS || c == K.BRIDGE || c == K.ROAD || pass[i]
+        }
+        val seen = BooleanArray(n)
+        val q = IntArray(n)
+        fun flood(start: Int, mark: BooleanArray): Int {
+            var qh = 0; var qt = 0
+            mark[start] = true; q[qt++] = start
+            while (qh < qt) {
+                val c = q[qh++]; val x = c % w; val y = c / w
+                if (x > 0 && !mark[c - 1] && way(c - 1)) { mark[c - 1] = true; q[qt++] = c - 1 }
+                if (x < w - 1 && !mark[c + 1] && way(c + 1)) { mark[c + 1] = true; q[qt++] = c + 1 }
+                if (y > 0 && !mark[c - w] && way(c - w)) { mark[c - w] = true; q[qt++] = c - w }
+                if (y < h - 1 && !mark[c + w] && way(c + w)) { mark[c + w] = true; q[qt++] = c + w }
+            }
+            return qt
+        }
+        var best = -1; var size = 0
+        for (i in 0 until n) if (!seen[i] && way(i)) { val k = flood(i, seen); if (k > size) { size = k; best = i } }
+        if (best >= 0) flood(best, open)
+    }
+
+    /** Can a person get to (x, y): it isn't on shut ground and the public ways pass within [r] pixels. */
+    fun reachable(x: Int, y: Int, r: Int): Boolean {
+        if (x < 0 || y < 0 || x >= w || y >= h || shut[y * w + x]) return false
+        for (j in -r..r) for (i in -r..r) {
+            val xx = x + i; val yy = y + j
+            if (xx < 0 || yy < 0 || xx >= w || yy >= h || i * i + j * j > r * r) continue
+            if (open[yy * w + xx]) return true
+        }
+        return false
+    }
+
+    /** The nearest spot of the public ways to (x, y), a pavement or path rather than the roadway; null if none within [r]. */
+    fun nearestOpen(x: Int, y: Int, r: Int): IntArray? {
+        var best: IntArray? = null; var bd = Int.MAX_VALUE
+        for (j in -r..r) for (i in -r..r) {
+            val xx = x + i; val yy = y + j
+            if (xx < 0 || yy < 0 || xx >= w || yy >= h) continue
+            val k = yy * w + xx
+            if (!open[k] || pass[k]) continue
+            val d2 = i * i + j * j + if (cls[k].toInt() == K.ROAD) 100 else 0
+            if (d2 < bd) { bd = d2; best = intArrayOf(xx, yy) }
+        }
+        return best
     }
 
     private fun dashes(p: FloatArray) {

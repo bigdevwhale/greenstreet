@@ -323,8 +323,7 @@ private fun SheetView(sheet: Sheet, go: (Sheet) -> Unit, close: () -> Unit) {
                                 val v = c.content.variety.getValue(b.variety)
                                 Text(v.name(ru), style = T.Title)
                                 Text(v.about(ru), style = T.Small, modifier = Modifier.padding(top = 4.dp))
-                                Text(bedState(c, b, now.day, ru), style = T.Body, modifier = Modifier.padding(top = 8.dp))
-                                Text(w(ru, "Проведано дней: %d из %d нужных.", "Days tended: %d of %d needed.").format(b.tended, v.tends), style = T.Small)
+                                app.greenstreet.ui.BedDetails(c, b, now, ru)
                                 val here = c.here.collectAsState().value
                                 val close2 = here != null && Geo(b.lat, b.lon).metres(here) <= c.game.reach(s)
                                 FlowRow(Modifier.padding(top = 10.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
