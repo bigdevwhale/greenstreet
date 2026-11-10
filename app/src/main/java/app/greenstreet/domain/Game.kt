@@ -679,22 +679,32 @@ class Game(val c: Content) {
         return f
     }
 
+    /** The keys neighbours and the board are waiting on now, minus what the bag already holds enough of. */
+    fun wanted(s: GameState): Set<String> {
+        val needs = s.bonds.keys.mapNotNull { request(s, it) }.flatMap { it.needs } +
+            s.board.filter { it.key !in s.boardDone }.mapNotNull { p -> c.board.firstOrNull { it.key == p.key } }.flatMap { it.needs }
+        return needs.filter { Sources.have(c, s, it.key) < it.qty }.map { it.key }.toSet()
+    }
+
     private fun nextFind(s: GameState, rnd: java.util.Random) = if (up(s, "satchel") > 0) 180 + rnd.nextInt(220) else 280 + rnd.nextInt(320)
 
     private fun roll(s: GameState, now: Now, where: Set<String>, rnd: java.util.Random): Find {
         val r = rnd.nextDouble()
-        // something to forage, fitting the month, the spot, the weather and the hour
+        // something to forage, fitting the month, the spot, the weather and the hour; what a neighbour is
+        // waiting for turns up whatever the weather, and more often, so a request for rowan can be met in a thaw
+        val wanted = wanted(s)
+        fun asked(key: String) = wanted.any { c.matches(it, key) }
         val goods = c.goods.filter {
             it.kind == app.greenstreet.data.GoodKind.FIND && (it.months.isEmpty() || now.month in it.months) &&
-                (it.where.isBlank() || it.where in where) && (it.weather.isBlank() || it.weather in now.sky.tags || rnd.nextDouble() < .25) &&
+                (it.where.isBlank() || it.where in where) && (it.weather.isBlank() || it.weather in now.sky.tags || asked(it.key) || rnd.nextDouble() < .25) &&
                 (it.time.isBlank() || it.time == now.part || rnd.nextDouble() < .3)
         }
         val place = when {
             "water" in where -> Tx("У воды", "By the water"); "wood" in where -> Tx("В роще", "In the trees")
             "park" in where -> Tx("В парке", "In the park"); "lawn" in where -> Tx("На газоне", "On the grass"); else -> Tx("У дороги", "By the road")
         }
-        if (goods.isNotEmpty() && r < .5) {
-            val w = goods.map { (4 - it.rare).coerceAtLeast(1) }
+        if (goods.isNotEmpty() && r < (if (goods.any { asked(it.key) }) .6 else .5)) {
+            val w = goods.map { (4 - it.rare).coerceAtLeast(1) * if (asked(it.key)) 3 else 1 }
             var x = rnd.nextDouble() * w.sum(); var g = goods.last()
             for (i in goods.indices) { x -= w[i]; if (x < 0) { g = goods[i]; break } }
             val n = if (g.rare >= 2) 1 else 1 + rnd.nextInt(2)

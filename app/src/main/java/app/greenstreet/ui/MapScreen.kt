@@ -332,7 +332,8 @@ fun MapScreen(open: (Sheet) -> Unit) {
                 Text("${v.name(ru)} · ${bedState(c, b, now, ru)}", style = T.Small.copy(color = C.ink), maxLines = 1)
             }
             // sowing, when standing by a free verge
-            val spot = t.nearestVerge(mx, my, 3)
+            // within ~15 m: the GPS dot wanders that much, and the verge is wherever the player is standing
+            val spot = t.nearestVerge(mx, my, (15 / d.mpp).roundToInt())
             if (spot != null) {
                 // quickest first, each with the day it would be ripe, so nobody fills every bed with winter rye by mistake
                 val sowable = s.seeds.keys.mapNotNull { c.content.variety[it] }.filter { it.place == Place.VERGE && c.game.canSow(s, now, it) }.sortedBy { it.days }

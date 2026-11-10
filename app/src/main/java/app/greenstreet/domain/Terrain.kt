@@ -319,22 +319,32 @@ class Terrain(val d: District) {
         }
     }
 
-    /** May a bed go here: a lawn pixel within a few metres of a pavement, a park path or a road. */
-    fun verge(x: Int, y: Int): Boolean {
-        if (at(x, y) != K.LAWN) return false
-        var near = false
-        for (j in -3..3) for (i in -3..3) { val c = at(x + i, y + j); if (c == K.WALK || c == K.DIRT || c == K.ROAD) near = true; if (c == K.BLD || c == K.WATER) return false }
-        return near
+    /**
+     * May a bed go here: a lawn pixel within a few metres of a pavement, a park path or a road. A narrow strip
+     * between the pavement and a wall counts too; only the pixel right against a wall or the water doesn't.
+     * With [loose], ground the map knows nothing about will do as well: OSM often leaves verge grass untagged,
+     * and the player standing on it sees the green the map doesn't.
+     */
+    fun verge(x: Int, y: Int, loose: Boolean = false): Boolean {
+        val k = at(x, y)
+        if (k != K.LAWN && !(loose && k == K.GROUND)) return false
+        if (x < 0 || y < 0 || x >= w || y >= h || shut[y * w + x]) return false
+        for (j in -1..1) for (i in -1..1) { val c = at(x + i, y + j); if (c == K.BLD || c == K.WATER) return false }
+        for (j in -3..3) for (i in -3..3) { val c = at(x + i, y + j); if (c == K.WALK || c == K.DIRT || c == K.ROAD) return true }
+        return false
     }
 
-    /** The nearest verge pixel within [r] pixels, or null. */
+    /** The nearest verge pixel within [r] pixels, or null: a mapped lawn if there is one, else untagged ground by a way. */
     fun nearestVerge(x: Int, y: Int, r: Int): IntArray? {
-        var best: IntArray? = null; var bd = Int.MAX_VALUE
-        for (j in -r..r) for (i in -r..r) {
-            val d2 = i * i + j * j
-            if (d2 < bd && verge(x + i, y + j)) { bd = d2; best = intArrayOf(x + i, y + j) }
+        for (loose in listOf(false, true)) {
+            var best: IntArray? = null; var bd = Int.MAX_VALUE
+            for (j in -r..r) for (i in -r..r) {
+                val d2 = i * i + j * j
+                if (d2 <= r * r && d2 < bd && verge(x + i, y + j, loose)) { bd = d2; best = intArrayOf(x + i, y + j) }
+            }
+            if (best != null) return best
         }
-        return best
+        return null
     }
 
     fun nearWater(x: Int, y: Int, r: Int): Boolean {
