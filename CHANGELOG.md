@@ -6,6 +6,17 @@ line "<!-- tg", then 2-4 short lines in Russian for users (what is new, what is 
 then close it like any HTML comment. The release notes carry it, and the chat bot posts those lines.
 -->
 
+## [0.11.2] - 2026-11-10
+
+### Fixed
+- Seeds wouldn't sow by the grass you were standing next to: the game looked for a verge only ~5 m around the GPS dot and turned down any lawn with a wall within 5 m. It now looks ~15 m out, takes the narrow strip between a pavement and a house, and where the map has no grass tagged, ground by a pavement or path will do.
+- Rowan and sea buckthorn hardly ever turned up without frost, even when a neighbour was asking for them. A find that a neighbour or the board is waiting on now turns up whatever the weather, and three times as often.
+
+<!-- tg
+Семена теперь сажаются у газона, рядом с которым вы стоите, — даже если на карте он не отмечен
+Рябина, облепиха и другие находки, которые просят соседи, попадаются в любую погоду и чаще
+-->
+
 ## [0.11.1] - 2026-11-08
 
 ### Fixed
