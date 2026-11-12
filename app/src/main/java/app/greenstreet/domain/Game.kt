@@ -736,6 +736,12 @@ class Game(val c: Content) {
     /** The lost thing of [id] the player carries: its index in [Lost.things], or null. */
     fun lostOf(s: GameState, id: String): Int? = s.flags.firstOrNull { it.startsWith("lost.$id.") }?.substringAfterLast('.')?.toIntOrNull()
 
+    /** Every neighbour's lost thing the player carries, as (neighbour id, index in [Lost.things]). */
+    fun lostAll(s: GameState): List<Pair<String, Int>> = s.flags.filter { it.startsWith("lost.") }.mapNotNull { f ->
+        val id = f.removePrefix("lost.").substringBeforeLast('.'); val k = f.substringAfterLast('.').toIntOrNull()
+        if (k == null || k !in Lost.things.indices) null else id to k
+    }.sortedBy { it.first }
+
     fun returnLost(s: GameState, id: String): Boolean {
         val k = lostOf(s, id) ?: return false
         s.flags -= "lost.$id.$k"

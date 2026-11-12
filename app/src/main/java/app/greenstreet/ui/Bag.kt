@@ -102,7 +102,19 @@ fun BagScreen() {
                 2 -> albumKeys(c).map { it to null }
                 else -> c.content.ribbons.map { it.key to null }
             }
-            if (keys.isEmpty()) Text(when (tab) {
+            // neighbours' lost things picked up on the walk: not goods, so listed apart, with whom to give them to
+            val lost = if (tab == 1) c.game.lostAll(s) else emptyList()
+            if (lost.isNotEmpty()) {
+                Panel(Modifier.fillMaxWidth().padding(bottom = 10.dp), fill = C.paper) {
+                    Text(w(ru, "чужие вещи", "other people's things"), style = T.Eyebrow)
+                    for ((id, k) in lost) {
+                        val who = c.content.person[id]?.name?.invoke(ru) ?: id
+                        Text(app.greenstreet.domain.Lost.things[k](ru).replaceFirstChar { it.uppercase() } + " — " + w(ru, "отдать: ", "give to ") + who, style = T.Body, modifier = Modifier.padding(top = 4.dp))
+                    }
+                    Text(w(ru, "Загляните к соседу на страницу: там будет кнопка «Отдать находку».", "Open the neighbour's page: there'll be a \"Give back\" button."), style = T.Small, modifier = Modifier.padding(top = 6.dp))
+                }
+            }
+            if (keys.isEmpty() && lost.isEmpty()) Text(when (tab) {
                 0 -> w(ru, "Семян нет. Их дают соседи и семенной ряд на рынке.", "No seeds. Neighbours and the market seed stall give them.")
                 else -> w(ru, "Пусто. Пока.", "Empty. For now.")
             }, style = T.Body.copy(color = C.muted))
