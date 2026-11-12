@@ -53,7 +53,7 @@ class FirstWeeksTest {
     }
 
     /** Upgrades in the order a sensible player buys them, then the yard's things from Mikhalych. */
-    private val wishes = listOf("cart", "mulch", "coop", "sill", "satchel", "cover", "compost", "stall")
+    private val wishes = listOf("cart", "mulch", "coop", "sill", "satchel", "compost", "stall")
 
     private fun play(start: LocalDate, days: Int = 14): List<Day> {
         val home = Geo(59.95, 30.31)

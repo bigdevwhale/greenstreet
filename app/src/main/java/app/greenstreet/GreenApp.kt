@@ -91,8 +91,8 @@ class AppContainer(context: Context) {
     }
 
     fun now(at: LocalDateTime = LocalDateTime.now()): Now {
-        val f = forecast
         val today = at.toLocalDate()
+        val f = forecastFor(today)
         val sky = f?.today ?: store.sky(today.toEpochDay()) ?: Weather.simulated(today, today.monthValue)
         val tomorrow = f?.tomorrow ?: Weather.simulated(today.plusDays(1), today.plusDays(1).monthValue)
         return Now(today, at.hour, sky, tomorrow, south = (state?.home?.lat ?: 1.0) < 0)
@@ -333,21 +333,27 @@ class AppContainer(context: Context) {
     fun wake() {
         val s = state ?: return
         val now = now()
-        store.remember(now.day, now.sky)
+        // only a real forecast goes on record: a made-up sky would stick to the day (see Store.remember)
+        forecastFor(now.date)?.let { store.remember(now.day, it.today) }
         val m = game.catchUp(s, now) { day ->
             val date = LocalDate.ofEpochDay(day)
             (store.sky(day) ?: Weather.simulated(date, date.monthValue)) to (store.sky(day + 1) ?: Weather.simulated(date.plusDays(1), date.plusDays(1).monthValue))
         }
-        if (m.grew + m.ripe + m.wild + m.frost + m.mail.size + m.requests.size > 0 || m.festival != null || m.newYear) morning = m
+        if (m.grew + m.ripe + m.wild +m.mail.size + m.requests.size > 0 || m.festival != null || m.newYear) morning = m
         changed()
     }
 
+    /** The forecast in memory, if it was fetched on [day]: one from yesterday (the app left open overnight) says nothing about today. */
+    private fun forecastFor(day: LocalDate) =
+        forecast?.takeIf { java.time.Instant.ofEpochMilli(it.at).atZone(java.time.ZoneId.systemDefault()).toLocalDate() == day }
+
     fun refreshWeather() {
         val h = state?.home ?: return
-        if (forecast != null && System.currentTimeMillis() - forecast!!.at < 3 * 3600_000L) return
+        if (forecastFor(LocalDate.now())?.let { System.currentTimeMillis() - it.at < 3 * 3600_000L } == true) return
         scope.launch(Dispatchers.IO) {
             runCatching { Weather.fetch(h.lat, h.lon) }.getOrNull()?.let { f ->
-                forecast = f; store.remember(LocalDate.now().toEpochDay(), f.today); version.value++
+                val today = LocalDate.now().toEpochDay()
+                forecast = f; store.remember(today, f.today); store.remember(today + 1, f.tomorrow, ahead = true); version.value++
             }
         }
     }

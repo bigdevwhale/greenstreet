@@ -64,7 +64,6 @@ data class Morning(
     val grew: Int = 0,
     val ripe: Int = 0,
     val wild: Int = 0,
-    val frost: Int = 0,
     val rained: Boolean = false,
     val eggs: Int = 0,
     val mail: List<String> = emptyList(),
@@ -225,10 +224,9 @@ class Game(val c: Content) {
     /**
      * What a bed is waiting for, in words the player can act on: nights left to ripen if it is tended every
      * day at today's pace, whether it has been watered today, whether
-     * today's rain will water it tonight, how many untended nights before it goes wild (null if it can't
-     * now), and whether tonight's frost will nip it unless it is visited today.
+     * today's rain will water it tonight, and how many untended nights before it goes wild (null if it can't now).
      */
-    data class Outlook(val nights: Int, val watered: Boolean, val rain: Boolean, val indoors: Boolean, val wildIn: Int?, val frost: Boolean)
+    data class Outlook(val nights: Int, val watered: Boolean, val rain: Boolean, val indoors: Boolean, val wildIn: Int?)
 
     fun outlook(s: GameState, b: Bed, now: Now): Outlook {
         val v = c.variety.getValue(b.variety)
@@ -244,8 +242,7 @@ class Game(val c: Content) {
             }
         }
         val wildIn = if (indoors || ripe || b.wild || b.self) null else max(1, wildAfter(s) - b.idle)
-        val frost = !indoors && !ripe && up(s, "cover") == 0 && now.tomorrow.frost && !watered && b.grown > 0 && !cold(now)
-        return Outlook(nights, watered, rain, indoors, wildIn, frost)
+        return Outlook(nights, watered, rain, indoors, wildIn)
     }
 
     /** The day a variety sown now would be ripe if tended every day, at today's pace. */
@@ -255,8 +252,9 @@ class Game(val c: Content) {
         return now.date.plusDays(n.toLong())
     }
 
-    fun cold(now: Now) = now.month in listOf(12, 1, 2) || now.sky.temp < 2
-    /** Days of growth a tended bed gains in one night: half outdoors in the cold, a little less in March and November. */
+    /** Winter by the calendar: the weather (frost, a cold snap) doesn't count, only the season. */
+    fun cold(now: Now) = now.month in listOf(12, 1, 2)
+    /** Days of growth a tended bed gains in one night: half outdoors in winter, a little less in March and November. */
     private fun growth(now: Now, indoors: Boolean) = when {
         !indoors && cold(now) -> 0.5
         now.month in listOf(3, 11) -> 0.6
@@ -315,11 +313,10 @@ class Game(val c: Content) {
     // ---------- the night ----------
 
     /**
-     * Runs every night between [s].day and [now].day: beds grow where tended or rained on, idle beds go wild,
-     * frost bites what wasn't covered, hens lay, notes and requests arrive. [past] gives the sky of a past day.
+     * Runs every night between [s].day and [now].day: beds grow where tended or rained on, idle beds go wild, hens lay, notes and requests arrive. [past] gives the sky of a past day.
      */
     fun catchUp(s: GameState, now: Now, past: (Long) -> Pair<Sky, Sky>): Morning {
-        repace(s)
+        repace(s); refundCover(s)
         if (s.day == 0L) { s.day = now.day; return Morning(year = year(s, now.day)) }
         var m = Morning(year = year(s, now.day))
         var d = s.day
@@ -347,9 +344,14 @@ class Game(val c: Content) {
         s.flags += "pace"
     }
 
+    /** Frost fleece is gone (frost no longer touches the beds): whoever bought it gets the 220 coins back. */
+    fun refundCover(s: GameState) {
+        val n = s.tools.remove("up.cover") ?: return
+        if (n > 0) s.coins += 220 * n
+    }
+
     private fun night(s: GameState, now: Now, acc: Morning): Morning {
-        var grew = acc.grew; var ripe = acc.ripe; var wild = acc.wild; var frost = acc.frost
-        val cold = cold(now)
+        var grew = acc.grew; var ripe = acc.ripe; var wild = acc.wild
         for (b in s.beds) {
             val v = c.variety[b.variety] ?: continue
             if (ripe(b)) continue
@@ -363,7 +365,6 @@ class Game(val c: Content) {
                 if (b.wild) b.grown += growth(now, indoors) / 2
                 if (b.idle >= wildAfter(s) && !b.wild && !indoors) { b.wild = true; wild++ }
             }
-            if (!indoors && up(s, "cover") == 0 && now.tomorrow.frost && b.lastTend != now.day && b.grown > 0 && !cold) { b.grown = max(0.0, b.grown - 1); frost++ }
             if (ripe(b)) ripe++
         }
         val laid = (if (now.month in listOf(12, 1)) 1 else 2) + up(s, "coop")
@@ -382,7 +383,7 @@ class Game(val c: Content) {
         val delivered = deliver(s, now)
         mail += delivered
         reqs += showRequests(s, now)
-        return Morning(grew, ripe, wild, frost, acc.rained || now.sky.rain, acc.eggs + eggs, mail, reqs, acc.festival, acc.year)
+        return Morning(grew, ripe, wild, acc.rained || now.sky.rain, acc.eggs + eggs, mail, reqs, acc.festival, acc.year)
     }
 
     // ---------- neighbours ----------

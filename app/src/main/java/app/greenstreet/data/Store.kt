@@ -30,11 +30,21 @@ class Store(context: Context) {
     fun saveTiles(b: ByteArray) { val tmp = File(dir, "district.bin.tmp"); tmp.writeBytes(b); if (!tmp.renameTo(tilesFile)) { tilesFile.delete(); tmp.renameTo(tilesFile) } }
     fun hasDistrict() = tilesFile.exists() || districtFile.exists()
 
-    /** Remembers the sky of a day (epoch day → sky), keeping the last 60 days. */
+    /**
+     * Remembers the sky of a day (epoch day → sky), keeping the last 60 days. A forecast only covers the hours
+     * still ahead, so an evening one knows nothing of the morning's rain: what was once seen for the day is
+     * kept (rain, snow and the rest stay on), only the temperature takes the latest word. [ahead] marks a guess
+     * for a day still to come (tomorrow's forecast): it fills a gap but never adds to a day already on record.
+     */
     @Synchronized
-    fun remember(day: Long, sky: Sky) {
+    fun remember(day: Long, sky: Sky, ahead: Boolean = false) {
         val o = runCatching { JSONObject(skiesFile.readText()) }.getOrDefault(JSONObject())
-        o.put(day.toString(), JSONObject().put("r", sky.rain).put("s", sky.snow).put("f", sky.frost).put("g", sky.fog).put("u", sky.sun).put("h", sky.heat).put("t", sky.temp))
+        val old = o.optJSONObject(day.toString())
+        if (ahead && old != null) return
+        val keep = old != null && !old.optBoolean("a")
+        fun b(k: String, v: Boolean) = v || keep && old!!.optBoolean(k)
+        o.put(day.toString(), JSONObject().put("r", b("r", sky.rain)).put("s", b("s", sky.snow)).put("f", b("f", sky.frost)).put("g", b("g", sky.fog))
+            .put("u", b("u", sky.sun)).put("h", b("h", sky.heat)).put("t", sky.temp).apply { if (ahead) put("a", true) })
         o.keys().asSequence().toList().filter { (it.toLongOrNull() ?: 0) < day - 60 }.forEach { o.remove(it) }
         write(skiesFile, o.toString())
     }

@@ -135,8 +135,8 @@ fun Onboarding() {
                     PixelView(remember { VergeScene(now.monthValue, true) })
                     Spacer(Modifier.height(12.dp))
                     Text(w(ru,
-                        "· Сеять можно на газонах у тротуаров и парковых дорожек — встаньте рядом и выберите семена.\n· Прошли мимо грядки — значит, полили. Дождь польёт сам.\n· У каждого сорта свой срок и свои месяцы посева.\n· Три дня без присмотра — грядка дичает. Урожай будет меньше, но не пропадёт.\n· Обещают заморозок — проведайте грядки накануне, и они укрыты.",
-                        "· Sow on lawns by pavements and park paths — stand next to one and pick the seeds.\n· Walk past a bed and it's watered. Rain does it too.\n· Every variety has its own time to ripen and its months to sow.\n· Three days without care and a bed goes wild. The harvest is smaller but not lost.\n· Frost forecast? Look in on your beds the day before and they're covered."), style = T.Body)
+                        "· Сеять можно на газонах у тротуаров и парковых дорожек — встаньте рядом и выберите семена.\n· Прошли мимо грядки — значит, полили. Дождь польёт сам.\n· У каждого сорта свой срок и свои месяцы посева.\n· Три дня без присмотра — грядка дичает. Урожай будет меньше, но не пропадёт.\n· Заморозки грядкам не страшны. Только зимой на улице всё растёт медленнее.",
+                        "· Sow on lawns by pavements and park paths — stand next to one and pick the seeds.\n· Walk past a bed and it's watered. Rain does it too.\n· Every variety has its own time to ripen and its months to sow.\n· Three days without care and a bed goes wild. The harvest is smaller but not lost.\n· Frost doesn't hurt the beds. Only in winter does everything outdoors grow slower."), style = T.Body)
                 }
                 2 -> {
                     Text(w(ru, "Соседи", "Neighbours"), style = T.Title)

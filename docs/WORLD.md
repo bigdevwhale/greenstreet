@@ -34,10 +34,11 @@ use «вы» even when close; warmth comes from what they say, not from «ты»
    common ones, harvests sometimes return a handful, festivals and requests give rare varieties.
 2. **Sowing** happens only on lawns within a few metres of a pavement or a park path ("the verge"). A bed
    is pinned to a real spot. Beds must be at least 25 m apart. Any month will do: each variety has its best
-   months, and outdoors in the cold a bed grows at half pace.
+   months, and outdoors in winter (December to February) a bed grows at half pace, in March and November
+   a little slower. Only the calendar decides: the weather doesn't.
 3. **Tending**: passing within reach (10 m, upgraded to 20 and 30) counts as watering and weeding. Each
-   crop needs a number of days and a number of tended days. Rain counts as tending. Frost in the
-   forecast: tend the bed the day before and it is covered.
+   crop needs a number of days and a number of tended days. Rain counts as tending. Frost does
+   nothing to the beds.
 4. **Harvest** when the sparkle shows. Wild beds give half.
 5. **Use**: cook and preserve in the courtyard kitchen, give to neighbours, fulfil requests, sell at the
    Saturday fair, fill the season album.

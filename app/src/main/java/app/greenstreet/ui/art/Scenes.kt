@@ -237,7 +237,8 @@ class FishScene(val m: Moment, val big: Boolean, var state: String = "idle") : S
         if (ice) { b.disc(90, 52, 4, G.water[2]); b.disc(90, 52, 3, G.water[1]) }
         val bite = state == "bite"
         val by = 50 + if (bite) 3 else Math.round(sin(t / 3.0)).toInt()
-        if (state != "idle") {
+        // the line is in the water only while waiting for a bite: after a strike it is out, ready to cast again
+        if (state == "wait" || bite) {
             for (i in 0..40) { val k = i / 40.0; b.p(46 + k * 44, 41 + (by - 3 - 41) * k + sin(k * PI) * 5, R.cream[5], .8f) }
             if (bite) { for (i in -6..6) b.p(90 + i, by + 2, G.water[6], .7f); for (i in -9..9) b.p(90 + i, by + 4, G.water[5], .5f) }
             b.r(89, by - 3, 3, 2, R.cream[5]); b.r(89, by - 1, 3, 2, R.red[3]); b.r(88, by + 1, 5, 1, G.water[5])

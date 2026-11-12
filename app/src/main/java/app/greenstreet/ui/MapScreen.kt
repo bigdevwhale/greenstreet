@@ -342,7 +342,7 @@ fun MapScreen(open: (Sheet) -> Unit) {
                     tooClose -> Text(w(ru, "Рядом уже есть грядка. Между грядками — не меньше 25 метров, иначе им тесно.", "There's a bed close by. Beds need 25 metres between them, or they crowd each other."), style = T.Small)
                     sowable.isEmpty() -> Text(nothingToSow(c, now, ru), style = T.Small)
                     else -> FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        if (c.game.cold(now)) Text(w(ru, "Холодно: на улице всё растёт вдвое дольше.", "It's cold: outdoors everything takes twice as long."), style = T.Small, modifier = Modifier.fillMaxWidth())
+                        if (c.game.cold(now)) Text(w(ru, "Зима: на улице всё растёт вдвое дольше.", "Winter: outdoors everything takes twice as long."), style = T.Small, modifier = Modifier.fillMaxWidth())
                         Text(w(ru, "Посеять:", "Sow:"), style = T.Body, modifier = Modifier.align(Alignment.CenterVertically))
                         sowable.forEach { v ->
                             val hot = c.game.demand(s, now) == v.crop
@@ -446,7 +446,7 @@ fun BedDetails(c: app.greenstreet.AppContainer, b: app.greenstreet.domain.Bed, n
             style = T.Body.copy(color = if (o.nights == 0) C.green else C.ink))
         Text(w(ru, "Рост: %d из %d дн.", "Growth: %d of %d days").format(b.grown.toInt().coerceAtMost(v.days), v.days), style = T.Small)
         Segments((b.grown / v.days).toFloat())
-        if (!o.indoors && o.nights != 0 && c.game.cold(now)) Text(w(ru, "Холодно: сейчас растёт вдвое медленнее.", "It's cold: growing at half pace for now."), style = T.Small)
+        if (!o.indoors && o.nights != 0 && c.game.cold(now)) Text(w(ru, "Зима: сейчас растёт вдвое медленнее.", "Winter: growing at half pace for now."), style = T.Small)
         if (!b.wild && v.tends > 0) {
             Text(w(ru, "Поливов: %d из %d нужных", "Waterings: %d of %d needed").format(b.tended.coerceAtMost(v.tends), v.tends), style = T.Small, modifier = Modifier.padding(top = 2.dp))
             Segments(b.tended.toFloat() / v.tends)
@@ -464,7 +464,6 @@ fun BedDetails(c: app.greenstreet.AppContainer, b: app.greenstreet.domain.Bed, n
         Text(text, style = T.Small.copy(color = if (fill == C.greenLight) C.light else C.ink),
             modifier = Modifier.fillMaxWidth().padding(top = 4.dp).pixelBox(fill, bevel = null, lip = null).padding(horizontal = 8.dp, vertical = 5.dp))
         // what can go wrong tonight
-        if (o.frost) Text(w(ru, "Ночью заморозок: проведайте грядку сегодня — она будет укрыта.", "Frost tonight: visit the bed today and it gets covered."), style = T.Small.copy(color = C.red))
         if (b.wild) Text(w(ru, "Одичала: урожай будет вдвое меньше." + if (c.game.owns(s, "hoe")) " Прополите — станет как была." else " Прополоть можно тяпкой.",
             "Gone wild: it will give half the harvest." + if (c.game.owns(s, "hoe")) " Weed it to set it right." else " A hoe can weed it."), style = T.Small.copy(color = C.red))
         else if (o.wildIn != null && !o.watered && !o.rain && o.wildIn <= 2)

@@ -21,8 +21,6 @@ object Upgrades {
             { l -> Tx("грядки дичают через ${3 + 2 * l} дней без присмотра, а не через 3", "beds go wild after ${3 + 2 * l} days alone, not 3") },
         Upgrade("satchel", listOf(160), Tx("Корзинка грибника", "A forager's basket"))
             { _ -> Tx("находки по дороге попадаются чаще", "finds turn up more often on the way") },
-        Upgrade("cover", listOf(220), Tx("Укрывной спанбонд", "Frost fleece"))
-            { _ -> Tx("заморозки больше не трогают грядки", "frost no longer touches the beds") },
         Upgrade("sill", listOf(180), Tx("Полка на окно", "A window shelf"))
             { _ -> Tx("на подоконнике 6 горшков, а не 4", "6 pots on the sill instead of 4") },
         Upgrade("compost", listOf(400, 1200), Tx("Компостный ящик", "A compost box"))

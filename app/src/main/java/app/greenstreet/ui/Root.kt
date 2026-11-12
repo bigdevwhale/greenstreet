@@ -191,11 +191,10 @@ private fun TopLine(c: AppContainer, settings: () -> Unit) {
     else listOf("January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December")
     val sky = n.sky
     val wx = when { sky.snow -> w(ru, "снег", "snow"); sky.rain -> w(ru, "дождь", "rain"); sky.fog -> w(ru, "туман", "fog"); sky.sun -> w(ru, "ясно", "clear"); else -> w(ru, "облачно", "cloudy") }
-    val frost = if (n.tomorrow.frost && n.month in 4..10) w(ru, " · завтра заморозок!", " · frost tomorrow!") else ""
     Row(Modifier.fillMaxWidth().background(C.greenDeep).statusBarsPadding().padding(horizontal = 16.dp, vertical = 8.dp), verticalAlignment = Alignment.Bottom) {
         Column(Modifier.weight(1f)) {
             Text(if (ru) "${d.dayOfMonth} ${months[d.monthValue - 1]}" else "${months[d.monthValue - 1]} ${d.dayOfMonth}", style = T.Heading.copy(color = C.light))
-            Text("$wx, %+.0f°$frost".format(sky.temp) + " · " + w(ru, "год ", "year ") + c.game.year(s, n.day), style = T.Small.copy(color = if (frost.isEmpty()) C.paper2 else C.telegram))
+            Text("$wx, %+.0f°".format(sky.temp) + " · " + w(ru, "год ", "year ") + c.game.year(s, n.day), style = T.Small.copy(color = C.paper2))
         }
         app.greenstreet.ui.components.BufImage(coinIcon, Modifier.padding(end = 6.dp, bottom = 4.dp), 2.4.dp)
         Text("${s.coins}", style = T.Heading.copy(color = C.lamp))
@@ -307,7 +306,6 @@ private fun SheetView(sheet: Sheet, go: (Sheet) -> Unit, close: () -> Unit) {
                                 if (m.grew > 0) lines += w(ru, "Подросло грядок: %d.", "Beds that grew: %d.").format(m.grew)
                                 if (m.ripe > 0) lines += w(ru, "Созрело: %d. Ищите искорки над грядками.", "Ripe: %d. Look for the sparkle over the beds.").format(m.ripe)
                                 if (m.wild > 0) lines += w(ru, "Без присмотра одичало: %d. Урожай будет меньше, но будет.", "Gone wild without care: %d. They'll still give a smaller harvest.").format(m.wild)
-                                if (m.frost > 0) lines += w(ru, "Заморозок прибил непроведанные грядки: %d.", "Frost nipped beds nobody visited: %d.").format(m.frost)
                                 if (m.eggs > 0) lines += w(ru, "Куры снесли яиц: %d.", "The hens laid %d eggs.").format(m.eggs)
                                 if (m.mail.isNotEmpty()) lines += w(ru, "В почтовом ящике записок: %d.", "Notes in the letterbox: %d.").format(m.mail.size)
                                 if (m.requests.isNotEmpty()) lines += w(ru, "Новые просьбы: ", "New requests: ") + m.requests.joinToString { c.content.person[it]?.name?.invoke(ru) ?: it }
@@ -516,16 +514,16 @@ private fun Fishing(c: AppContainer, big: Boolean) {
     LaunchedEffect(state) {
         scene.state = state
         if (state == "wait") { delay(biteAt - System.currentTimeMillis()); if (state == "wait") state = "bite" }
-        if (state == "bite") { delay(longArrayOf(0, 650, 900, 1200)[s.tool("rod")]); if (state == "bite") { state = "done"; msg = w(ru, "Сорвалась. Бывает.", "It got away. It happens.") } }
+        if (state == "bite") { delay(longArrayOf(0, 650, 900, 1200)[s.tool("rod")]); if (state == "bite") { state = "done"; msg = w(ru, "Сорвалась. Бывает. Закиньте снова.", "It got away. It happens. Cast again.") } }
     }
     Text(if (big) w(ru, "Рыбалка с набережной", "Fishing from the embankment") else w(ru, "Рыбалка у пруда", "Fishing by the pond"), style = T.Title)
     PixelView(scene, Modifier.padding(vertical = 8.dp))
     Text(msg, style = T.Body)
     Row(Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        PixelButton(if (state == "wait" || state == "bite") w(ru, "Подсечь", "Strike") else w(ru, "Закинуть", "Cast"), {
+        PixelButton(if (state == "wait" || state == "bite") w(ru, "Подсечь", "Strike") else if (state == "done") w(ru, "Закинуть снова", "Cast again") else w(ru, "Закинуть", "Cast"), {
             when (state) {
                 "idle", "done" -> { biteAt = System.currentTimeMillis() + 1200 + (Math.random() * 3000).toLong(); state = "wait"; msg = w(ru, "Ждёте…", "Waiting…") }
-                "wait" -> { state = "done"; msg = w(ru, "Рано. Рыба ушла.", "Too soon. The fish is gone.") }
+                "wait" -> { state = "done"; msg = w(ru, "Рано. Рыба ушла. Закиньте снова.", "Too soon. The fish is gone. Cast again.") }
                 "bite" -> {
                     state = "done"
                     val k = catch(c, big)
@@ -570,10 +568,21 @@ private fun Market(c: AppContainer) {
         Text(w(ru, "Семенной ряд", "The seed stall"), style = T.Title)
         Text(w(ru, "По субботам здесь ярмарка: урожай и заготовки продаются за гроши.", "On Saturdays there's a fair here: harvest and preserves sell for groats."), style = T.Small)
         c.game.demand(s, now)?.let { d -> Text(w(ru, "★ На этой неделе спрос: ", "★ In demand this week: ") + c.content.name(d)(ru).lowercase() + w(ru, " — в субботу вдвое дороже.", " — twice the price on Saturday."), style = T.Body.copy(color = C.green), modifier = Modifier.padding(top = 4.dp)) }
+        // every tap is one purchase: say so, and show what is already at home, so nobody buys 17 bottles of milk by accident
+        var bought by remember { mutableStateOf<Pair<String, Int>?>(null) }
+        Text(w(ru, "У вас: ", "You have: ") + money(s.coins, ru) + w(ru, ". Одно нажатие — одна покупка.", ". One tap buys one."), style = T.Small, modifier = Modifier.padding(top = 4.dp))
         c.game.market(now).forEach { (k, price) ->
+            val have = if (c.content.variety[k] != null) s.seeds[k] ?: 0 else s.bag[k] ?: 0
+            val just = bought?.first == k
             Row(Modifier.fillMaxWidth().padding(top = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text(c.content.name(k)(ru), style = T.Body, modifier = Modifier.weight(1f))
-                PixelButton(money(price, ru), { c.game.buy(s, now, k); c.changed() }, kind = Kind.GHOST, enabled = s.coins >= price)
+                Column(Modifier.weight(1f)) {
+                    Text(c.content.name(k)(ru), style = T.Body)
+                    if (just) Text(w(ru, "Куплено: %d. Теперь у вас %d.", "Bought %d. You now have %d.").format(bought!!.second, have), style = T.Small.copy(color = C.green))
+                    else if (have > 0) Text(w(ru, "Уже есть: %d", "Already have: %d").format(have), style = T.Small)
+                }
+                PixelButton(money(price, ru), {
+                    if (c.game.buy(s, now, k)) { bought = k to (if (just) bought!!.second else 0) + 1; c.changed() }
+                }, kind = Kind.GHOST, enabled = s.coins >= price)
             }
         }
     }

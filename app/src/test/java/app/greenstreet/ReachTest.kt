@@ -86,8 +86,10 @@ class ReachTest {
         assertTrue(game.outlook(s, b, Now(day)).watered)
         // in March a tended night gives only 0.6 of a day
         assertEquals(7, game.outlook(s, b, Now(LocalDate.of(2027, 3, 10), 12, Sky(temp = 5.0))).nights)
-        // outdoors in the cold it grows at half pace
+        // outdoors in winter it grows at half pace
         assertEquals(8, game.outlook(s, b, Now(LocalDate.of(2027, 1, 10), 12, Sky(temp = -5.0))).nights)
+        // only the season decides: a cold snap or a frost in June changes nothing
+        assertEquals(4, game.outlook(s, b, Now(day, 12, Sky(temp = 0.0, frost = true))).nights)
         // enough growth but too few waterings: the waterings decide
         b.grown = 7.0; b.tended = 2
         assertEquals(2, game.outlook(s, b, Now(day)).nights)
@@ -122,7 +124,13 @@ class ReachTest {
         assertTrue("any month will do", game.canSow(s, Now(jan, 12, cold), v))
         val b = game.sow(s, Now(jan, 12, cold), v.key, Geo(59.95, 30.31))!!
         game.catchUp(s, Now(jan.plusDays(4), 12, cold)) { cold to cold }
-        assertEquals("snow waters it, the cold halves the pace", 2.0, b.grown, 1e-9)
+        assertEquals("snow waters it, winter halves the pace", 2.0, b.grown, 1e-9)
+        // frost tomorrow takes nothing from an untended bed
+        val frosty = Sky(frost = true, temp = -2.0)
+        b.lastTend = 0
+        game.catchUp(s, Now(jan.plusDays(5), 12, frosty)) { Sky(temp = 3.0) to frosty }
+        assertEquals("frost doesn't hurt the beds", 2.0, b.grown, 1e-9)
+        assertEquals(1, b.idle)
         // there is always something for the verge at the market, even in deep winter
         for (m in 1..12) assertTrue("month $m", game.seasonal(m, setOf("market")).isNotEmpty())
         assertTrue(game.market(Now(jan)).any { (k, _) -> content.variety[k]?.place == app.greenstreet.data.Place.VERGE })
