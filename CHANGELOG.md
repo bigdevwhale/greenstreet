@@ -6,6 +6,24 @@ line "<!-- tg", then 2-4 short lines in Russian for users (what is new, what is 
 then close it like any HTML comment. The release notes carry it, and the chat bot posts those lines.
 -->
 
+## [0.13.0] - 2026-11-12
+
+### Fixed
+- Rain didn't count as watering when the app was opened again after it stopped: the forecast covers only the hours ahead, so an evening refresh wiped the morning's rain from the day. A day keeps its rain once seen, and a day the app isn't opened uses the previous day's forecast for it instead of a made-up sky.
+- After a strike or a miss the float stayed in the water, so it wasn't clear you had to cast again. The line now comes out and the button says "Cast again".
+- At the market it was easy to buy far more than meant (17 bottles of milk). The stall shows your money, says one tap buys one, shows how many of each you already have, and the row you just bought from says how many you bought.
+
+### Changed
+- Frost no longer hurts the beds, and the frost fleece is gone from the upgrades: whoever bought it gets the 220 groats back.
+- Beds slow down by the calendar only: half pace outdoors from December to February, a little slower in March and November. A cold day at other times changes nothing.
+
+<!-- tg
+Дождь теперь засчитывается как полив за весь день, даже если к вечеру он кончился
+Заморозки больше не вредят грядкам, спанбонд убран — кто купил, получит 220 грошей обратно
+На рыбалке после подсечки поплавок вынимается из воды, кнопка «Закинуть снова»
+На рынке видно, сколько у вас уже есть и сколько вы только что купили
+-->
+
 ## [0.12.0] - 2026-11-12
 
 ### Added
