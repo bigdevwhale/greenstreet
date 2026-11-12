@@ -6,6 +6,15 @@ line "<!-- tg", then 2-4 short lines in Russian for users (what is new, what is 
 then close it like any HTML comment. The release notes carry it, and the chat bot posts those lines.
 -->
 
+## [0.12.0] - 2026-11-12
+
+### Added
+- A neighbour's lost thing picked up on the walk (an umbrella, keys, a scarf) used to be kept out of sight: it showed only as a "Give back" button on that neighbour's page. The Goods tab of the bag now lists every such thing with whom it belongs to.
+
+<!-- tg
+Чужие вещи, найденные по дороге, теперь видны в сумке на вкладке «Добро» — с тем, кому их отдать
+-->
+
 ## [0.11.2] - 2026-11-10
 
 ### Fixed
