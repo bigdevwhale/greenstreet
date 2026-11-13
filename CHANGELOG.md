@@ -6,6 +6,20 @@ line "<!-- tg", then 2-4 short lines in Russian for users (what is new, what is 
 then close it like any HTML comment. The release notes carry it, and the chat bot posts those lines.
 -->
 
+## [0.13.1] - 2026-11-13
+
+### Fixed
+- Rain still didn't water the beds if it fell while the app was closed: the game only knew the forecast, which covers the hours ahead. What has already fallen now comes from Open-Meteo (the last week and today so far), and the missed nights wait for it before judging the beds.
+- On a rainy evening the bed card could still warn that the bed goes wild: the screen took today's weather from the evening forecast instead of the day's record. Rain at night counts too now.
+
+### Changed
+- Weather for past days comes from Open-Meteo.com (CC BY 4.0); only the rounded coordinates are sent, as before.
+
+<!-- tg
+Дождь засчитывается как полив, даже если он прошёл, пока приложение было закрыто
+Грядка больше не грозит одичать в дождливый день, ночной дождь тоже считается
+-->
+
 ## [0.13.0] - 2026-11-12
 
 ### Fixed
