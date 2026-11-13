@@ -27,9 +27,11 @@ import app.greenstreet.domain.metres
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import java.time.LocalDate
 import java.time.LocalDateTime
 import kotlin.math.abs
@@ -67,6 +69,8 @@ class AppContainer(context: Context) {
     /** Neighbour id → the place they keep (a spot on the district map). */
     val places = HashMap<String, Spot>()
     var morning: Morning? = null
+    /** Bumped when a new [morning] is ready, so the screen opens its card even when the nights ran after start-up. */
+    val dawn = MutableStateFlow(0)
     /** A place the map should pan to (asked from the neighbours list). */
     val focus = MutableStateFlow<Geo?>(null)
     /** What the district loading is doing now: download, parse, terrain, bind, paint, or empty. */
@@ -93,7 +97,8 @@ class AppContainer(context: Context) {
     fun now(at: LocalDateTime = LocalDateTime.now()): Now {
         val today = at.toLocalDate()
         val f = forecastFor(today)
-        val sky = f?.today ?: store.sky(today.toEpochDay()) ?: Weather.simulated(today, today.monthValue)
+        // the day's record first: it keeps the rain already fallen, which an evening forecast knows nothing of
+        val sky = store.sky(today.toEpochDay()) ?: f?.today ?: Weather.simulated(today, today.monthValue)
         val tomorrow = f?.tomorrow ?: Weather.simulated(today.plusDays(1), today.plusDays(1).monthValue)
         return Now(today, at.hour, sky, tomorrow, south = (state?.home?.lat ?: 1.0) < 0)
     }
@@ -329,8 +334,28 @@ class AppContainer(context: Context) {
         changed()
     }
 
-    /** Runs the nights missed since the last open and refreshes the weather. */
+    /**
+     * Runs the nights missed since the last open. Nights still to run wait for the weather first (a few seconds
+     * at most): the rain that fell while the app was closed has to be on record before the beds are judged.
+     */
     fun wake() {
+        val s = state ?: return
+        val today = LocalDate.now()
+        if (s.day != 0L && s.day < today.toEpochDay() && pastOn != today && s.home != null) {
+            if (waking) return
+            waking = true
+            scope.launch {
+                withTimeoutOrNull(12_000) { fetchWeather() }
+                withContext(Dispatchers.Main) { waking = false; nights() }
+            }
+            return
+        }
+        nights()
+    }
+
+    @Volatile private var waking = false
+
+    private fun nights() {
         val s = state ?: return
         val now = now()
         // only a real forecast goes on record: a made-up sky would stick to the day (see Store.remember)
@@ -339,7 +364,7 @@ class AppContainer(context: Context) {
             val date = LocalDate.ofEpochDay(day)
             (store.sky(day) ?: Weather.simulated(date, date.monthValue)) to (store.sky(day + 1) ?: Weather.simulated(date.plusDays(1), date.plusDays(1).monthValue))
         }
-        if (m.grew + m.ripe + m.wild +m.mail.size + m.requests.size > 0 || m.festival != null || m.newYear) morning = m
+        if (m.grew + m.ripe + m.wild + m.mail.size + m.requests.size > 0 || m.festival != null || m.newYear) { morning = m; dawn.value++ }
         changed()
     }
 
@@ -347,15 +372,34 @@ class AppContainer(context: Context) {
     private fun forecastFor(day: LocalDate) =
         forecast?.takeIf { java.time.Instant.ofEpochMilli(it.at).atZone(java.time.ZoneId.systemDefault()).toLocalDate() == day }
 
+    /** The day the weather that already fell was last fetched (see [Weather.past]). */
+    @Volatile private var pastOn: LocalDate? = null
+    @Volatile private var pastAt = 0L
+
     fun refreshWeather() {
-        val h = state?.home ?: return
-        if (forecastFor(LocalDate.now())?.let { System.currentTimeMillis() - it.at < 3 * 3600_000L } == true) return
-        scope.launch(Dispatchers.IO) {
-            runCatching { Weather.fetch(h.lat, h.lon) }.getOrNull()?.let { f ->
-                val today = LocalDate.now().toEpochDay()
-                forecast = f; store.remember(today, f.today); store.remember(today + 1, f.tomorrow, ahead = true); version.value++
-            }
+        if (state?.home == null || waking) return
+        val fresh = System.currentTimeMillis() - 3 * 3600_000L
+        if (forecastFor(LocalDate.now())?.let { it.at > fresh } == true && pastAt > fresh) return
+        scope.launch { fetchWeather() }
+    }
+
+    /**
+     * Fetches the forecast (MET Norway) and what has already fallen (Open-Meteo), and puts both on record.
+     * Either may fail on its own; the other is still kept.
+     */
+    private suspend fun fetchWeather() = withContext(Dispatchers.IO) {
+        val h = state?.home ?: return@withContext
+        val today = LocalDate.now()
+        val ahead = async { runCatching { Weather.fetch(h.lat, h.lon) }.getOrNull() }
+        val past = async { runCatching { Weather.past(h.lat, h.lon) }.getOrNull() }
+        past.await()?.let { days ->
+            days.forEach { (d, sky) -> store.remember(d.toEpochDay(), sky) }
+            pastOn = today; pastAt = System.currentTimeMillis()
         }
+        ahead.await()?.let { f ->
+            forecast = f; store.remember(today.toEpochDay(), f.today); store.remember(today.toEpochDay() + 1, f.tomorrow, ahead = true)
+        }
+        version.value++
     }
 
     /** A new position from the GPS: distance walked, beds tended on the way. Returns how many beds were tended. */

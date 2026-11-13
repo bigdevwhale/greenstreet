@@ -56,7 +56,7 @@
 
 ## Приватность
 
-Карта района один раз скачивается с OpenFreeMap (данные OpenStreetMap) и хранится на телефоне. Погода — от MET Norway. Где вы ходите, знает только ваш телефон: ни аккаунтов, ни аналитики, ни рекламы.
+Карта района один раз скачивается с OpenFreeMap (данные OpenStreetMap) и хранится на телефоне. Погода — от MET Norway (прогноз) и Open-Meteo (что уже выпало); обоим уходят только округлённые координаты. Где вы ходите, знает только ваш телефон: ни аккаунтов, ни аналитики, ни рекламы.
 
 ## Сборка
 
@@ -72,4 +72,4 @@ Kotlin, Jetpack Compose, org.json. Весь пиксель-арт — район
 
 ## Лицензия
 
-MIT. Данные карты © участники OpenStreetMap (ODbL), тайлы OpenFreeMap; погода — MET Norway. Шрифт m6x11 — Daniel Linssen.
+MIT. Данные карты © участники OpenStreetMap (ODbL), тайлы OpenFreeMap; погода — MET Norway и Open-Meteo.com (CC BY 4.0). Шрифт m6x11 — Daniel Linssen.

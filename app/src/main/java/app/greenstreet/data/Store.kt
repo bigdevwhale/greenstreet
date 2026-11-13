@@ -38,7 +38,7 @@ class Store(context: Context) {
      */
     @Synchronized
     fun remember(day: Long, sky: Sky, ahead: Boolean = false) {
-        val o = runCatching { JSONObject(skiesFile.readText()) }.getOrDefault(JSONObject())
+        val o = skies()
         val old = o.optJSONObject(day.toString())
         if (ahead && old != null) return
         val keep = old != null && !old.optBoolean("a")
@@ -49,8 +49,13 @@ class Store(context: Context) {
         write(skiesFile, o.toString())
     }
 
+    /** The skies on record, read from disk once and then kept in memory (the screen asks for today's on every frame). */
+    private var skiesCache: JSONObject? = null
+    private fun skies(): JSONObject = skiesCache ?: runCatching { JSONObject(skiesFile.readText()) }.getOrDefault(JSONObject()).also { skiesCache = it }
+
+    @Synchronized
     fun sky(day: Long): Sky? {
-        val o = runCatching { JSONObject(skiesFile.readText()) }.getOrNull()?.optJSONObject(day.toString()) ?: return null
+        val o = skies().optJSONObject(day.toString()) ?: return null
         return Sky(o.optBoolean("r"), o.optBoolean("s"), o.optBoolean("f"), o.optBoolean("g"), o.optBoolean("u"), o.optBoolean("h"), o.optDouble("t", 10.0))
     }
 

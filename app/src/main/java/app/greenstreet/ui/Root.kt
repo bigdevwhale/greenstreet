@@ -134,7 +134,10 @@ fun Root() {
     val ver by c.version.collectAsState()
     var tab by remember { mutableIntStateOf(0) }
     var sheet by remember { mutableStateOf<Sheet?>(null) }
-    LaunchedEffect(Unit) { c.wake(); c.refreshWeather(); if (c.morning != null) sheet = Sheet.Morning }
+    LaunchedEffect(Unit) { c.wake(); c.refreshWeather() }
+    // the nights may run a few seconds after start-up (they wait for the weather): open the card when they're done
+    val dawn by c.dawn.collectAsState()
+    LaunchedEffect(dawn) { if (c.morning != null) sheet = Sheet.Morning }
     DisposableEffect(Unit) { val tr = Tracker.of(ctx); tr.start(); onDispose { tr.stop() } }
     ver.let { }
     if (c.state?.home == null || c.terrain == null && !c.store.hasDistrict()) { Onboarding(); return }

@@ -163,8 +163,8 @@ fun Onboarding() {
                     Text(w(ru, "Что нужно игре", "What the game needs"), style = T.Title)
                     Spacer(Modifier.height(12.dp))
                     Text(w(ru,
-                        "Геолокация — чтобы знать, мимо каких грядок вы прошли. Пока приложение открыто, оно слушает GPS само. Если нажать «Выйти на прогулку», будет слушать и в кармане, с тихим уведомлением, пока вы не закончите.\n\nУведомления — для прогулки и чтобы сказать, что созрел урожай.\n\nКоординаты не уходят никуда, кроме запросов карты (OpenStreetMap) и погоды (MET Norway) для вашего района.",
-                        "Location — to know which beds you walk past. While the app is open it listens to the GPS itself. Tap 'Go for a walk' and it keeps listening with the phone in your pocket, with a quiet notification, until you're done.\n\nNotifications — for the walk and to say a harvest is ripe.\n\nYour location goes nowhere except the map (OpenStreetMap) and weather (MET Norway) requests for your area."), style = T.Body)
+                        "Геолокация — чтобы знать, мимо каких грядок вы прошли. Пока приложение открыто, оно слушает GPS само. Если нажать «Выйти на прогулку», будет слушать и в кармане, с тихим уведомлением, пока вы не закончите.\n\nУведомления — для прогулки и чтобы сказать, что созрел урожай.\n\nКоординаты не уходят никуда, кроме запросов карты (OpenStreetMap) и погоды (MET Norway, Open-Meteo) для вашего района.",
+                        "Location — to know which beds you walk past. While the app is open it listens to the GPS itself. Tap 'Go for a walk' and it keeps listening with the phone in your pocket, with a quiet notification, until you're done.\n\nNotifications — for the walk and to say a harvest is ripe.\n\nYour location goes nowhere except the map (OpenStreetMap) and weather (MET Norway, Open-Meteo) requests for your area."), style = T.Body)
                     Spacer(Modifier.height(14.dp))
                     if (granted) Text(w(ru, "Геолокация разрешена.", "Location is allowed."), style = T.Body.copy(color = C.green))
                     else PixelButton(w(ru, "Разрешить", "Allow"), {
@@ -194,7 +194,7 @@ fun Onboarding() {
                         if (why.isNotBlank()) Text(why, style = T.Small, modifier = Modifier.padding(top = 2.dp))
                     }
                     Spacer(Modifier.height(16.dp))
-                    Text(w(ru, "Карта © участники OpenStreetMap. Погода — MET Norway.", "Map © OpenStreetMap contributors. Weather by MET Norway."), style = T.Small)
+                    Text(w(ru, "Карта © участники OpenStreetMap. Погода — MET Norway, Open-Meteo.com.", "Map © OpenStreetMap contributors. Weather by MET Norway and Open-Meteo.com."), style = T.Small)
                 }
             }
         }

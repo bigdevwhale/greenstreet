@@ -56,7 +56,7 @@ The first opening tasks teach everything one step at a time. Then the year turns
 
 ## Privacy
 
-The map of your district is downloaded once from OpenFreeMap (OpenStreetMap data) and kept on the phone. The weather comes from MET Norway. Your position never leaves the phone: no accounts, no analytics, no ads.
+The map of your district is downloaded once from OpenFreeMap (OpenStreetMap data) and kept on the phone. The weather comes from MET Norway (forecast) and Open-Meteo (what has already fallen); both get only rounded coordinates. Your position never leaves the phone: no accounts, no analytics, no ads.
 
 ## Build
 
@@ -72,4 +72,4 @@ Kotlin, Jetpack Compose, org.json. All the pixel art (the district, the yard, th
 
 ## License
 
-MIT. Map data © OpenStreetMap contributors (ODbL), tiles by OpenFreeMap; weather by MET Norway. Font: m6x11 by Daniel Linssen.
+MIT. Map data © OpenStreetMap contributors (ODbL), tiles by OpenFreeMap; weather by MET Norway and Open-Meteo.com (CC BY 4.0). Font: m6x11 by Daniel Linssen.

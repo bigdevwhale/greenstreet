@@ -106,7 +106,7 @@ Year changes on the anniversary of the first bed.
 
 ## Calendar and festivals
 
-Real dates, local weather (MET Norway). Festivals move through the year; text differs by year.
+Real dates, local weather (MET Norway forecast, Open-Meteo for what already fell). Festivals move through the year; text differs by year.
 New Year, Old New Year, Maslenitsa (the moveable pancake week), the first thaw, the start of sowing,
 the spring courtyard clean-up (субботник), City Day (a Saturday in late May), white nights or
 summer solstice, Ivan Kupala night (7 July), Honey Spas (14 Aug), Apple Spas (19 Aug), Knowledge Day

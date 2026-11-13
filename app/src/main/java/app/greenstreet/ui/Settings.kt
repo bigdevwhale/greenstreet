@@ -88,7 +88,7 @@ fun SettingsView() {
 
         Text(w(ru, "об игре", "about"), style = T.Eyebrow, modifier = Modifier.padding(top = 6.dp))
         Text(w(ru,
-            "Карта района — © участники OpenStreetMap, тайлы OpenFreeMap. Погода — MET Norway (yr.no).\nРисунки, тексты и соседи сделаны для «Зелёной улицы».",
-            "District map © OpenStreetMap contributors, tiles by OpenFreeMap. Weather by MET Norway (yr.no).\nPictures, texts and neighbours were made for Green Street."), style = T.Small)
+            "Карта района — © участники OpenStreetMap, тайлы OpenFreeMap. Погода — MET Norway (yr.no) и Open-Meteo.com (CC BY 4.0).\nРисунки, тексты и соседи сделаны для «Зелёной улицы».",
+            "District map © OpenStreetMap contributors, tiles by OpenFreeMap. Weather by MET Norway (yr.no) and Open-Meteo.com (CC BY 4.0).\nPictures, texts and neighbours were made for Green Street."), style = T.Small)
     }
 }
