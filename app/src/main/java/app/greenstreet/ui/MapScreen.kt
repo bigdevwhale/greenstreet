@@ -205,7 +205,8 @@ fun MapScreen(open: (Sheet) -> Unit) {
                             val cx = clampCam(mx - vw / 2 + pan.x, t.w, vw); val cy = clampCam(my - vh * 11 / 20 + pan.y, t.h, vh)
                             val ax = cx + o.x / k; val ay = cy + o.y / k
                             pan = IntOffset.Zero
-                            c.fix(Geo(d.lat(ay), d.lon(ax)), 5f)
+                            val tended = c.fix(Geo(d.lat(ay), d.lon(ax)), 5f)
+                            if (tended > 0) Tracker.lastTended.value = System.currentTimeMillis() to tended
                         },
                     )
                 }) {
