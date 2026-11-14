@@ -71,6 +71,8 @@ data class Morning(
     val festival: Festival? = null,
     val year: Int = 1,
     val newYear: Boolean = false,
+    /** Snow fell overnight: it watered the beds just the same. */
+    val snowed: Boolean = false,
 )
 
 /** What a harvest gave. */
@@ -224,9 +226,9 @@ class Game(val c: Content) {
     /**
      * What a bed is waiting for, in words the player can act on: nights left to ripen if it is tended every
      * day at today's pace, whether it has been watered today, whether
-     * today's rain will water it tonight, and how many untended nights before it goes wild (null if it can't now).
+     * today's rain or snow will water it tonight ([snow] says which, for the words), and how many untended nights before it goes wild (null if it can't now).
      */
-    data class Outlook(val nights: Int, val watered: Boolean, val rain: Boolean, val indoors: Boolean, val wildIn: Int?)
+    data class Outlook(val nights: Int, val watered: Boolean, val rain: Boolean, val indoors: Boolean, val wildIn: Int?, val snow: Boolean = false)
 
     fun outlook(s: GameState, b: Bed, now: Now): Outlook {
         val v = c.variety.getValue(b.variety)
@@ -242,7 +244,7 @@ class Game(val c: Content) {
             }
         }
         val wildIn = if (indoors || ripe || b.wild || b.self) null else max(1, wildAfter(s) - b.idle)
-        return Outlook(nights, watered, rain, indoors, wildIn)
+        return Outlook(nights, watered, rain, indoors, wildIn, snow = rain && !now.sky.rain)
     }
 
     /** The day a variety sown now would be ripe if tended every day, at today's pace. */
@@ -263,16 +265,21 @@ class Game(val c: Content) {
     /** Untended nights before a bed goes wild. */
     private fun wildAfter(s: GameState) = 3 + 2 * up(s, "mulch")
 
-    /** The player is at [at]: every verge bed within reach is tended today. Returns the beds tended now. */
-    fun pass(s: GameState, now: Now, at: Geo): List<Bed> {
-        val r = reach(s)
+    /**
+     * The player is at [at], having come from [from] (the previous fix, if any): every verge bed within reach of
+     * the way between the two is tended today. Fixes come seconds and metres apart, so a bed passed between two
+     * of them counts too. [slack] widens the reach by the GPS's own uncertainty (capped at [GPS_SLACK]): a fix
+     * can sit ten metres off the pavement the player is really on. Returns the beds tended now.
+     */
+    fun pass(s: GameState, now: Now, at: Geo, from: Geo? = null, slack: Double = 0.0): List<Bed> {
+        val r = reach(s) + slack.coerceIn(0.0, GPS_SLACK)
         val out = ArrayList<Bed>()
         for (b in s.beds) {
             // sowing waters a bed but isn't a walk past, so walking by a bed sown today still counts
             if (b.passed == now.day) continue
             val p = c.variety[b.variety]?.place ?: continue
             if (p != Place.VERGE && p != Place.GARDEN) continue
-            if (Geo(b.lat, b.lon).metres(at) <= r) {
+            if (Geo(b.lat, b.lon).metresTo(from ?: at, at) <= r) {
                 b.lastTend = now.day; b.passed = now.day; out += b
             }
         }
@@ -383,7 +390,8 @@ class Game(val c: Content) {
         val delivered = deliver(s, now)
         mail += delivered
         reqs += showRequests(s, now)
-        return Morning(grew, ripe, wild, acc.rained || now.sky.rain, acc.eggs + eggs, mail, reqs, acc.festival, acc.year)
+        return Morning(grew, ripe, wild, acc.rained || now.sky.rain, acc.eggs + eggs, mail, reqs, acc.festival, acc.year,
+            snowed = acc.snowed || now.sky.snow)
     }
 
     // ---------- neighbours ----------
@@ -826,6 +834,8 @@ class Game(val c: Content) {
         /** Points needed for each heart: about a season of regular visits for 4, a year for 7, three for 10. */
         /** Metres between beds by the road. */
         const val BED_GAP = 25.0
+        /** At most this much of a fix's reported accuracy is added to the watering reach. */
+        const val GPS_SLACK = 15.0
         /** How many of one kind the fair takes at full price on a Saturday; the rest go for half. */
         const val FAIR_FULL = 6
         /** What the beekeeper at the market sells. */
@@ -849,4 +859,17 @@ fun Geo.metres(o: Geo): Double {
     val dx = (lon - o.lon) * 111_320.0 * k
     val dy = (lat - o.lat) * 110_574.0
     return Math.sqrt(dx * dx + dy * dy)
+}
+
+/** Distance in metres from this point to the segment [a]–[b] (the way walked between two fixes). */
+fun Geo.metresTo(a: Geo, b: Geo): Double {
+    val k = Math.cos(Math.toRadians(lat))
+    fun x(g: Geo) = (g.lon - lon) * 111_320.0 * k
+    fun y(g: Geo) = (g.lat - lat) * 110_574.0
+    val ax = x(a); val ay = y(a); val bx = x(b); val by = y(b)
+    val dx = bx - ax; val dy = by - ay
+    val len = dx * dx + dy * dy
+    val t = if (len == 0.0) 0.0 else (-(ax * dx + ay * dy) / len).coerceIn(0.0, 1.0)
+    val px = ax + t * dx; val py = ay + t * dy
+    return Math.sqrt(px * px + py * py)
 }

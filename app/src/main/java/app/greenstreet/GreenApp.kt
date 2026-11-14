@@ -409,6 +409,8 @@ class AppContainer(context: Context) {
         val s = state ?: return 0
         if (accuracy > 40f) return 0
         var find: Find? = null
+        // the way since the last fix, if it's a step and not a jump across town
+        val from = lastFix?.takeIf { it.metres(at) <= 300.0 }
         lastFix?.let {
             val d = it.metres(at)
             if (d in 3.0..300.0) {
@@ -420,7 +422,7 @@ class AppContainer(context: Context) {
         }
         lastFix = at
         find?.let { f -> found.value = f; changed(); if (!visible) notifyFind(f) }
-        val tended = game.pass(s, now(), at).size
+        val tended = game.pass(s, now(), at, from, accuracy.toDouble()).size
         if (tended > 0 || abs(s.kmToday * 1000 % 50) < 5) changed()
         return tended
     }

@@ -7,7 +7,7 @@ farm. The farm is their everyday life laid over the map: little garden beds on t
 streets they already walk, a courtyard at home, and the neighbourhood's real places, each kept by a
 neighbour.
 
-Walking past a bed tends it. Rain waters everything. Beds left alone for three days go wild but never
+Walking past a bed tends it. Rain and snow water everything. Beds left alone for three days go wild but never
 die. The harvest goes to the courtyard kitchen, to gifts, to neighbours' requests and to the Saturday
 fair. Over three years the player becomes the person the whole district knows: the one who plants
 calendula by the tram stop.
@@ -36,8 +36,8 @@ use «вы» even when close; warmth comes from what they say, not from «ты»
    is pinned to a real spot. Beds must be at least 25 m apart. Any month will do: each variety has its best
    months, and outdoors in winter (December to February) a bed grows at half pace, in March and November
    a little slower. Only the calendar decides: the weather doesn't.
-3. **Tending**: passing within reach (10 m, upgraded to 20 and 30) counts as watering and weeding. Each
-   crop needs a number of days and a number of tended days. Rain counts as tending. Frost does
+3. **Tending**: passing within reach (10 m, upgraded to 20 and 30, plus up to 15 m for the GPS's own error, measured along the way between two fixes) counts as watering and weeding. Each
+   crop needs a number of days and a number of tended days. Rain and snow count as tending. Frost does
    nothing to the beds.
 4. **Harvest** when the sparkle shows. Wild beds give half.
 5. **Use**: cook and preserve in the courtyard kitchen, give to neighbours, fulfil requests, sell at the

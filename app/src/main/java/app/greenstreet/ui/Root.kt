@@ -306,6 +306,7 @@ private fun SheetView(sheet: Sheet, go: (Sheet) -> Unit, close: () -> Unit) {
                                 if (m.newYear) lines += w(ru, "Начался %d-й год на Зелёной улице.", "Year %d on Green Street has begun.").format(m.year)
                                 m.festival?.let { lines += it.name(ru) + " — " + it.notice(ru) }
                                 if (m.rained) lines += w(ru, "Шёл дождь — грядки полил он.", "It rained — the beds are watered.")
+                                else if (m.snowed) lines += w(ru, "Шёл снег — грядки полил он.", "It snowed — the beds are watered.")
                                 if (m.grew > 0) lines += w(ru, "Подросло грядок: %d.", "Beds that grew: %d.").format(m.grew)
                                 if (m.ripe > 0) lines += w(ru, "Созрело: %d. Ищите искорки над грядками.", "Ripe: %d. Look for the sparkle over the beds.").format(m.ripe)
                                 if (m.wild > 0) lines += w(ru, "Без присмотра одичало: %d. Урожай будет меньше, но будет.", "Gone wild without care: %d. They'll still give a smaller harvest.").format(m.wild)

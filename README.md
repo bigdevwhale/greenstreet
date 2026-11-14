@@ -30,7 +30,7 @@
 
 - **Sow where you walk.** Stand by a lawn next to a pavement or a park path and «Sow» appears. A stake with a flag in the plant's colour marks the bed on the map.
 - **Walking past waters it.** Ten metres is enough at first, more with a better watering can. «Go for a walk» keeps it working with the phone in your pocket.
-- **Rain waters for you.** A bed left alone for three days goes wild but is never lost. Frost tomorrow? The top line warns you.
+- **Rain and snow water for you.** A bed left alone for three days goes wild but is never lost. Frost tomorrow? The top line warns you.
 - **128 varieties** with their own months, days to ripen and prices. When a sparkle shows over a bed, pick it.
 
 ## Finds on the way

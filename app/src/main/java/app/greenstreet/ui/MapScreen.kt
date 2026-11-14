@@ -419,6 +419,7 @@ fun ripeIn(o: app.greenstreet.domain.Game.Outlook, ru: Boolean): String = when (
 /** Has the bed had its water today, in words. */
 fun wateredWord(o: app.greenstreet.domain.Game.Outlook, ru: Boolean): String = when {
     o.watered -> w(ru, "сегодня полита", "watered today")
+    o.rain && o.snow -> w(ru, "польёт снег", "the snow waters it")
     o.rain -> w(ru, "польёт дождь", "the rain waters it")
     else -> w(ru, "сегодня не полита", "not watered today")
 }
@@ -457,6 +458,7 @@ fun BedDetails(c: app.greenstreet.AppContainer, b: app.greenstreet.domain.Bed, n
             o.indoors && o.watered -> C.greenLight to w(ru, "Сегодня полита: вы были дома.", "Watered today: you were home.")
             o.indoors -> C.paper2 to w(ru, "Сегодня не полита. Горшки поливаются сами, когда вы дома.", "Not watered today. Pots get watered whenever you're home.")
             o.watered -> C.greenLight to w(ru, "Сегодня полита: вы прошли рядом.", "Watered today: you walked by.")
+            o.rain && o.snow -> C.greenLight to w(ru, "Сегодня полита: идёт снег, к ночи он польёт.", "Watered today: it's snowing, the snow does it by night.")
             o.rain -> C.greenLight to w(ru, "Сегодня полита: идёт дождь, к ночи он польёт.", "Watered today: it's raining, the rain does it by night.")
             else -> C.paper2 to w(ru, "Сегодня ещё не полита. Чтобы полить, пройдите в %d м от грядки — больше ничего не нужно.",
                 "Not watered yet today. To water it, walk within %d m of the bed — nothing else needed.").format(c.game.reach(s).toInt())

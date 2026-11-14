@@ -54,7 +54,7 @@ object Quests {
             Tx("Выполните просьбу соседа — у его имени на карте «!». Просьбы приходят одна за другой и рассказывают их истории.", "Fulfil a neighbour's request — their name on the map has a '!'. Requests come one after another and tell their stories."),
             1, listOf(Reward.Coins(20))) { s -> c(s, "request") },
         Quest("harvest", "klava", Tx("Первый урожай", "The first harvest"),
-            Tx("Дождитесь искорки над грядкой и соберите урожай. Дождь поливает сам, а без присмотра грядка дичает, но не пропадает.", "Wait for the sparkle over a bed and pick it. Rain waters for you; left alone a bed goes wild but isn't lost."),
+            Tx("Дождитесь искорки над грядкой и соберите урожай. Дождь и снег поливают сами, а без присмотра грядка дичает, но не пропадает.", "Wait for the sparkle over a bed and pick it. Rain and snow water for you; left alone a bed goes wild but isn't lost."),
             1, listOf(Reward.Coins(20), Reward.Seeds("radish_black", 2))) { s -> c(s, "harvest") },
         Quest("fish", "palych", Tx("На удочку", "Rod and line"),
             Tx("Подойдите к воде — к реке, каналу или пруду — и закиньте удочку. Подсекайте, когда поплавок нырнёт.", "Go to the water — a river, a canal or a pond — and cast. Strike when the float dips."),

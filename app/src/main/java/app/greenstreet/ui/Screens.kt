@@ -1,6 +1,7 @@
 package app.greenstreet.ui
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import app.greenstreet.ui.components.pixelBox
 import androidx.compose.ui.unit.sp
 import androidx.compose.runtime.mutableStateOf
@@ -271,22 +272,38 @@ fun where(from: Geo, to: Geo, ru: Boolean): String {
     return if (m < 40) (if (ru) "совсем рядом" else "right here") else "$dist ${dirs[(a / 45).toInt() % 8]}"
 }
 
-/** The kitchen as a shelf of dishes: what can be cooked now comes first and bright; a tap shows what it takes. */
-@OptIn(ExperimentalLayoutApi::class)
+/**
+ * The kitchen as a shelf of dishes: what can be cooked now comes first and bright. A tap opens the dish's card
+ * right under the shelf (and scrolls to it): what the dish is and what it takes first, the "Cook" button last.
+ */
+@OptIn(ExperimentalLayoutApi::class, androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
 private fun Kitchen(c: app.greenstreet.AppContainer, home: Boolean) {
     val ru = ru()
     val s = c.state ?: return
     val now = c.now()
     var picked by remember { androidx.compose.runtime.mutableStateOf<String?>(null) }
+    var cooked by remember { androidx.compose.runtime.mutableStateOf<String?>(null) }
+    val card = remember { androidx.compose.foundation.relocation.BringIntoViewRequester() }
     val known = c.game.known(s).sortedBy { !c.game.canFulfil(s, it.needs) }
     val ready = known.count { c.game.canFulfil(s, it.needs) }
-    Text(if (ready > 0) w(ru, "Можно приготовить: %d. Нажмите на блюдо.", "Ready to cook: %d. Tap a dish.").format(ready) else w(ru, "Пока ни на что не хватает продуктов. Нажмите на блюдо — покажу, чего не хватает.", "Nothing has all its ingredients yet. Tap a dish to see what's missing."), style = T.Small)
+    Text(if (ready > 0) w(ru, "Можно приготовить: %d. Нажмите на блюдо — покажу, что это и что нужно.", "Ready to cook: %d. Tap a dish to see what it is and what it takes.").format(ready) else w(ru, "Пока ни на что не хватает продуктов. Нажмите на блюдо — покажу, чего не хватает.", "Nothing has all its ingredients yet. Tap a dish to see what's missing."), style = T.Small)
+    FlowRow(Modifier.padding(top = 6.dp), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        known.forEach { r -> ItemSlot(app.greenstreet.ui.art.ItemIcons.of(c.content, r.makes), null, picked == r.key, dim = !c.game.canFulfil(s, r.needs)) { picked = if (picked == r.key) null else r.key; cooked = null } }
+    }
     picked?.let { key ->
         val r = c.content.recipes.firstOrNull { it.key == key } ?: return@let
-        Panel(Modifier.fillMaxWidth().padding(top = 6.dp), fill = C.paper) {
-            Text(r.name(ru), style = T.Heading)
-            Text(r.about(ru), style = T.Small)
+        LaunchedEffect(key) { card.bringIntoView() }
+        Panel(Modifier.fillMaxWidth().padding(top = 6.dp).bringIntoViewRequester(card), fill = C.paper) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                ItemSlot(app.greenstreet.ui.art.ItemIcons.of(c.content, r.makes), r.qty, false) {}
+                Column(Modifier.padding(start = 8.dp)) {
+                    Text(r.name(ru), style = T.Heading)
+                    Text(w(ru, "Выйдет: %s × %d", "Makes: %s × %d").format(c.content.name(r.makes)(ru), r.qty), style = T.Small)
+                }
+            }
+            Text(r.about(ru), style = T.Small, modifier = Modifier.padding(top = 4.dp))
+            Text(w(ru, "Что нужно:", "What it takes:"), style = T.Small, modifier = Modifier.padding(top = 4.dp))
             r.needs.forEach { n ->
                 val have = c.game.run { s.bag.entries.filter { c.content.matches(n.key, it.key) }.sumOf { it.value } }
                 Text("${c.content.name(n.key)(ru)} — $have / ${n.qty}", style = T.Body.copy(color = if (have >= n.qty) C.green else C.red))
@@ -294,11 +311,9 @@ private fun Kitchen(c: app.greenstreet.AppContainer, home: Boolean) {
             val station = c.game.stationOpen(s, now, r.station)
             if (!station) Text(w(ru, "Для этого нужен погреб — он появится на второй год.", "This needs the cellar — it comes in the second year."), style = T.Small.copy(color = C.red))
             if (!home) Text(w(ru, "Готовить можно только дома.", "You can only cook at home."), style = T.Small.copy(color = C.red))
-            PixelButton(w(ru, "Готовить", "Cook"), { if (c.game.cook(s, now, r.key)) { c.changed() } }, Modifier.padding(top = 6.dp), enabled = home && station && c.game.canFulfil(s, r.needs))
+            if (cooked == r.key) Text(w(ru, "Готово: %s × %d — уже в погребе.", "Done: %s × %d, now in the pantry.").format(c.content.name(r.makes)(ru), r.qty), style = T.Small.copy(color = C.green), modifier = Modifier.padding(top = 4.dp))
+            PixelButton(w(ru, "Приготовить: %s", "Cook: %s").format(r.name(ru)), { if (c.game.cook(s, now, r.key)) { cooked = r.key; c.changed() } }, Modifier.padding(top = 6.dp), enabled = home && station && c.game.canFulfil(s, r.needs))
         }
-    }
-    FlowRow(Modifier.padding(top = 6.dp), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        known.forEach { r -> ItemSlot(app.greenstreet.ui.art.ItemIcons.of(c.content, r.makes), null, picked == r.key, dim = !c.game.canFulfil(s, r.needs)) { picked = if (picked == r.key) null else r.key } }
     }
     val unknown = c.content.recipes.size - known.size
     if (unknown > 0) Text(w(ru, "Ещё %d рецептов знают соседи.", "Neighbours know %d more recipes.").format(unknown), style = T.Small, modifier = Modifier.padding(top = 6.dp))

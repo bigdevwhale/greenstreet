@@ -115,6 +115,49 @@ class ReachTest {
     }
 
     @Test
+    fun walkingByWatersBetweenFixesAndWithinGpsError() {
+        // issue #15: a bed passed between two fixes, or a fix that drifted off the pavement, still gets its water
+        val day = LocalDate.of(2027, 6, 10)
+        val bed = Geo(59.95, 30.31)
+        val s = game.newGame(Now(day), bed)
+        val v = content.variety.getValue("radish_breakfast")
+        s.seeds[v.key] = 1
+        game.sow(s, Now(day), v.key, bed)!!
+        val next = Now(day.plusDays(1))
+        val dLon = 1.0 / (111_320.0 * Math.cos(Math.toRadians(59.95)))   // a metre east
+        val dLat = 1.0 / 110_574.0                                          // a metre north
+        // two fixes 30 m apart, 15 m either side of the bed, the way between them 5 m from it
+        val before = Geo(bed.lat + 5 * dLat, bed.lon - 15 * dLon)
+        val after = Geo(bed.lat + 5 * dLat, bed.lon + 15 * dLon)
+        assertEquals("neither fix alone is close enough", 0, game.pass(s, next, after).size)
+        assertEquals("the way between them is", 1, game.pass(s, next, after, from = before).size)
+        // a fix 18 m off with 12 m of GPS error: within reach once the error is counted, and the error is capped
+        val s2 = game.newGame(Now(day), bed)
+        s2.seeds[v.key] = 1
+        game.sow(s2, Now(day), v.key, bed)!!
+        val off = Geo(bed.lat + 18 * dLat, bed.lon)
+        assertEquals(0, game.pass(s2, next, off).size)
+        assertEquals(0, game.pass(s2, next, Geo(bed.lat + 30 * dLat, bed.lon), slack = 500.0).size)
+        assertEquals(1, game.pass(s2, next, off, slack = 12.0).size)
+    }
+
+    @Test
+    fun snowWatersAndSaysSo() {
+        // issue #13: snow waters the beds like rain, and the card and the morning say it was snow
+        val jan = LocalDate.of(2027, 1, 12)
+        val s = game.newGame(Now(jan), Geo(59.95, 30.31))
+        val v = content.variety.getValue("radish_breakfast")
+        s.seeds[v.key] = 1
+        val b = game.sow(s, Now(jan), v.key, Geo(59.95, 30.31))!!
+        val snowy = Now(jan.plusDays(1), 12, Sky(snow = true, temp = -3.0))
+        val o = game.outlook(s, b, snowy)
+        assertTrue(o.rain); assertTrue(o.snow)
+        val m = game.catchUp(s, Now(jan.plusDays(2))) { Sky(snow = true, temp = -3.0) to Sky() }
+        assertEquals(2, b.tended)
+        assertTrue(m.snowed); assertFalse(m.rained)
+    }
+
+    @Test
     fun winterSowing() {
         val jan = LocalDate.of(2027, 1, 12)
         val cold = Sky(snow = true, temp = -6.0)
