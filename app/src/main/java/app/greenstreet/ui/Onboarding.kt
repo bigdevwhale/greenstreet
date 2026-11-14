@@ -54,8 +54,11 @@ import app.greenstreet.ui.art.grassOf
 import app.greenstreet.ui.art.hash
 import app.greenstreet.ui.art.rp
 import app.greenstreet.ui.art.walker
+import app.greenstreet.ui.art.blit
+import app.greenstreet.ui.art.up2
 import app.greenstreet.ui.components.Kind
 import app.greenstreet.ui.components.PixelButton
+import app.greenstreet.ui.components.parchment
 import app.greenstreet.ui.theme.C
 import app.greenstreet.ui.theme.T
 import app.greenstreet.work.Tracker
@@ -63,9 +66,11 @@ import kotlinx.coroutines.launch
 import java.time.LocalDateTime
 
 /** A strip of street for the welcome pages: a pavement, a lawn with three beds at different stages, the walker passing. */
-private class VergeScene(val month: Int, val rain: Boolean) : Scene(128, 64) {
-    override val key get() = listOf(month, rain)
+private class VergeScene(val month: Int, val rain: Boolean, private val pic: Buf? = app.greenstreet.ui.art.Pictures.buf("art/intro/verge.png")) :
+    Scene(pic?.w ?: 128, pic?.h ?: 64) {
+    override val key get() = listOf(month, rain, pic != null)
     override fun base(b: Buf) {
+        if (pic != null) { b.blit(pic, 0, 0); return }
         val grass = grassOf(month)
         for (y in 0 until h) for (x in 0 until w) {
             val c = when {
@@ -78,6 +83,15 @@ private class VergeScene(val month: Int, val rain: Boolean) : Scene(128, 64) {
     }
 
     override fun anim(b: Buf, t: Int) {
+        if (pic == null) { life(b, t); return }
+        // over the painted verge the beds and the walker are drawn at half its resolution, then doubled
+        val lo = Buf(128, 64)
+        life(lo, t)
+        b.blit(lo.up2(), 0, 0)
+    }
+
+    private fun life(b: Buf, t: Int) {
+        val w = b.w; val h = b.h
         val c = LocalContextHolder.content ?: return
         val kinds = listOf("radish_breakfast", "calendula_orange", "sunflower_giant")
         kinds.forEachIndexed { i, k ->
@@ -117,13 +131,13 @@ fun Onboarding() {
     val m = Moment(now.hour * 60 + now.minute, Sky(sun = true), now.monthValue, now.toLocalDate().toEpochDay())
     val pages = 6
 
-    Column(Modifier.fillMaxSize().background(C.paper).statusBarsPadding().navigationBarsPadding()) {
+    Column(Modifier.fillMaxSize().then(Modifier.parchment()).statusBarsPadding().navigationBarsPadding()) {
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(20.dp)) {
             when (page) {
                 0 -> {
                     Text(w(ru, "Зелёная улица", "Green Street"), style = T.Display.copy(color = C.green))
                     Spacer(Modifier.height(10.dp))
-                    PixelView(remember { VergeScene(now.monthValue, false) })
+                    PixelView(remember { app.greenstreet.ui.art.introScene("cover") { VergeScene(now.monthValue, false) } })
                     Spacer(Modifier.height(12.dp))
                     Text(w(ru,
                         "Ваш район — ваш огород. Улицы, дома, парки и вода нарисованы по настоящей карте вокруг вашего дома.\n\nЗдесь не нужно никуда специально ходить. Вы идёте в магазин, к остановке, через парк — а по дороге растут ваши грядки.",
@@ -142,8 +156,10 @@ fun Onboarding() {
                     Text(w(ru, "Соседи", "Neighbours"), style = T.Title)
                     Spacer(Modifier.height(10.dp))
                     PixelView(remember {
-                        FacadeScene("bakery", Icons.bakery, G.ochre, G.plum, R.red,
-                            Look.of(mapOf("skin" to "2", "hair" to "wood", "cloth" to "cream", "hat" to "toque", "beard" to "1", "apron" to "1")), m.copy(minute = 11 * 60), true)
+                        val baker = Look.of(mapOf("skin" to "2", "hair" to "wood", "cloth" to "cream", "hat" to "toque", "beard" to "1", "apron" to "1"))
+                        app.greenstreet.ui.art.placeScene("bakery", "prokhor", baker, m.copy(minute = 11 * 60)) {
+                            FacadeScene("bakery", Icons.bakery, G.ochre, G.plum, R.red, baker, m.copy(minute = 11 * 60), true)
+                        }
                     })
                     Spacer(Modifier.height(12.dp))
                     Text(w(ru,

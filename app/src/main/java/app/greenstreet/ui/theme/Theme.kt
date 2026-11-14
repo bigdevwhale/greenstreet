@@ -13,45 +13,55 @@ import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import app.greenstreet.R
 
-/** The colours of the post office: parchment, ink, the green of the kettle, the red of sealing wax. */
+/** A tidy pixel game: a parchment page, cream cards on a soft two-tone shadow, warm brown ink, one terracotta accent. */
 @Immutable
 object C {
-    val bg = Color(0xFF2A1A12)
-    val paper = Color(0xFFF2E2BB)
-    val paper2 = Color(0xFFE1CB9B)
-    val light = Color(0xFFFBF3DC)
-    val ink = Color(0xFF22160F)
-    val muted = Color(0xFF7A5A3E)
-    val faint = Color(0xFFA88A68)
-    val green = Color(0xFF3D5E43)
-    val greenDeep = Color(0xFF1B2B22)
-    val greenLight = Color(0xFF5A7F4F)
-    val red = Color(0xFFA33A2C)
-    val redDeep = Color(0xFF6E1F1F)
-    val ochre = Color(0xFFD9973A)
-    val ochreDeep = Color(0xFFA86E22)
-    val lamp = Color(0xFFF4CC5A)
-    val lampDeep = Color(0xFFB87A1A)
-    val blue = Color(0xFF26375E)
+    val bg = Color(0xFF2B2420)
+    val paper = Color(0xFFF6EAD2)
+    val paper2 = Color(0xFFEEDDBA)
+    val light = Color(0xFFFCF4E2)
+    val ink = Color(0xFF3B2A1E)
+    val muted = Color(0xFF8A6E52)
+    val faint = Color(0xFFB79E7E)
+    val green = Color(0xFF557A45)
+    val greenDeep = Color(0xFF2F4430)
+    val greenLight = Color(0xFF86A26F)
+    val red = Color(0xFFC0473A)
+    val redDeep = Color(0xFF8E2F25)
+    val ochre = Color(0xFFD99A4E)
+    val ochreDeep = Color(0xFFA9712F)
+    val lamp = Color(0xFFF5DC9C)
+    val lampDeep = Color(0xFFC9A04E)
+    val blue = Color(0xFF34497A)
     val telegram = Color(0xFFF6DC84)
     val night = Color(0xFF151D34)
+
+    /** The one accent: the main button, the picked tab, the badge. */
+    val accent = Color(0xFFC4553C)
+    val accentDeep = Color(0xFF8E3524)
+    val accentSoft = Color(0xFFF4D9C9)
+    /** Card edges, the solid shadow under cards, the sunk-in place of a picked tab. */
+    val edge = Color(0xFFE0C79C)
+    val under = Color(0xFFE2CDA4)
+    val inset = Color(0xFFEBD8B2)
+    val shadow = Color(0xFF6B4A2E)
 }
 
 /**
- * Every text in the app: m6x11 by Daniel Linssen with Cyrillic by Natto Games (free with attribution),
- * the font Hearthspell uses. One family; sizes set the hierarchy.
+ * Every text in the app: m6x11 by Daniel Linssen with Cyrillic by Natto Games (free with attribution).
+ * One pixel family; sizes and colour set the hierarchy.
  */
 val Pixel = FontFamily(Font(R.font.m6x11, FontWeight.Normal))
 
 object T {
     val Display = TextStyle(fontFamily = Pixel, fontSize = 32.sp, lineHeight = 32.sp, color = C.ink)
-    val Title = TextStyle(fontFamily = Pixel, fontSize = 27.sp, lineHeight = 28.sp, color = C.ink)
-    val Heading = TextStyle(fontFamily = Pixel, fontSize = 23.sp, lineHeight = 24.sp, color = C.ink)
+    val Title = TextStyle(fontFamily = Pixel, fontSize = 28.sp, lineHeight = 28.sp, color = C.ink)
+    val Heading = TextStyle(fontFamily = Pixel, fontSize = 24.sp, lineHeight = 25.sp, color = C.ink)
     val Eyebrow = TextStyle(fontFamily = Pixel, fontSize = 16.sp, lineHeight = 17.sp, letterSpacing = 0.04.em, color = C.muted)
     val Body = TextStyle(fontFamily = Pixel, fontSize = 20.sp, lineHeight = 22.sp, color = C.ink)
     val Letter = TextStyle(fontFamily = Pixel, fontSize = 21.sp, lineHeight = 24.sp, color = C.ink)
     val Sub = TextStyle(fontFamily = Pixel, fontSize = 18.sp, lineHeight = 19.sp, color = C.muted)
-    val Small = TextStyle(fontFamily = Pixel, fontSize = 16.sp, lineHeight = 17.sp, color = C.muted)
+    val Small = TextStyle(fontFamily = Pixel, fontSize = 17.sp, lineHeight = 18.sp, color = C.muted)
     val Number = TextStyle(fontFamily = Pixel, fontSize = 28.sp, lineHeight = 26.sp, color = C.ink)
     val Button = TextStyle(fontFamily = Pixel, fontSize = 22.sp, lineHeight = 22.sp)
     val Hand = TextStyle(fontFamily = Pixel, fontSize = 21.sp, lineHeight = 22.sp, color = C.blue)

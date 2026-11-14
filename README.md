@@ -6,6 +6,8 @@
 
 ### A cozy farming game on the real map of your own district
 
+<img src="docs/cover.png" width="720" alt="Green Street: beds along a pavement, the bakery, neighbours, hens and the cat" />
+
 *Your great-aunt has left you her hens, her yard and her old habit: planting something living along the streets of the district. Sow a bed on a lawn by the road you take every day, and walking past it waters it. Your real neighbourhood, drawn in bright pixel art from OpenStreetMap, is the farm. The bakery, the pharmacy and the market have neighbours with stories that last three years. Free, no ads, no accounts.*
 
 [![Android CI](https://github.com/bigdevwhale/greenstreet/actions/workflows/android.yml/badge.svg)](https://github.com/bigdevwhale/greenstreet/actions/workflows/android.yml)

@@ -1,6 +1,10 @@
 package app.greenstreet.ui
 
 import android.Manifest
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.size
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.graphics.Color
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -60,6 +64,16 @@ import app.greenstreet.ui.components.Kind
 import app.greenstreet.ui.components.Panel
 import app.greenstreet.ui.components.PixelButton
 import app.greenstreet.ui.components.pixelBox
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.foundation.border
+import androidx.compose.ui.unit.sp
+import app.greenstreet.ui.components.card
+import app.greenstreet.ui.components.parchment
+import app.greenstreet.ui.components.PX
 import app.greenstreet.ui.theme.C
 import app.greenstreet.ui.theme.T
 import app.greenstreet.work.Tracker
@@ -119,7 +133,7 @@ fun yardLife(c: AppContainer, guest: String? = null): app.greenstreet.ui.art.Yar
         c.game.flag(s, now, "garden"), now.date.dayOfWeek.value, c.game.festival(s, now)?.key, s.flags.toSet(), pots,
         if (t != null && d != null && home != null) t.homeKind(d.x(home.lon), d.y(home.lat)) else "well",
         guest?.let { c.content.person[it]?.look },
-        s.flags.filter { it.startsWith("own.") }.map { it.removePrefix("own.") }.toSet())
+        s.flags.filter { it.startsWith("own.") }.map { it.removePrefix("own.") }.toSet(), guest)
 }
 
 fun moment(c: AppContainer): Moment {
@@ -141,7 +155,7 @@ fun Root() {
     DisposableEffect(Unit) { val tr = Tracker.of(ctx); tr.start(); onDispose { tr.stop() } }
     ver.let { }
     if (c.state?.home == null || c.terrain == null && !c.store.hasDistrict()) { Onboarding(); return }
-    Column(Modifier.fillMaxSize().background(C.paper)) {
+    Column(Modifier.fillMaxSize().parchment()) {
         TopLine(c) { sheet = Sheet.Settings }
         Box(Modifier.weight(1f)) {
             when (tab) {
@@ -173,7 +187,7 @@ private fun FindBanner(c: AppContainer) {
                     "coins" -> coinIcon
                     else -> null
                 }
-                if (icon != null) app.greenstreet.ui.components.BufImage(icon, Modifier.padding(end = 10.dp), if (icon === coinIcon) 3.dp else 2.dp)
+                if (icon != null) app.greenstreet.ui.components.BufImage(icon, Modifier.padding(end = 10.dp), if (icon === coinIcon) 3.dp else 1.dp)
                 Column(Modifier.weight(1f)) {
                     Text(if (find.kind == "moment") w(ru, "по дороге", "on the way") else w(ru, "находка", "a find"), style = T.Eyebrow)
                     Text(find.text(ru), style = T.Body)
@@ -194,15 +208,16 @@ private fun TopLine(c: AppContainer, settings: () -> Unit) {
     else listOf("January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December")
     val sky = n.sky
     val wx = when { sky.snow -> w(ru, "снег", "snow"); sky.rain -> w(ru, "дождь", "rain"); sky.fog -> w(ru, "туман", "fog"); sky.sun -> w(ru, "ясно", "clear"); else -> w(ru, "облачно", "cloudy") }
-    Row(Modifier.fillMaxWidth().background(C.greenDeep).statusBarsPadding().padding(horizontal = 16.dp, vertical = 8.dp), verticalAlignment = Alignment.Bottom) {
+    // the date large, the weather and year under it, the purse and the gear on the right: no boxes
+    Row(Modifier.fillMaxWidth().background(C.paper).statusBarsPadding().padding(start = 20.dp, end = 10.dp, top = 8.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically) {
         Column(Modifier.weight(1f)) {
-            Text(if (ru) "${d.dayOfMonth} ${months[d.monthValue - 1]}" else "${months[d.monthValue - 1]} ${d.dayOfMonth}", style = T.Heading.copy(color = C.light))
-            Text("$wx, %+.0f°".format(sky.temp) + " · " + w(ru, "год ", "year ") + c.game.year(s, n.day), style = T.Small.copy(color = C.paper2))
+            Text(if (ru) "${d.dayOfMonth} ${months[d.monthValue - 1]}" else "${months[d.monthValue - 1]} ${d.dayOfMonth}", style = T.Title)
+            Text("$wx, %+.0f°".format(sky.temp) + " · " + w(ru, "год ", "year ") + c.game.year(s, n.day), style = T.Small)
         }
-        app.greenstreet.ui.components.BufImage(coinIcon, Modifier.padding(end = 6.dp, bottom = 4.dp), 2.4.dp)
-        Text("${s.coins}", style = T.Heading.copy(color = C.lamp))
-        Box(Modifier.padding(start = 10.dp).clickable(onClick = settings).padding(4.dp)) {
-            app.greenstreet.ui.components.BufImage(gearIcon, Modifier, 2.4.dp)
+        app.greenstreet.ui.components.UiIcon("coin", 28.dp, Modifier.padding(end = 6.dp))
+        Text("${s.coins}", style = T.Title)
+        Box(Modifier.padding(start = 8.dp).size(48.dp).clip(CircleShape).clickable(onClick = settings), contentAlignment = Alignment.Center) {
+            app.greenstreet.ui.components.UiIcon("gear", 32.dp)
         }
     }
 }
@@ -211,14 +226,21 @@ private fun TopLine(c: AppContainer, settings: () -> Unit) {
 private fun Tabs(tab: Int, badges: List<Boolean>, pick: (Int) -> Unit) {
     val ru = ru()
     val names = listOf(w(ru, "Улица", "Street"), w(ru, "Двор", "Yard"), w(ru, "Соседи", "Neighbours"), w(ru, "Сумка", "Bag"))
-    Row(Modifier.fillMaxWidth().background(C.bg).navigationBarsPadding().padding(6.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+    // a light bar lifted off the page: the open tab in the accent, with a soft pill behind its icon; a dot where something waits
+    // a cream tray along the bottom: the open tab sunk into it, its name in the accent; a dot where something waits
+    val icons = listOf("tab_street", "tab_yard", "tab_people", "tab_bag")
+    Row(Modifier.fillMaxWidth().background(C.paper).navigationBarsPadding().padding(start = 10.dp, end = 10.dp, bottom = 8.dp, top = 2.dp)
+        .card().padding(5.dp)) {
         names.forEachIndexed { i, n ->
-            Box(Modifier.weight(1f).background(if (i == tab) C.ochreDeep else C.bg).clickable { pick(i) }.padding(vertical = 6.dp), contentAlignment = Alignment.Center) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    app.greenstreet.ui.components.BufImage(tabIcon(i), Modifier.width(28.dp), 2.dp)
-                    Text(n, style = T.Small.copy(color = if (i == tab) C.lamp else C.paper2))
+            val on = i == tab
+            Column(Modifier.weight(1f).clip(RoundedCornerShape(12.dp))
+                .then(if (on) Modifier.background(C.inset, RoundedCornerShape(12.dp)).border(1.5.dp, C.edge, RoundedCornerShape(12.dp)) else Modifier)
+                .clickable { pick(i) }.padding(vertical = 5.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                Box {
+                    app.greenstreet.ui.components.UiIcon(icons[i], 34.dp)
+                    if (badges.getOrElse(i) { false }) Box(Modifier.align(Alignment.TopEnd).offset(x = 6.dp, y = (-2).dp).size(11.dp).background(C.accent, CircleShape).border(1.5.dp, C.light, CircleShape))
                 }
-                if (badges.getOrElse(i) { false }) Box(Modifier.align(Alignment.TopEnd).padding(end = 14.dp, top = 2.dp).width(10.dp).height(10.dp).background(C.red))
+                Text(n, style = T.Button.copy(fontSize = 17.sp, color = if (on) C.accent else C.muted), maxLines = 1, modifier = Modifier.padding(top = 1.dp))
             }
         }
     }
@@ -269,7 +291,7 @@ private fun QuestBanner(c: AppContainer) {
 /** Neighbour look → picture parameters. */
 fun lookOf(c: AppContainer, id: String) = Look.of(c.content.person[id]?.look ?: emptyMap())
 
-private fun facade(c: AppContainer, id: String): FacadeScene {
+private fun facade(c: AppContainer, id: String): app.greenstreet.ui.art.Scene {
     val p = c.content.person.getValue(id)
     val k = p.kind
     val fac = listOf(G.ochre, G.salmon, G.mint, G.sky2, R.cream, R.lilac)[(id.hashCode() and 0x7fffffff) % 6]
@@ -277,7 +299,9 @@ private fun facade(c: AppContainer, id: String): FacadeScene {
     val awn = listOf(R.red, R.enamel, R.honey, R.roofB)[(id.hashCode() / 7 and 0x7fffffff) % 4]
     val shop = when (k) { "cafe", "bakery", "pharmacy", "school", "market", "florist", "library" -> k; "station" -> "station"; else -> k }
     val n = c.now()
-    return FacadeScene(shop, Icons.forKind(k), fac, board, awn, lookOf(c, id), moment(c), (n.day + id.length) % 3 != 0L)
+    return app.greenstreet.ui.art.placeScene(k, id, lookOf(c, id), moment(c)) {
+        FacadeScene(shop, Icons.forKind(k), fac, board, awn, lookOf(c, id), moment(c), (n.day + id.length) % 3 != 0L)
+    }
 }
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -371,7 +395,7 @@ private fun Visit(c: AppContainer, id: String, go: (Sheet) -> Unit) {
     LaunchedEffect(id) { if (c.game.visit(s, now, id)) first = true; c.changed() }
     val strolling = remember(id) { c.whereabouts(id) == app.greenstreet.domain.Whereabouts.OUT }
     if (p.yard) PixelView(remember(id, now.day) { YardScene(moment(c), yardLife(c, id)) })
-    else if (strolling) PixelView(remember(id, now.day) { app.greenstreet.ui.art.StrollScene(lookOf(c, id), moment(c), id.hashCode()) })
+    else if (strolling) PixelView(remember(id, now.day) { app.greenstreet.ui.art.placeScene("stroll", id, lookOf(c, id), moment(c)) { app.greenstreet.ui.art.StrollScene(lookOf(c, id), moment(c), id.hashCode()) } })
     else PixelView(remember(id, now.day) { facade(c, id) })
     PersonHeader(c, p, ru)
     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(top = 6.dp)) {
@@ -401,7 +425,7 @@ private fun Visit(c: AppContainer, id: String, go: (Sheet) -> Unit) {
     }
     got?.let { (k, n) ->
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().pixelBox(C.light).padding(8.dp)) {
-            app.greenstreet.ui.components.BufImage(app.greenstreet.ui.art.ItemIcons.packet(c.content, k), Modifier.width(32.dp), 2.dp)
+            app.greenstreet.ui.components.BufImage(app.greenstreet.ui.art.ItemIcons.packet(c.content, k), Modifier.width(32.dp), 1.dp)
             Text("  " + w(ru, "В сумке: ", "In your bag: ") + c.content.name(k)(ru) + " ×$n. " + w(ru, "Посеять можно на газоне у дороги.", "Sow them on a verge by the road."), style = T.Small.copy(color = C.green))
         }
     }
@@ -412,7 +436,7 @@ private fun Visit(c: AppContainer, id: String, go: (Sheet) -> Unit) {
             r.needs.forEach { n ->
                 val have = s.bag.entries.filter { c.content.matches(n.key, it.key) }.sumOf { it.value }
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 2.dp)) {
-                    app.greenstreet.ui.components.BufImage(app.greenstreet.ui.art.ItemIcons.of(c.content, n.key), Modifier.width(28.dp), 1.75.dp)
+                    app.greenstreet.ui.components.BufImage(app.greenstreet.ui.art.ItemIcons.of(c.content, n.key), Modifier.width(28.dp), .875.dp)
                     Text("  ${c.content.name(n.key)(ru)}: $have / ${n.qty}", style = T.Body.copy(color = if (have >= n.qty) C.green else C.red))
                 }
             }
@@ -626,7 +650,7 @@ private fun LetterView(c: AppContainer, key: String) {
     LaunchedEffect(key) { s.inbox.firstOrNull { it.key == key }?.read = true; c.changed() }
     val p = c.content.person[n.who]
     Row(verticalAlignment = Alignment.CenterVertically) {
-        app.greenstreet.ui.components.BufImage(portrait(c, n.who), Modifier.width(48.dp), 2.4.dp)
+        app.greenstreet.ui.components.Avatar(portrait(c, n.who), 48.dp)
         Column(Modifier.padding(start = 10.dp)) {
             Text(p?.name?.invoke(ru) ?: "", style = T.Heading)
             Text(p?.role?.invoke(ru) ?: "", style = T.Small)

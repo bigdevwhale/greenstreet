@@ -172,7 +172,8 @@ fun MapScreen(open: (Sheet) -> Unit) {
             val front = remember(vw, vh) { BooleanArray(vw * vh) }
             val bmp = remember(vw, vh) { Bitmap.createBitmap(vw, vh, Bitmap.Config.ARGB_8888) }
             val img = remember(bmp) { bmp.asImageBitmap() }
-            if (MapCache.month != now.month || ready < 0) { LaunchedEffect(Unit) { c.stage.value = "paint" }; Loading(Modifier.align(Alignment.Center)) }
+            val mapLoading = MapCache.month != now.month || ready < 0
+            if (mapLoading) { LaunchedEffect(Unit) { c.stage.value = "paint" }; Loading(Modifier.align(Alignment.Center)) }
             Canvas(Modifier.fillMaxSize()
                 .pointerInput(vw, vh) {
                     var acc = 1f
@@ -233,15 +234,16 @@ fun MapScreen(open: (Sheet) -> Unit) {
                     if (sx < -6 || sy < -2 || sx > vw + 6 || sy > vh + 16) continue
                     val look = app.greenstreet.ui.art.Look.of(p.look)
                     val moving = c.walkingNow(id)
-                    objs += sy to { view.villager(sx, sy, look, if (moving) ((tick / 3) + id.length) % 2 else 0, p.kind) }
+                    objs += sy to { view.villager(sx, sy, look, if (moving) ((tick / 3) + id.length) % 2 else 0, p.kind, id) }
                 }
                 s.home?.let { h -> val hx = d.x(h.lon).roundToInt() - cx; val hy = d.y(h.lat).roundToInt() - cy; objs += hy to { view.sign(hx, hy, Icons.home, true) } }
-                objs += my - cy to { view.walker(mx - cx, my - cy, if (walking) (tick / 2) % 2 else 0, false) }
                 System.arraycopy(view.d, 0, under, 0, under.size)
                 objs.sortedBy { it.first }.forEach { it.second() }
                 // whatever stands in front of the houses must not be painted over by their lit windows
                 for (i in under.indices) front[i] = view.d[i] != under[i]
                 view.streetLife(t, cx, cy, moment, tick, MapCache.windows, mx - cx, my - cy, front)
+                // you, last and unshaded by the night, so you're always the clearest thing on the map
+                view.walker(mx - cx, my - cy, if (walking) (tick / 2) % 2 else 0, false, tick)
                 bmp.setPixels(view.d, 0, vw, 0, 0, vw, vh)
                 drawImage(img, srcOffset = IntOffset.Zero, srcSize = IntSize(vw, vh), dstOffset = IntOffset.Zero,
                     dstSize = IntSize(size.width.roundToInt(), (vh * size.width / vw).roundToInt()), filterQuality = FilterQuality.None)
@@ -251,6 +253,7 @@ fun MapScreen(open: (Sheet) -> Unit) {
             val order = c.places.entries.sortedByDescending { (id, _) -> (if (s.bonds[id]?.isOpen == true) 2 else 0) + (if (c.game.request(s, id) != null) 1 else 0) }
             // a closed place keeps its owner's name, pale, so you know whose it is
             for ((id, place) in order) {
+                if (mapLoading) break
                 if (status[id] != Whereabouts.OUT || s.bonds[id]?.isOpen != true) continue
                 val p = c.content.person[id] ?: continue
                 val sx = place.x - ccx; val sy = place.y - ccy
@@ -263,9 +266,10 @@ fun MapScreen(open: (Sheet) -> Unit) {
                 if (placed.any { r -> lx < r[0] + r[2] && lx + lw > r[0] && ly < r[1] + 20f && ly + 20f > r[1] }) continue
                 placed += floatArrayOf(lx, ly, lw)
                 Text(label, style = T.Small.copy(color = C.muted), modifier = Modifier.offset(x = lx.dp, y = ly.dp)
-                    .pixelBox(C.paper2.copy(alpha = .8f), bevel = null, lip = null).padding(horizontal = 5.dp, vertical = 1.dp), maxLines = 1)
+                    .pixelBox(C.paper2.copy(alpha = .8f), bevel = null, lip = null).padding(horizontal = 7.dp, vertical = 3.dp), maxLines = 1)
             }
             for ((id, place) in order) {
+                if (mapLoading) break
                 val p = c.content.person[id] ?: continue
                 val st = status[id]
                 val sp = walkers[id] ?: place
@@ -285,7 +289,7 @@ fun MapScreen(open: (Sheet) -> Unit) {
                     modifier = Modifier.offset(x = lx.dp, y = ly.dp).pixelBox(if (asks) C.red else if (opened && awake) C.light else C.paper2, bevel = null, lip = null)
                         .padding(horizontal = 5.dp, vertical = 1.dp), maxLines = 1)
             }
-            Column(Modifier.align(Alignment.TopStart).padding(8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            if (!mapLoading) Column(Modifier.align(Alignment.TopStart).padding(8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 PixelButton("+", { if (zoom > 0) zoom-- }, kind = Kind.GHOST, enabled = zoom > 0)
                 PixelButton("−", { if (zoom < ZOOMS.size - 1) zoom++ }, kind = Kind.GHOST, enabled = zoom < ZOOMS.size - 1)
             }
@@ -341,41 +345,49 @@ fun MapScreen(open: (Sheet) -> Unit) {
                 when {
                     tooClose -> Text(w(ru, "Рядом уже есть грядка. Между грядками — не меньше 25 метров, иначе им тесно.", "There's a bed close by. Beds need 25 metres between them, or they crowd each other."), style = T.Small)
                     sowable.isEmpty() -> Text(nothingToSow(c, now, ru), style = T.Small)
-                    else -> FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        if (c.game.cold(now)) Text(w(ru, "Зима: на улице всё растёт вдвое дольше.", "Winter: outdoors everything takes twice as long."), style = T.Small, modifier = Modifier.fillMaxWidth())
-                        Text(w(ru, "Посеять:", "Sow:"), style = T.Body, modifier = Modifier.align(Alignment.CenterVertically))
-                        sowable.forEach { v ->
-                            val hot = c.game.demand(s, now) == v.crop
-                            PixelButton((if (hot) "★ " else "") + "${v.name(ru)} ×${s.seeds[v.key]} · " + w(ru, "к ", "by ") + dayMonth(c.game.ripeOn(v, now), ru), {
-                                c.game.sow(s, now, v.key, Geo(d.lat(spot[1] + .5f), d.lon(spot[0] + .5f))); c.changed()
-                            }, kind = Kind.LAMP)
+                    // the packets in a row, each with the day it would be ripe: tap one to sow it here
+                    else -> Column {
+                        Text(w(ru, "Посеять здесь — нажмите на пакетик", "Sow here — tap a packet") +
+                            if (c.game.cold(now)) w(ru, " (зимой растёт вдвое дольше)", " (winter: twice as long)") else "", style = T.Small)
+                        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(top = 6.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            sowable.forEach { v ->
+                                val hot = c.game.demand(s, now) == v.crop
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    ItemSlot(app.greenstreet.ui.art.ItemIcons.packet(c.content, v.key), s.seeds[v.key], false, mark = if (hot) "★" else null) {
+                                        c.game.sow(s, now, v.key, Geo(d.lat(spot[1] + .5f), d.lon(spot[0] + .5f))); c.changed()
+                                    }
+                                    Text(dayMonth(c.game.ripeOn(v, now), ru), style = T.Small)
+                                }
+                            }
                         }
                     }
                 }
             }
-            // the actions: they wrap onto a second line rather than hide past the edge
+            // ripe beds here: the one thing worth a big button besides the walk
+            near.filter { c.game.ripe(it) }.forEach { b ->
+                PixelButton(w(ru, "Собрать: ", "Pick: ") + c.content.name(c.content.variety.getValue(b.variety).crop)(ru).lowercase(), { open(Sheet.Harvest(b.id)) }, Modifier.fillMaxWidth(), kind = Kind.LAMP)
+            }
+            // what this spot offers: small chips, each with its picture
             FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                near.filter { c.game.ripe(it) }.forEach { b ->
-                    PixelButton(w(ru, "Собрать: ", "Pick: ") + c.content.name(c.content.variety.getValue(b.variety).crop)(ru).lowercase(), { open(Sheet.Harvest(b.id)) }, kind = Kind.LAMP)
-                }
                 c.places.keys.filter { c.near(it, me) }.forEach { id ->
                     val met = s.bonds[id]?.isOpen == true
                     val who = c.content.person.getValue(id)
                     val label = when {
                         !met && status[id] == Whereabouts.OUT -> w(ru, "Познакомиться", "Say hello")
                         !met -> w(ru, "Зайти: ", "Visit: ") + who.role(ru)
-                        status[id] == Whereabouts.OUT -> w(ru, "Поговорить: ", "Talk to ") + who.name(ru)
-                        else -> w(ru, "Зайти: ", "Visit: ") + who.name(ru)
+                        status[id] == Whereabouts.OUT -> w(ru, "Поговорить", "Talk") + ": " + who.name(ru)
+                        else -> w(ru, "Зайти", "Visit") + ": " + who.name(ru)
                     }
-                    PixelButton(label, { open(Sheet.Visit(id)) })
+                    app.greenstreet.ui.components.ActionChip(label, { open(Sheet.Visit(id)) }, leading = { app.greenstreet.ui.components.Avatar(portrait(c, id), 28.dp) })
                 }
-                if (t.nearWater(mx, my, 6)) PixelButton(w(ru, "Закинуть удочку", "Cast a line"), { open(Sheet.Fish(isBigWater(t, mx, my))) }, kind = Kind.GHOST)
-                if (c.near("mikhalych", me)) PixelButton(w(ru, "Хозтовары", "Hardware"), { open(Sheet.Shop) }, kind = Kind.GHOST)
-                if (c.near("zina", me)) PixelButton(if (now.saturday) w(ru, "Ярмарка", "The fair") else w(ru, "Семенной ряд", "Seed stall"), { open(Sheet.Market) }, kind = Kind.GHOST)
-                if (c.atHome(me)) PixelButton(w(ru, "Во двор", "Into the courtyard"), { open(Sheet.Tab(1)) }, kind = Kind.GHOST)
-                PixelButton(if (walking) w(ru, "Закончить прогулку", "End the walk") else w(ru, "Выйти на прогулку", "Go for a walk"),
-                    { if (walking) WalkService.stop(ctx) else WalkService.start(ctx) }, kind = if (walking) Kind.GHOST else Kind.PRIMARY)
+                if (t.nearWater(mx, my, 6)) app.greenstreet.ui.components.ActionChip(w(ru, "Удочка", "Fish"), { open(Sheet.Fish(isBigWater(t, mx, my))) }, "walk")
+                if (c.near("mikhalych", me)) app.greenstreet.ui.components.ActionChip(w(ru, "Хозтовары", "Hardware"), { open(Sheet.Shop) }, "tools")
+                if (c.near("zina", me)) app.greenstreet.ui.components.ActionChip(if (now.saturday) w(ru, "Ярмарка", "The fair") else w(ru, "Семена", "Seeds"), { open(Sheet.Market) }, if (now.saturday) "fair" else "market")
+                if (c.atHome(me)) app.greenstreet.ui.components.ActionChip(w(ru, "Во двор", "Courtyard"), { open(Sheet.Tab(1)) }, "tab_yard")
             }
+            // the walk: the one main action, across the whole width
+            PixelButton(if (walking) w(ru, "Закончить прогулку", "End the walk") else w(ru, "Выйти на прогулку", "Go for a walk"),
+                { if (walking) WalkService.stop(ctx) else WalkService.start(ctx) }, Modifier.fillMaxWidth(), kind = if (walking) Kind.GHOST else Kind.PRIMARY)
             val tended by Tracker.lastTended.collectAsState()
             if (System.currentTimeMillis() - tended.first < 6000 && tended.second > 0)
                 Text(w(ru, "Грядок проведано: %d. Полито.", "Beds looked after: %d. Watered.").format(tended.second), style = T.Body.copy(color = C.green))

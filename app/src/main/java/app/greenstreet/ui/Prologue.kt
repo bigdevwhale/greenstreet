@@ -107,14 +107,19 @@ fun Prologue(done: () -> Unit) {
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(20.dp)) {
             when (page) {
                 0 -> {
-                    PixelView(remember { DeskScene() })
+                    PixelView(remember {
+                        app.greenstreet.ui.art.introScene("desk", { b, t ->
+                            // rain running down the window panes
+                            for (i in 0 until 70) { val x = 54 + ((hash(i, 1) * 196).toInt()); val y = ((hash(i, 2) * 104 + t * 6) % 104).toInt(); b.p(x, y, R.glass[5], .35f); b.p(x, y + 1, R.glass[5], .25f) }
+                        }) { DeskScene() }
+                    })
                     Spacer(Modifier.height(16.dp))
                     Text(w(ru,
                         "Город, работа, экран до ночи. Дорога от дома до метро — с телефоном перед глазами.\n\nВы уже не помните, когда в последний раз видели, как что-то растёт.",
                         "The city, work, a screen until late. The way from home to the station — eyes on the phone.\n\nYou can't remember the last time you watched something grow."), style = T.Letter.copy(color = C.paper))
                 }
                 1 -> {
-                    PixelView(remember { LetterScene() })
+                    PixelView(remember { app.greenstreet.ui.art.introScene("letter") { LetterScene() } })
                     Spacer(Modifier.height(16.dp))
                     Text(w(ru,
                         "Однажды в почтовом ящике — толстый конверт. Почерк знакомый с детства: двоюродная бабушка, тётя Клава.\n\nВнутри письмо, ключ на верёвочке и старая жестянка из-под монпансье, полная бумажных пакетиков.",

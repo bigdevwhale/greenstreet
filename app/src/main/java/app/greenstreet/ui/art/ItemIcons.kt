@@ -3,11 +3,18 @@ package app.greenstreet.ui.art
 import app.greenstreet.data.Content
 import app.greenstreet.data.GoodKind
 
-/** 16×16 pixel icons for everything that can lie in the bag, drawn from the item's kind and colour. */
+/**
+ * 32×32 pixel icons for everything that can lie in the bag: painted (assets/art/items) where there is a picture,
+ * otherwise drawn at 16×16 from the item's kind and colour and doubled.
+ */
 object ItemIcons {
     private val cache = HashMap<String, Buf>()
 
-    fun of(c: Content, key: String): Buf = cache.getOrPut(key) { draw(c, key) }
+    fun of(c: Content, key: String): Buf = cache.getOrPut(key) { painted(c, key, "") ?: draw(c, key).up2() }
+
+    /** A painted icon for [key], or for the first variety when [key] names a whole crop; [size] "" or ".s" (small). */
+    private fun painted(c: Content, key: String, size: String): Buf? =
+        Pictures.buf("art/items/$key$size.png") ?: c.crops[key]?.firstOrNull()?.let { Pictures.buf("art/items/${it.key}$size.png") }
 
     /** A seed packet with the crop drawn on it. */
     fun packet(c: Content, key: String): Buf = cache.getOrPut("packet:$key") {
@@ -16,8 +23,12 @@ object ItemIcons {
         b.r(2, 1, 12, 2, R.paper[2]); for (x in 2 until 14 step 2) b.p(x, 1, R.paper[1])
         outline(b, 2, 1, 12, 15)
         val v = c.variety[key]
-        if (v != null) produce(b, v.art, rampOf(v.ramp), 3, 4, 10)
-        b
+        val small = if (v != null) painted(c, key, ".s") else null
+        if (small != null) b.up2().also { it.blit(small, 16 - small.w / 2, 9) }
+        else {
+            if (v != null) produce(b, v.art, rampOf(v.ramp), 3, 4, 10)
+            b.up2()
+        }
     }
 
     private fun draw(c: Content, key: String): Buf {

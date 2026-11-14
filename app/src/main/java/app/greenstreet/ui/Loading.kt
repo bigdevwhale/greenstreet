@@ -77,15 +77,18 @@ fun Loading(modifier: Modifier = Modifier) {
     val c = LocalContext.current.container
     val stage by c.stage.collectAsState()
     val ru = ru()
-    Column(modifier.padding(16.dp)) {
-        PixelView(remember { DrawingScene() })
+    // the stages in order, for a bar of how far along it is
+    val steps = listOf("download", "parse", "terrain", "bind", "paint")
+    app.greenstreet.ui.components.Panel(modifier.padding(16.dp)) {
+        PixelView(remember { app.greenstreet.ui.art.introScene("loading") { DrawingScene() } })
+        app.greenstreet.ui.components.Segments((steps.indexOf(stage).coerceAtLeast(0) + 1f) / steps.size, Modifier.padding(top = 12.dp), n = steps.size)
         Text(when (stage) {
             "download" -> w(ru, "Скачиваю карту из OpenStreetMap…", "Downloading the map from OpenStreetMap…")
             "parse" -> w(ru, "Прокладываю улицы…", "Laying out the streets…")
             "terrain" -> w(ru, "Ставлю дома и сажаю деревья…", "Raising houses, planting trees…")
             "bind" -> w(ru, "Зову соседей…", "Calling on the neighbours…")
             else -> w(ru, "Раскрашиваю район…", "Colouring the district…")
-        }, style = T.Body.copy(color = C.green), modifier = Modifier.fillMaxWidth().padding(top = 10.dp), textAlign = TextAlign.Center)
+        }, style = T.Heading, modifier = Modifier.fillMaxWidth().padding(top = 10.dp), textAlign = TextAlign.Center)
         Text(w(ru, "Это может занять минуту-другую. Не закрывайте приложение.", "This can take a minute or two. Keep the app open."),
             style = T.Small, modifier = Modifier.fillMaxWidth().padding(top = 4.dp), textAlign = TextAlign.Center)
     }

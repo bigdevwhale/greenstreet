@@ -436,7 +436,7 @@ private fun AppContainer.notifyFind(f: Find) {
     val open = android.app.PendingIntent.getActivity(app, 2, android.content.Intent(app, MainActivity::class.java).addFlags(android.content.Intent.FLAG_ACTIVITY_SINGLE_TOP),
         android.app.PendingIntent.FLAG_IMMUTABLE or android.app.PendingIntent.FLAG_UPDATE_CURRENT)
     val n = androidx.core.app.NotificationCompat.Builder(app, "finds")
-        .setSmallIcon(R.drawable.ic_launcher_foreground)
+        .setSmallIcon(R.drawable.ic_notify)
         .setContentTitle(if (ru) "Находка по дороге" else "A find on the way")
         .setContentText(f.text(ru))
         .setStyle(androidx.core.app.NotificationCompat.BigTextStyle().bigText(f.text(ru)))
@@ -451,6 +451,7 @@ class GreenApp : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        app.greenstreet.ui.art.Pictures.open = { path -> runCatching { assets.open(path) }.getOrNull() }
         container = AppContainer(this)
         container.scope.launch {
           runCatching {

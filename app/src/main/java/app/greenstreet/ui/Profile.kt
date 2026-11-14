@@ -42,7 +42,7 @@ fun PersonHeader(c: AppContainer, p: Person, ru: Boolean, known: Boolean = true)
     val lt = LocalDateTime.now()
     val st = Schedule.status(p, lt)
     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
-        Box(Modifier.pixelBox(C.paper2).padding(4.dp)) { BufImage(remember(p.id) { portrait(c, p.id) }, Modifier, 3.dp) }
+        app.greenstreet.ui.components.Avatar(remember(p.id) { portrait(c, p.id) }, 64.dp)
         Column(Modifier.padding(start = 12.dp).weight(1f)) {
             Text(if (known) p.name(ru) else w(ru, "Пока незнакомы", "Not met yet"), style = T.Title)
             Text(p.role(ru), style = T.Small)

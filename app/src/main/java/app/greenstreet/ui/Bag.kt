@@ -40,6 +40,7 @@ import app.greenstreet.ui.art.ball
 import app.greenstreet.ui.components.BufImage
 import app.greenstreet.ui.components.Panel
 import app.greenstreet.ui.components.pixelBox
+import app.greenstreet.ui.components.slot
 import app.greenstreet.ui.theme.C
 import app.greenstreet.ui.theme.T
 
@@ -48,8 +49,8 @@ private val SLOT = 62.dp
 /** One wooden inventory slot: the icon, a count in the corner, a highlight when picked. */
 @Composable
 fun ItemSlot(icon: app.greenstreet.ui.art.Buf?, count: Int?, picked: Boolean, dim: Boolean = false, mark: String? = null, onClick: () -> Unit) {
-    Box(Modifier.size(SLOT).pixelBox(if (picked) Color(0xFFF4CF6E) else Color(0xFFE6CFA0), lip = Color(0x40502814)).clickable(onClick = onClick), contentAlignment = Alignment.Center) {
-        if (icon != null) BufImage(icon, Modifier.size(44.dp).then(if (dim) Modifier.background(Color.Transparent) else Modifier), 2.75.dp)
+    Box(Modifier.size(SLOT).slot(gold = picked).clickable(onClick = onClick), contentAlignment = Alignment.Center) {
+        if (icon != null) BufImage(icon, Modifier.size(44.dp).then(if (dim) Modifier.background(Color.Transparent) else Modifier), 44.dp / icon.w)
         else Text("?", style = T.Title.copy(color = C.faint))
         if (dim && icon != null) Box(Modifier.size(SLOT).background(Color(0x99E6CFA0)))
         if (count != null && count > 1) Text("$count", style = T.Small.copy(color = C.ink), modifier = Modifier.align(Alignment.BottomEnd).padding(end = 5.dp, bottom = 3.dp))
@@ -86,13 +87,7 @@ fun BagScreen() {
             Stat("${s.beds.count { c.content.variety[it.variety]?.place == Place.VERGE }}/${c.game.maxBeds(s, now)}", w(ru, "грядок", "beds"), Modifier.weight(1f))
         }
         val tabs = listOf(w(ru, "Семена", "Seeds"), w(ru, "Добро", "Goods"), w(ru, "Альбом", "Album"), w(ru, "Ленты", "Ribbons"))
-        Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            tabs.forEachIndexed { i, n ->
-                Box(Modifier.weight(1f).pixelBox(if (i == tab) C.green else C.light).clickable { tab = i; picked = null }.padding(vertical = 8.dp), contentAlignment = Alignment.Center) {
-                    Text(n, style = T.Body.copy(color = if (i == tab) C.light else C.ink))
-                }
-            }
-        }
+        app.greenstreet.ui.components.PlaqueTabs(tabs, tab, Modifier.padding(horizontal = 12.dp)) { tab = it; picked = null }
         // what the picked slot is
         picked?.let { k -> Detail(c, k, tab, now.month) }
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(12.dp)) {
@@ -151,7 +146,7 @@ private fun Detail(c: AppContainer, k: String, tab: Int, month: Int) {
     val s = c.state ?: return
     Panel(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            if (tab != 3) BufImage(if (tab == 0) ItemIcons.packet(c.content, k) else ItemIcons.of(c.content, k), Modifier.width(40.dp), 2.5.dp)
+            if (tab != 3) BufImage(if (tab == 0) ItemIcons.packet(c.content, k) else ItemIcons.of(c.content, k), Modifier.width(40.dp), 1.25.dp)
             Column(Modifier.padding(start = 10.dp).weight(1f)) {
                 when (tab) {
                     3 -> {

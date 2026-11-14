@@ -31,6 +31,8 @@ object Community {
     const val IDEA = "${BOT}wish_$SLUG"
     const val FOLLOW = "${BOT}f_$SLUG"
     const val CHAT = "https://t.me/+Q4gFEDk8O842OGVi"
+    /** Where to chip in: the game is free and has no ads. */
+    const val SUPPORT = "https://bigdevwhale.github.io/stillcraft/support"
 }
 
 /** A small brass gear for the top line. */
@@ -67,6 +69,11 @@ fun SettingsView() {
                 }, Modifier.weight(1f), kind = if (cur == tag) Kind.PRIMARY else Kind.GHOST)
             }
         }
+
+        Text(w(ru, "поддержать", "support"), style = T.Eyebrow, modifier = Modifier.padding(top = 6.dp))
+        Text(w(ru, "Игра бесплатная, без рекламы и аккаунтов. Если она вам по душе — можно поддержать её разработку.",
+            "The game is free, with no ads and no accounts. If you like it, you can support its making."), style = T.Small)
+        PixelButton(w(ru, "♥ Поддержать игру", "♥ Support the game"), { open(Community.SUPPORT) }, Modifier.fillMaxWidth())
 
         Text(w(ru, "сообщество", "community"), style = T.Eyebrow, modifier = Modifier.padding(top = 6.dp))
         Text(w(ru, "Игра делается вместе с теми, кто в неё играет. Всё идёт через бота StillCraft в Telegram.",

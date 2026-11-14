@@ -11,6 +11,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameMillis
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.border
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.unit.IntOffset
@@ -64,7 +67,8 @@ fun PixelView(scene: Scene, modifier: Modifier = Modifier) {
             }
         }
     }
-    Canvas(modifier.aspectRatio(scene.w.toFloat() / scene.h)) {
+    Canvas(modifier.aspectRatio(scene.w.toFloat() / scene.h).clip(androidx.compose.foundation.shape.RoundedCornerShape(14.dp))
+        .border(2.dp, androidx.compose.ui.graphics.Color(0xFF5A4030), androidx.compose.foundation.shape.RoundedCornerShape(14.dp))) {
         val t = tick
         frame.copyFrom(base)
         scene.anim(frame, t)

@@ -18,6 +18,7 @@ fun rampOf(name: String): IntArray = when (name) {
 /** A bed as it grows: wooden edge, soil, then the crop by its drawing family. (x, y) is the bed's centre. */
 fun Buf.bed(x: Int, y: Int, v: Variety, grown: Double, ripe: Boolean, wet: Boolean, wild: Boolean, t: Int) {
     val st = if (ripe) 4 else min(3, (grown / v.days * 4).toInt())
+    if (paintedBed(x, y, v, st, wet, wild, t)) return
     val f0 = rampOf(v.ramp)
     // a soft shadow, then the frame: an inked box of light planks round dark tilled soil, so it reads from far off
     for (i in -6..7) mul(x + i, y + 6, G.SHADOW, .45f)
@@ -76,12 +77,82 @@ fun Buf.bed(x: Int, y: Int, v: Variety, grown: Double, ripe: Boolean, wet: Boole
 }
 
 /** The player: knitted hat, scarf, green coat, a canvas bag. Feet at (x, y). */
-fun Buf.walker(x: Int, y: Int, step: Int, left: Boolean) {
+fun Buf.walker(x: Int, y: Int, step: Int, left: Boolean, t: Int = 0) {
+    if (Pictures.buf("art/people/hero.m.png") != null) {
+        // you are here: a ring at the feet that breathes, the figure with a light rim, a little arrow over the head
+        val pulse = (t / 2) % 8
+        for (ring in 0..1) for (a in 0 until 360 step 4) {
+            val r = Math.toRadians(a.toDouble())
+            val rx = 6 + ring * 4 + pulse * .5; val ry = 2.5 + ring * 1.6 + pulse * .2
+            p((x + Math.cos(r) * rx).toInt(), (y + Math.sin(r) * ry).toInt(), if (ring == 0) HERE else R.cream[5], if (ring == 0) .95f else .75f - pulse / 12f)
+        }
+        for (i in -4..4) mul(x + i, y, G.SHADOW, .45f)
+        val f = rimmed("hero", left)
+        blit(f, x - f.w / 2, y - f.h + 1 - step)
+        val top = y - f.h - 3 - step - (t / 4) % 2
+        for (k in 0 until 4) { r(x - 3 + k, top + k, 7 - 2 * k, 1, HERE) }
+        r(x - 4, top - 1, 9, 1, R.INK)
+        return
+    }
     for (i in -3..3) mul(x + i, y, G.SHADOW, .35f)
     val rows = listOf("..kkkk..", ".krrrrk.", "krRrrrrk", "kkffffkk", ".kfefek.", ".kffffk.", ".kssssk.", "kccssccb", "kcccccbk", "kcccccbk", ".kcccck.",
         if (step == 1) ".kpk.kpk" else ".kpkkpk.", if (step == 1) "..kk.kk." else ".kk..kk.")
     val pal = mapOf('k' to R.INK, 'r' to R.red[3], 'R' to R.red[5], 'f' to R.skin[4], 'e' to R.INK, 's' to R.honey[4], 'c' to R.enamel[3], 'b' to R.wood[4], 'p' to R.iron[2])
     rows.forEachIndexed { j, row -> for (i in 0 until 8) { val ch = row[if (left) 7 - i else i]; if (ch != '.') p(x - 4 + i, y - 13 + j, if (ch == 'c' && i < 3) R.enamel[4] else pal.getValue(ch)) } }
+}
+
+/** The painted figure of [id] at map size, feet at (x, y), a hop on each step; false if there's no picture. */
+private fun Buf.mapFigure(id: String, x: Int, y: Int, step: Int, left: Boolean): Boolean {
+    val f = Pictures.buf("art/people/$id.m.png") ?: return false
+    val g = if (left) flipped(f) else f
+    blit(g, x - g.w / 2, y - g.h - step)
+    return true
+}
+
+/** The player's marker colour: the app's terracotta. */
+private val HERE = rgb(0xE0603F)
+
+private val rims = HashMap<String, Buf>()
+
+/** A map figure with a one-pixel light rim round it, so it reads on dark streets and roofs. */
+private fun rimmed(id: String, left: Boolean): Buf = rims.getOrPut("$id:$left") {
+    val f0 = Pictures.buf("art/people/$id.m.png")!!
+    val f = if (left) flipped(f0) else f0
+    val o = Buf(f.w + 2, f.h + 2)
+    for (y in 0 until f.h) for (x in 0 until f.w) if (f.d[y * f.w + x] ushr 24 != 0)
+        for ((dx, dy) in listOf(0 to 1, 2 to 1, 1 to 0, 1 to 2)) o.d[(y + dy) * o.w + x + dx] = R.cream[5]
+    o.blit(f, 1, 1)
+    o
+}
+
+private val flips = HashMap<Buf, Buf>()
+private fun flipped(b: Buf): Buf = flips.getOrPut(b) { Buf(b.w, b.h).also { o -> for (y in 0 until b.h) for (x in 0 until b.w) o.d[y * b.w + x] = b.d[y * b.w + b.w - 1 - x] } }
+
+/**
+ * A painted bed (assets/art/beds): the box with the crop at its stage, or the crop's own family when ripe, the variety's
+ * flag on a stake, glints on wet soil, and over a ripe bed the harvest itself bobbing with a sparkle. False if not painted.
+ */
+private fun Buf.paintedBed(x: Int, y: Int, v: Variety, st: Int, wet: Boolean, wild: Boolean, t: Int): Boolean {
+    val name = when {
+        wild && st < 4 -> "wild"
+        st >= 4 -> "ripe_" + when (v.art) { "flower", "bulbflower", "bulb", "bush", "grain", "herb", "leafy", "root", "round", "spike", "sprout", "tall", "vine" -> v.art; else -> "bush" }
+        st == 0 -> "sown"; st == 1 -> "sprouts"; st == 2 -> "young"; else -> "grown"
+    }
+    val pic = Pictures.buf("art/beds/$name.png") ?: return false
+    for (i in -8..9) mul(x + i, y + 6, G.SHADOW, .45f)
+    blit(pic, x - pic.w / 2, y + 6 - pic.h)
+    if (wet && (t / 3) % 4 == 0) { p(x + 3, y + 2, R.glass[5]); p(x - 4, y + 3, R.glass[4]) }
+    // the variety's flag on a stake at the right corner, found by it from the far zoom
+    val f0 = rampOf(v.ramp)
+    for (k in 0 until 9) { p(x + 9, y + 4 - k, R.cream[5]); p(x + 10, y + 4 - k, R.INK) }
+    for (j in 0 until 4) for (i in 0 until 5) p(x + 10 + i, y - 5 + j, if (j == 0 || j == 3 || i == 4) R.INK else rp(f0, .85 - j * .12, x + i, j))
+    if (st >= 4) {
+        val bob = (t / 3) % 2
+        val top = y + 6 - pic.h - 3 - bob
+        Pictures.buf("art/items/${v.key}.t.png")?.let { blit(it, x - it.w / 2, top - it.h) }
+        p(x + 6, top - 4, G.WARM2); p(x + 5, top - 3, R.gold[4]); p(x + 7, top - 3, R.gold[4]); p(x + 6, top - 2, R.gold[3])
+    }
+    return true
 }
 
 /** A neighbour's place on the map: a little signboard with their icon. */
@@ -98,7 +169,11 @@ fun Buf.sign(x: Int, y: Int, icon: IntArray, open: Boolean, shut: Boolean = fals
  * A neighbour out for a walk, drawn small for the map but recognisable: their own coat, hair, hat or kerchief,
  * beard or glasses, and the thing they carry for their trade. Feet at (x, y).
  */
-fun Buf.villager(x: Int, y: Int, l: Look, step: Int, kind: String = "") {
+fun Buf.villager(x: Int, y: Int, l: Look, step: Int, kind: String = "", id: String? = null) {
+    if (id != null) {
+        for (i in -4..4) mul(x + i, y, G.SHADOW, .4f)
+        if (mapFigure(id, x, y, step, false)) return
+    }
     val e = l.extras
     val skirt = "long" in e || "bun" in e || "earrings" in e || e.any { it.startsWith("kerchief") }
     val half = if (kind in setOf("bakery", "market", "garage", "hardware")) 4 else if (kind in setOf("library", "salon")) 2 else 3
