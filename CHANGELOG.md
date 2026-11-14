@@ -6,6 +6,15 @@ line "<!-- tg", then 2-4 short lines in Russian for users (what is new, what is 
 then close it like any HTML comment. The release notes carry it, and the chat bot posts those lines.
 -->
 
+## [0.14.3] - 2026-11-15
+
+### Added
+- Ready for Google Play: each release now carries an app bundle (AAB) next to the APK, and the repository has the store listing, graphics and a privacy policy (PRIVACY.md).
+
+<!-- tg
+Готовимся к выходу в Google Play
+-->
+
 ## [0.14.2] - 2026-11-15
 
 ### Changed
