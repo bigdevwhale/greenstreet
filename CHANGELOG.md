@@ -6,6 +6,15 @@ line "<!-- tg", then 2-4 short lines in Russian for users (what is new, what is 
 then close it like any HTML comment. The release notes carry it, and the chat bot posts those lines.
 -->
 
+## [0.14.1] - 2026-11-15
+
+### Fixed
+- After the map finished loading, the neighbours' names over it and the zoom buttons stayed hidden until something else redrew the screen. They now appear as soon as the map is ready.
+
+<!-- tg
+Имена соседей и кнопки масштаба появляются на карте сразу после её загрузки
+-->
+
 ## [0.14.0] - 2026-11-14
 
 ### Added
