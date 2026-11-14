@@ -6,6 +6,20 @@ line "<!-- tg", then 2-4 short lines in Russian for users (what is new, what is 
 then close it like any HTML comment. The release notes carry it, and the chat bot posts those lines.
 -->
 
+## [0.14.2] - 2026-11-15
+
+### Changed
+- The rest of the yard is painted: the hens (three breeds, walking and pecking), the hen house and its nest with today's eggs, the herb boxes (bare in the cold months), the bench, the hives, the shared garden and its cold frame, the washing on the line, Asya playing in the yard, Gosha with his cello on the bench in the evening (and Lilya beside him, later), the snowman, the New Year tree, the spring tools and everything bought at Mikhalych's.
+- All 139 ribbons are painted rosettes, one for each kind; a ribbon for a particular crop, fish, find or dish shows that thing in the middle, and a friendship ribbon shows the neighbour's face.
+- The Yard screen is split into Yard, Kitchen and Household. The pots show what grows in them with its picture; upgrades are tiles, the affordable ones first.
+- The Neighbours screen is split into People, Requests and Letters, with counts. People are a grid of faces with whether they're in, out or asleep; requests show each thing's picture, the ready ones first; new letters come first, the read ones fold away.
+
+<!-- tg
+Двор дорисован: куры, курятник, ящики с зеленью, скамейка, бельё на верёвке и соседи
+Ленты стали нарисованными розетками
+Двор и Соседи разделены на вкладки: кухня и хозяйство отдельно, просьбы и письма отдельно
+-->
+
 ## [0.14.1] - 2026-11-15
 
 ### Fixed
