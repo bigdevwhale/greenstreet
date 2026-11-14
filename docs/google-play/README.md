@@ -85,7 +85,7 @@ python tools/play.py                          # графика для Play (ну
 | Поле | Значение |
 |---|---|
 | App category | Game → **Simulation** |
-| Tags (до 5) | из списка Play: Farming, Casual, Simulation, Pixel art / Cute, Single player — что найдётся близкого |
+| Tags (до 5) | **Farming**, **Life simulation**, **Social simulation**, **Casual**, **Simulation** (запасной — Restaurant & cooking) |
 | Email address | *ваш публичный email* — обязательно, его увидят все |
 | Website | `https://bigdevwhale.github.io/stillcraft/apps/greenstreet/` |
 | Phone | пусто |
@@ -95,6 +95,10 @@ python tools/play.py                          # графика для Play (ну
 («ферма», «огород», «cozy farming»). Альтернатива — **Casual**. Как у Fogwalk, можно было бы уйти
 в App → Health & Fitness ради «прогулок», но тут главное — ферма, соседи и истории, а ходьба лишь способ
 поливать; к тому же шагомера нет. Категорию можно сменить позже.
+
+**Теги.** Farming — главное: грядки, урожай, куры. Life simulation — двор, кухня, времена года, три года
+жизни. Social simulation — соседи, дружба, просьбы и письма. Casual — спокойный темп без проигрыша.
+Simulation — общий тег жанра. Educational не брать: с ним Play считает игру детской.
 
 **Имя разработчика** (Settings → Developer account) — **Stillcraft**, как у остальных приложений.
 
