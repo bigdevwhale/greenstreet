@@ -58,7 +58,7 @@ The first opening tasks teach everything one step at a time. Then the year turns
 
 ## Privacy
 
-The map of your district is downloaded once from OpenFreeMap (OpenStreetMap data) and kept on the phone. The weather comes from MET Norway (forecast) and Open-Meteo (what has already fallen); both get only rounded coordinates. Your position never leaves the phone: no accounts, no analytics, no ads.
+The map of your district is downloaded once from OpenFreeMap (OpenStreetMap data) and kept on the phone. The weather comes from MET Norway (forecast) and Open-Meteo (what has already fallen); both get only rounded coordinates. Your position never leaves the phone: no accounts, no analytics, no ads. Details: [PRIVACY.md](PRIVACY.md).
 
 ## Build
 
