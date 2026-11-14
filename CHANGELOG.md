@@ -6,6 +6,21 @@ line "<!-- tg", then 2-4 short lines in Russian for users (what is new, what is 
 then close it like any HTML comment. The release notes carry it, and the chat bot posts those lines.
 -->
 
+## [0.13.2] - 2026-11-14
+
+### Fixed
+- Walking past a bed often didn't water it: only a single GPS fix within reach counted, so a bed passed between two fixes, or a fix that drifted off the pavement, was missed. The whole way between two fixes counts now, and the reach grows by the GPS's own error (up to 15 m).
+- Snow watered the beds, but the game only ever spoke of rain. The bed card and the morning now say when the snow did it.
+
+### Changed
+- Kitchen: a tap on a dish opens its card under the shelf and scrolls to it, with the dish, what it makes and its description first and the Cook button (naming the dish) last; a note says when it's cooked.
+
+<!-- tg
+Грядки поливаются на ходу надёжнее: считается весь путь мимо грядки и погрешность GPS
+Снег поливает грядки, и игра теперь об этом говорит
+На кухне сначала видно, что за блюдо, а уже потом кнопка «Приготовить»
+-->
+
 ## [0.13.1] - 2026-11-13
 
 ### Fixed
