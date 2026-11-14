@@ -94,7 +94,7 @@ class AppContainer(context: Context) {
         version.value++
     }
 
-    fun now(at: LocalDateTime = LocalDateTime.now()): Now {
+    fun now(at: LocalDateTime = Clock.now()): Now {
         val today = at.toLocalDate()
         val f = forecastFor(today)
         // the day's record first: it keeps the rain already fallen, which an evening forecast knows nothing of
@@ -154,7 +154,7 @@ class AppContainer(context: Context) {
     }
 
     /** Where a neighbour is now: at work, out walking or asleep. */
-    fun whereabouts(id: String, t: LocalDateTime = LocalDateTime.now()): Whereabouts =
+    fun whereabouts(id: String, t: LocalDateTime = Clock.now()): Whereabouts =
         content.person[id]?.let { Schedule.status(it, t) } ?: Whereabouts.ASLEEP
 
     private var walkFor: Terrain? = null
@@ -173,7 +173,7 @@ class AppContainer(context: Context) {
      * Where to find a neighbour right now, in map pixels: their place in working hours, a spot on a path
      * not far from it while out walking (changing every forty minutes), null while asleep.
      */
-    fun spotNow(id: String, t: LocalDateTime = LocalDateTime.now()): Spot? {
+    fun spotNow(id: String, t: LocalDateTime = Clock.now()): Spot? {
         val p = content.person[id] ?: return null
         if (p.yard) return null
         val place = places[id] ?: return null
@@ -443,6 +443,12 @@ private fun AppContainer.notifyFind(f: Find) {
         .setContentIntent(open).setAutoCancel(true)
         .build()
     runCatching { m.notify(100 + (System.currentTimeMillis() / 1000 % 50).toInt(), n) }
+}
+
+/** The time of day the app runs on: real, except in the screenshot build, where it's always half past noon today. */
+object Clock {
+    fun now(): java.time.LocalDateTime =
+        if (BuildConfig.SHOTS) java.time.LocalDate.now().atTime(12, 30) else java.time.LocalDateTime.now()
 }
 
 class GreenApp : Application() {

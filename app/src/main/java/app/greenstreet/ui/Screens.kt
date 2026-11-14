@@ -256,7 +256,7 @@ fun PeopleScreen(open: (Sheet) -> Unit) {
                         Text(if (opened) p.name(ru) else "???", style = T.Heading)
                         Text(p.role(ru), style = T.Small)
                         val st = c.whereabouts(p.id)
-                        Text(app.greenstreet.domain.Schedule.now(p, java.time.LocalDateTime.now())(ru).replaceFirstChar { it.uppercase() },
+                        Text(app.greenstreet.domain.Schedule.now(p, app.greenstreet.Clock.now())(ru).replaceFirstChar { it.uppercase() },
                             style = T.Small.copy(color = if (st == app.greenstreet.domain.Whereabouts.ASLEEP) C.muted else C.green))
                         if (opened) {
                             val h = c.game.hearts(s, p.id)

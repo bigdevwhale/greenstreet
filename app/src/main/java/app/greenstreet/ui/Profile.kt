@@ -39,7 +39,7 @@ import java.time.LocalDateTime
 /** Portrait, name, trade and where they are right now: the top of a neighbour's card and of a visit. */
 @Composable
 fun PersonHeader(c: AppContainer, p: Person, ru: Boolean, known: Boolean = true) {
-    val lt = LocalDateTime.now()
+    val lt = app.greenstreet.Clock.now()
     val st = Schedule.status(p, lt)
     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
         app.greenstreet.ui.components.Avatar(remember(p.id) { portrait(c, p.id) }, 64.dp)
@@ -89,7 +89,7 @@ fun Profile(c: AppContainer, id: String, go: (Sheet) -> Unit, close: () -> Unit)
     val s = c.state ?: return
     val p = c.content.person.getValue(id)
     val met = s.bonds[id]?.isOpen == true
-    val lt = LocalDateTime.now()
+    val lt = app.greenstreet.Clock.now()
     val st = Schedule.status(p, lt)
     PersonHeader(c, p, ru, met)
     if (!met) {

@@ -153,11 +153,11 @@ fun MapScreen(open: (Sheet) -> Unit) {
     var tick by remember { mutableIntStateOf(0) }
     LaunchedEffect(Unit) { var last = 0L; while (true) withFrameMillis { ms -> if (ms - last >= 110) { last = ms; tick++ } } }
     var zoom by remember { mutableIntStateOf(1) }
-    val lt = LocalDateTime.now()
+    val lt = app.greenstreet.Clock.now()
     val moment = Moment(lt.hour * 60 + lt.minute, now.sky, now.month, now.day)
     // the neighbours walk: where everyone is is worked out again every second
-    var clock by remember { mutableStateOf(LocalDateTime.now()) }
-    LaunchedEffect(Unit) { while (true) { kotlinx.coroutines.delay(1000); clock = LocalDateTime.now() } }
+    var clock by remember { mutableStateOf(app.greenstreet.Clock.now()) }
+    LaunchedEffect(Unit) { while (true) { kotlinx.coroutines.delay(1000); clock = app.greenstreet.Clock.now() } }
     val status = c.places.keys.associateWith { c.whereabouts(it, clock) }
     val walkers = status.filterValues { it == Whereabouts.OUT }.keys.mapNotNull { id -> c.spotNow(id, clock)?.let { id to it } }.toMap()
 
@@ -172,7 +172,8 @@ fun MapScreen(open: (Sheet) -> Unit) {
             val front = remember(vw, vh) { BooleanArray(vw * vh) }
             val bmp = remember(vw, vh) { Bitmap.createBitmap(vw, vh, Bitmap.Config.ARGB_8888) }
             val img = remember(bmp) { bmp.asImageBitmap() }
-            val mapLoading = MapCache.month != now.month || ready < 0
+            // read `ready` first: it is the state that recomposes this when the map is done; MapCache.month is a plain field
+            val mapLoading = ready < 0 || MapCache.month != now.month
             if (mapLoading) { LaunchedEffect(Unit) { c.stage.value = "paint" }; Loading(Modifier.align(Alignment.Center)) }
             Canvas(Modifier.fillMaxSize()
                 .pointerInput(vw, vh) {

@@ -137,7 +137,7 @@ fun yardLife(c: AppContainer, guest: String? = null): app.greenstreet.ui.art.Yar
 }
 
 fun moment(c: AppContainer): Moment {
-    val n = c.now(); val t = LocalDateTime.now()
+    val n = c.now(); val t = app.greenstreet.Clock.now()
     return Moment(t.hour * 60 + t.minute, n.sky, n.month, n.day)
 }
 

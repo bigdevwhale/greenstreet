@@ -127,7 +127,7 @@ fun Onboarding() {
         if (granted) Tracker.of(ctx).start()
     }
     LaunchedEffect(granted) { if (granted) Tracker.of(ctx).start() }
-    val now = LocalDateTime.now()
+    val now = app.greenstreet.Clock.now()
     val m = Moment(now.hour * 60 + now.minute, Sky(sun = true), now.monthValue, now.toLocalDate().toEpochDay())
     val pages = 6
 
