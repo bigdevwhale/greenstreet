@@ -115,6 +115,13 @@ fun Buf.blit(s: Buf, x: Int, y: Int) {
     }
 }
 
+private val flippedBufs = HashMap<Buf, Buf>()
+
+/** This picture mirrored left to right (cached). */
+fun Buf.flipX(): Buf = synchronized(flippedBufs) {
+    flippedBufs.getOrPut(this) { Buf(w, h).also { o -> for (y in 0 until h) for (x in 0 until w) o.d[y * w + x] = d[y * w + w - 1 - x] } }
+}
+
 /** This buffer with every pixel doubled. */
 fun Buf.up2(): Buf {
     val o = Buf(w * 2, h * 2)

@@ -63,6 +63,16 @@ class YardScene(val m: Moment, val life: YardLife = YardLife(), private val bd: 
 
     /** Painted figures to stand over a painted yard: the figure, its feet in yard coordinates. */
     private val figures = ArrayList<Triple<Buf, Int, Int>>()
+
+    /** A painted prop of the yard (assets/art/yard/props), or null when drawn in code. */
+    private fun propPic(name: String): Buf? = if (bd == null) null else Pictures.buf("art/yard/props/$name.png")
+
+    /** Stands a painted prop with its feet centred at (x, y) in yard coordinates; false when there is none. */
+    private fun prop(name: String, x: Int, y: Int): Boolean {
+        val p = propPic(name) ?: return false
+        figures += Triple(p, x, y)
+        return true
+    }
     private val hour get() = m.minute / 60
     private val day get() = m.day.toInt()
     private val weekend get() = life.weekday >= 6
@@ -100,7 +110,7 @@ class YardScene(val m: Moment, val life: YardLife = YardLife(), private val bd: 
         b.blit(lo.up2(), 0, dy2)
         for (j in 0 until LH) for (i in 0 until LW) if (keep[j * LW + i])
             for (k in 0 until 4) { val y = j * 2 + k / 2 + dy2; if (y in 0 until h) hiKeep[y * w + i * 2 + k % 2] = true }
-        for ((f, x, y) in figures) b.stand(f, x * 2, y * 2 + dy2)
+        for ((f, x, y) in figures.sortedBy { it.third }) b.stand(f, x * 2, y * 2 + dy2)
     }
 
     /** Everything alive in the yard, over whichever backdrop. */
@@ -110,7 +120,7 @@ class YardScene(val m: Moment, val life: YardLife = YardLife(), private val bd: 
         if (life.garden) sharedGarden(b) else planters(b)
         hives(b)
         season(b)
-        b.r(96, 90, 22, 2, R.wood[5]); b.r(96, 92, 22, 1, R.wood[2]); b.r(97, 93, 1, 4, R.iron[1]); b.r(116, 93, 1, 4, R.iron[1]); b.r(96, 86, 22, 2, R.wood[4])
+        if (!prop("bench", 107, 97)) { b.r(96, 90, 22, 2, R.wood[5]); b.r(96, 92, 22, 1, R.wood[2]); b.r(97, 93, 1, 4, R.iron[1]); b.r(116, 93, 1, 4, R.iron[1]); b.r(96, 86, 22, 2, R.wood[4]) }
         decor(b)
         people(b)
         cat(b)
@@ -120,6 +130,14 @@ class YardScene(val m: Moment, val life: YardLife = YardLife(), private val bd: 
 
     private fun decor(b: Buf) {
         val d = life.decor
+        if (propPic("barrel") != null) {
+            if ("barrel" in d) prop("barrel", 32, 88)
+            if ("feeder" in d) prop("feeder", 44, 88)
+            if ("tyre" in d) prop("tyre", 40, 100)
+            if ("gnome" in d) prop("gnome", 90, 101)
+            if ("birdhouse" in d) prop("birdhouse", 122, 98)
+            return
+        }
         if ("barrel" in d) {
             b.rr(29, 77, 7, 11, R.wood) { i, j -> .62 - i * .05 + (if (j == 2 || j == 8) -.25 else 0.0) }
             b.r(29, 77, 7, 1, R.iron[2]); b.r(29, 87, 7, 1, R.iron[1]); b.r(30, 76, 5, 1, R.glass[3])
@@ -353,6 +371,13 @@ class YardScene(val m: Moment, val life: YardLife = YardLife(), private val bd: 
     private fun washing(b: Buf) {
         if (m.sky.rain || m.sky.snow || m.winter) return
         val colours = listOf(R.cream, R.roofB, R.apple, R.lilac, R.green, R.honey, R.jam)
+        // painted washing: today's pick of the house's things, pegged with its top at (x, top)
+        val wash = listOf("shirt", "towel_blue", "dress", "sheet", "socks", "apron", "pillow", "trousers")
+        fun hang(k: Int, cx: Int, top: Int): Boolean {
+            val pic = propPic("wash_" + wash[(hash(k + 5, day) * wash.size).toInt() % wash.size]) ?: return false
+            figures += Triple(pic, cx, top + (pic.h + 1) / 2)
+            return true
+        }
         if (life.kind == "block" && bd == null) {
             // washing hangs on the neighbours' balconies
             for (k in 0 until 3) { val bx = 26 + k * 30 + (hash(day, k) * 6).toInt(); val by = 13 + k * 14; b.rr(bx, by, 5, 4, colours[(hash(k, day) * colours.size).toInt()]) { i, _ -> .8 - i * .05 } }
@@ -362,7 +387,7 @@ class YardScene(val m: Moment, val life: YardLife = YardLife(), private val bd: 
             // a short line between two posts over the hen run
             b.r(2, 50, 1, 14, R.wood[2]); b.r(28, 50, 1, 14, R.wood[2])
             for (x in 2..28) b.p(x, 50 + Math.round(sin((x - 2) / 26.0 * PI) * 2).toInt(), R.woodG[5])
-            for (k in 0 until 2) { val sx = 6 + k * 11; b.rr(sx, 52, 7, 6 + k * 2, colours[(hash(k, day) * colours.size).toInt()]) { i, j -> .85 - i * .04 - j * .02 } }
+            for (k in 0 until 2) { val sx = 6 + k * 11; if (!hang(k, sx + 4, 51)) b.rr(sx, 52, 7, 6 + k * 2, colours[(hash(k, day) * colours.size).toInt()]) { i, j -> .85 - i * .04 - j * .02 } }
             return
         }
         val ly = 30
@@ -372,11 +397,18 @@ class YardScene(val m: Moment, val life: YardLife = YardLife(), private val bd: 
             val c = colours[(hash(k, day) * colours.size).toInt()]
             val sy = ly + Math.round(sin((sx - 22) / 84.0 * PI) * 4).toInt()
             val hgt = 6 + (hash(day + k, 3) * 6).toInt()
+            if (hang(k, sx + 4, sy)) continue
             b.rr(sx, sy + 1, 9, hgt, c) { i, j -> .85 - i * .04 - j * .02 }; b.r(sx, sy + 1 + hgt, 9, 1, c[1])
         }
     }
 
     private fun coop(b: Buf) {
+        if (propPic("coop") != null) {
+            prop("coop", 15, 85)
+            prop(if (life.eggs > 0) "nest_eggs" else "nest", 9, 94)
+            if (life.kind == "house") { prop("kennel", 32, 88); if (m.dark < .3f) prop("dog", 42, 89) }
+            return
+        }
         b.rr(4, 70, 22, 14, R.wood) { i, j -> .5 + (if (j % 3 == 0) -.15 else 0.0) - i * .005 }
         // a gable roof: filled from the ridge down to the walls, lit on the left slope
         for (i in 0 until 24) {
@@ -398,6 +430,11 @@ class YardScene(val m: Moment, val life: YardLife = YardLife(), private val bd: 
     }
 
     private fun planters(b: Buf) {
+        if (propPic("planter") != null) {
+            val bare = m.winter || m.month !in 4..10
+            for (k in 0 until 3) prop(if (bare) "planter_bare" else "planter", 58 + k * 20, 87)
+            return
+        }
         val country = life.kind == "house"
         for (k in 0 until 3) {
             val px = 50 + k * 20
@@ -413,6 +450,19 @@ class YardScene(val m: Moment, val life: YardLife = YardLife(), private val bd: 
     }
 
     private fun sharedGarden(b: Buf) {
+        if (propPic("garden_bed") != null) {
+            val bare = m.winter || m.month !in 4..10
+            for (k in 0 until 4) prop(if (bare) "garden_bed_bare" else "garden_bed", 46 + k * 15, 86 + (k % 2) * 6)
+            prop("coldframe", 117, 89)
+        } else gardenBeds(b)
+        val ly = if (life.kind == "house") 44 else 22
+        for (x in 22 until 106) if (x % 6 == 0) {
+            val y = ly + Math.round(sin((x - 22) / 84.0 * PI) * 5).toInt()
+            b.p(x, y, if (m.dark > .15f) G.WARM2 else R.cream[3]); if (m.dark > .15f) keep[y * LW + x] = true
+        }
+    }
+
+    private fun gardenBeds(b: Buf) {
         for (k in 0 until 4) {
             val px = 40 + k * 15; val py = 80 + (k % 2) * 6
             b.rr(px, py, 13, 5, R.wood) { i, j -> .7 - j * .1 - if (i == 0 || i == 12) .15 else 0.0 }
@@ -425,15 +475,11 @@ class YardScene(val m: Moment, val life: YardLife = YardLife(), private val bd: 
         b.rr(108, 74, 18, 14, R.glass) { i, j -> .6 + if ((i * 3 + j) % 11 == 0) .25 else 0.0 }
         for (i in 108..126 step 6) b.r(i, 74, 1, 14, listOf(R.cream[4], R.honey[3], R.green[4], R.roofB[4])[(i / 6) % 4])
         b.r(108, 80, 18, 1, R.cream[4]); b.r(108, 73, 18, 1, R.wood[3])
-        val ly = if (life.kind == "house") 44 else 22
-        for (x in 22 until 106) if (x % 6 == 0) {
-            val y = ly + Math.round(sin((x - 22) / 84.0 * PI) * 5).toInt()
-            b.p(x, y, if (m.dark > .15f) G.WARM2 else R.cream[3]); if (m.dark > .15f) keep[y * LW + x] = true
-        }
     }
 
     private fun hives(b: Buf) {
         if (!life.hive) return
+        if (propPic("hive") != null) { for (k in 0 until 2) prop("hive", 93 + k * 8, 76); return }
         if (life.kind == "house" || bd != null) for (k in 0 until 2) {
             val hx = 90 + k * 8
             b.rr(hx, 68, 6, 6, R.honey) { i, j -> .7 - i * .05 - j * .04 }; b.r(hx - 1, 67, 8, 1, R.wood[2]); b.p(hx + 2, 72, R.INK); b.r(hx, 74, 1, 2, R.wood[1]); b.r(hx + 5, 74, 1, 2, R.wood[1])
@@ -444,18 +490,21 @@ class YardScene(val m: Moment, val life: YardLife = YardLife(), private val bd: 
     }
 
     private fun season(b: Buf) {
-        if (newYear) {
+        if (newYear && prop("newyear_tree", 46, 77)) Unit
+        else if (newYear) {
             val tx = 46; val ty = 74
             for (j in 0 until 18) { val ww = j / 3 + 1; for (i in -ww..ww) b.p(tx + i, ty - 18 + j, rp(G.spruce, .35 + (-i.toDouble() / (ww + 1)) * .25, i, j)) }
             b.r(tx, ty, 1, 3, R.wood[2]); b.p(tx, ty - 19, R.gold[5])
             for (k in 0 until 9) { val gx = tx + ((hash(k, 5) - .5) * (k + 2)).toInt(); val gy = ty - 16 + k * 2; b.p(gx, gy, listOf(R.red[4], R.gold[4], R.roofB[4])[k % 3]); keep[gy * LW + gx] = true }
         }
-        if (m.winter && !newYear) {
+        if (m.winter && !newYear && prop("snowman", 62 + (hash(day / 7, 2) * 20).toInt(), 101)) Unit
+        else if (m.winter && !newYear) {
             val sx = 62 + (hash(day / 7, 2) * 20).toInt()
             b.ball(sx, 96, 4, R.snow, R.ice[1]); b.ball(sx, 89, 3, R.snow, R.ice[1]); b.p(sx, 89, R.autumn[3]); b.p(sx - 1, 88, R.INK); b.p(sx + 1, 88, R.INK)
             b.r(sx - 2, 85, 5, 1, R.red[3])
         }
-        if (m.month == 4) {
+        if (m.month == 4 && prop("spring_tools", 84, 101)) Unit
+        else if (m.month == 4) {
             b.line(70, 99, 76, 86, R.wood[3]); b.r(74, 86, 5, 1, R.iron[3])
             b.rr(82, 95, 5, 5, R.roofB) { i, _ -> .6 - i * .05 }
             for (k in 0 until 2) b.rr(88 + k * 6, 94, 5, 6, R.iron) { i, j -> .3 + if (i + j < 3) .2 else 0.0 }
@@ -481,8 +530,14 @@ class YardScene(val m: Moment, val life: YardLife = YardLife(), private val bd: 
             else b.person(x, 102, caretaker)
             if (painted == null) { b.line(x + 6, 102, x + 9, 84, R.wood[3]); b.r(x + 4, 101, 6, 2, R.honey[2]) }
         }
-        if ((hour in 15..19 || (weekend && hour in 10..19)) && !m.sky.rain && hash(day, 12) < .8) kid(b, 84 + (hash(day, 8) * 10).toInt(), 101)
-        if (hour in 18..22 && !m.sky.rain && hash(day, 21) < .7) {
+        if ((hour in 15..19 || (weekend && hour in 10..19)) && !m.sky.rain && hash(day, 12) < .8) {
+            val kx = 84 + (hash(day, 8) * 10).toInt()
+            if (!prop("kid", kx, 102)) kid(b, kx, 101)
+        }
+        if (hour in 18..22 && !m.sky.rain && hash(day, 21) < .7 && propPic("sit_gosha") != null) {
+            prop("sit_gosha", 103, 96)
+            if ("gosha.lilya" in life.flags || "lilya.met_gosha" in life.flags) prop("sit_lilya", 113, 96)
+        } else if (hour in 18..22 && !m.sky.rain && hash(day, 21) < .7) {
             sitter(b, 104, 89, G.navy, R.iron)
             b.vol(108, 82, 5, 9, ell(2.5, 4.5, 2.5, 4.5), sph(2.5, 4.0, 2.5, 4.5), R.wood, R.INK); b.r(110, 74, 1, 9, R.wood[1])
             if ("gosha.lilya" in life.flags || "lilya.met_gosha" in life.flags) sitter(b, 113, 89, R.lilac, R.honey)
@@ -570,9 +625,8 @@ class YardScene(val m: Moment, val life: YardLife = YardLife(), private val bd: 
 
     override fun anim(b: Buf, t: Int) {
         if (bd != null) {
-            val lo = Buf(LW, LH)
-            hens(lo, t)
-            b.blit(lo.up2(), 0, dy2)
+            if (propPic("hen_white") != null) paintedHens(b, t)
+            else { val lo = Buf(LW, LH); hens(lo, t); b.blit(lo.up2(), 0, dy2) }
             b.precipitation(m, t); b.precipitation(m, t + 37)
             b.night(m, hiKeep)
             lights(b, 2, dy2)
@@ -589,6 +643,28 @@ class YardScene(val m: Moment, val life: YardLife = YardLife(), private val bd: 
         if (life.kind == "house" && (m.winter || m.month in listOf(3, 10, 11))) for (k in 0 until 5) {
             val y = 12 - k * 3 - (t % 3)
             b.p(70 + (t / 4 + k) % 2, y, R.cream[4], .6f - k * .1f)
+        }
+    }
+
+    /** The same three hens, painted, over a painted yard. */
+    private fun paintedHens(b: Buf, t: Int) {
+        if (m.dark >= .3f || (m.winter && m.sky.snow)) return
+        val breeds = listOf("white", "ginger", "speckled")
+        val all = (0 until 3).map { k ->
+            val phase = (t / 6 + k * 7) % 40
+            val walking = phase < 14
+            val drift = (kotlin.math.sin((t + k * 50) / 37.0) * 9).toInt()
+            val x = 26 + k * 10 + drift + (hash(day, k * 5) * 6).toInt()
+            val y = 94 + (hash(k, day) * 6).toInt()
+            val left = kotlin.math.cos((t + k * 50) / 37.0) < 0
+            val peck = !walking && (t / 3 + k) % 4 < 2
+            Triple(k, x, y) to (peck to left)
+        }.sortedBy { it.first.third }
+        for ((p, q) in all) {
+            val (k, x, y) = p; val (peck, left) = q
+            val pic = propPic("hen_" + breeds[k] + if (peck) "_peck" else "") ?: continue
+            val f = if (left) pic.flipX() else pic
+            b.blit(f, x * 2 - f.w / 2, y * 2 + dy2 - f.h)
         }
     }
 

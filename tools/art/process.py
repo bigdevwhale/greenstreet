@@ -2,7 +2,7 @@
 import os, sys, glob
 import numpy as np
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from gen import item_sheets, ui_sheets, bed_sheets
+from gen import item_sheets, ui_sheets, bed_sheets, prop_sheets, RIBBONS
 from PIL import Image
 from scipy import ndimage
 
@@ -138,6 +138,14 @@ def windows(img):
 
 
 SHEETS = [k for k, _ in item_sheets()]
+# yard props, at the yard's doubled resolution: by width or by height
+PROP_SIZE = {
+    "hen": ("w", 22), "coop": ("w", 48), "nest": ("w", 28), "nest_eggs": ("w", 28), "planter": ("w", 34), "planter_bare": ("w", 34),
+    "bench": ("w", 46), "hive": ("w", 15), "garden_bed": ("w", 28), "garden_bed_bare": ("w", 28), "coldframe": ("w", 38),
+    "kid": ("h", 30), "sit": ("h", 36), "snowman": ("h", 30), "newyear_tree": ("h", 40), "spring_tools": ("w", 40),
+    "barrel": ("w", 16), "feeder": ("h", 40), "tyre": ("w", 28), "gnome": ("h", 26), "birdhouse": ("h", 84), "kennel": ("w", 24), "dog": ("w", 16),
+    "wash": ("w", 18),
+}
 ICON = 32        # an item icon, at the doubled resolution
 ICON_SMALL = 18  # the same, small enough to print on a seed packet
 ICON_TINY = 9    # over a ripe bed on the map
@@ -179,6 +187,20 @@ def items(path, keys, group="items"):
         ys, xs = np.nonzero(m)
         y0, y1, x0, x1 = ys.min(), ys.max() + 1, xs.min(), xs.max() + 1
         sub, mo = a[y0:y1, x0:x1], m[y0:y1, x0:x1]
+        if group == "props":
+            ribbon = key in {k for k, _ in RIBBONS}
+            sub_dir = "ribbons" if ribbon else "yard/props"
+            os.makedirs(os.path.join(OUT, sub_dir), exist_ok=True)
+            if ribbon:
+                img = np.zeros((ICON, ICON, 4), np.uint8); img[1:-1, 1:-1] = fit(sub, mo, ICON - 2)
+            else:
+                how, n = PROP_SIZE[key.split("_")[0] if key.startswith(("hen_", "sit_", "wash_")) else key]
+                h0, w0 = mo.shape
+                tw, th = (n, max(1, round(h0 * n / w0))) if how == "w" else (max(1, round(w0 * n / h0)), n)
+                img = shrink(sub, mo, tw, th)
+            Image.fromarray(img, "RGBA").save(os.path.join(OUT, sub_dir, key + ".png"), optimize=True)
+            done += 1
+            continue
         if group == "beds":
             # one scale for every bed, so the boxes match on the map: the box is about 245 source pixels wide
             k = BED_W / (a.shape[1] / 4 * .78)
@@ -206,8 +228,8 @@ def main():
             continue
         group, key = name.split("/")
         os.makedirs(os.path.join(OUT, group), exist_ok=True)
-        if group in ("items", "ui", "beds"):
-            keys = {"items": SHEETS, "ui": [k for k, _ in ui_sheets()], "beds": [k for k, _ in bed_sheets()]}[group][int(key[5:])]
+        if group in ("items", "ui", "beds", "props"):
+            keys = {"items": SHEETS, "ui": [k for k, _ in ui_sheets()], "beds": [k for k, _ in bed_sheets()], "props": [k for k, _ in prop_sheets()]}[group][int(key[5:])]
             done = items(path, keys, group)
             print(name, f"{done}/{len(keys)}")
             continue

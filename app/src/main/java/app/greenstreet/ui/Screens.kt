@@ -2,6 +2,12 @@ package app.greenstreet.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.ui.draw.clip
+import app.greenstreet.ui.components.slot
+import app.greenstreet.ui.components.card
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.relocation.bringIntoViewRequester
@@ -65,7 +71,7 @@ private fun Section(title: String, icon: String? = null, content: @Composable ()
     }
 }
 
-/** The courtyard: hens, windowsill and balcony pots, the kitchen, the cellar, the board. */
+/** The courtyard in three parts: the yard itself (people, hens, pots), the kitchen and cellar, and the household. */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun YardScreen(open: (Sheet) -> Unit) {
@@ -76,88 +82,145 @@ fun YardScreen(open: (Sheet) -> Unit) {
     val now = c.now()
     val home = c.atHome()
     LaunchedEffect(ver) { if (home && c.game.tendHome(s, now) > 0) c.changed() }
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(vertical = 8.dp)) {
-        YardWithLabels(c, ver, ru)
-        if (!home) Text(w(ru, "Вы не дома. Готовить, собирать яйца и сеять в горшки можно только во дворе.", "You're not home. Cooking, collecting eggs and potting up happen only in the courtyard."),
-            style = T.Small, modifier = Modifier.padding(12.dp))
-        Section(w(ru, "Соседи по двору", "The yard's people"), "people") {
-            Text(if (home) w(ru, "Нажмите на соседа, чтобы поговорить.", "Tap a neighbour to talk.") else w(ru, "Поговорить можно, когда вы дома.", "You can talk to them when you're home."), style = T.Small)
-            FlowRow(Modifier.padding(top = 6.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                c.content.people.filter { it.yard }.forEach { p ->
-                    val asks = c.game.request(s, p.id) != null
-                    val awake = c.whereabouts(p.id) != app.greenstreet.domain.Whereabouts.ASLEEP
-                    app.greenstreet.ui.components.Avatar(portrait(c, p.id), 60.dp, dim = !home || !awake, mark = if (!awake) "z" else if (asks) "!" else null) {
+    var part by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(0) }
+    val ripeHome = s.beds.count { c.content.variety[it.variety]?.place != Place.VERGE && c.game.ripe(it) }
+    val canCook = c.game.known(s).count { r -> c.game.canFulfil(s, r.needs) }
+    Column(Modifier.fillMaxSize()) {
+        app.greenstreet.ui.components.PlaqueTabs(listOf(
+            w(ru, "Двор", "Yard") + if (s.eggs > 0 || ripeHome > 0) " •" else "",
+            w(ru, "Кухня", "Kitchen") + if (canCook > 0) " $canCook" else "",
+            w(ru, "Хозяйство", "Household"),
+        ), part, Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) { part = it }
+        Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(bottom = 8.dp)) {
+            if (!home) Text(w(ru, "Вы не дома: готовить, собирать яйца и сеять в горшки можно только во дворе.", "You're not home: cooking, collecting eggs and potting up happen only in the courtyard."),
+                style = T.Small.copy(color = C.ink), modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp)
+                    .background(C.lamp, app.greenstreet.ui.components.ChipShape).padding(horizontal = 10.dp, vertical = 6.dp))
+            when (part) {
+                0 -> YardPart(c, ver, ru, home, open)
+                1 -> {
+                    Section(w(ru, "Кухня", "The kitchen"), "kitchen") { Kitchen(c, home) }
+                    Section(w(ru, "Погреб и кладовка", "Cellar and pantry"), "cellar") {
+                        val products = s.bag.keys.filter { it in c.content.products }
+                        if (products.isEmpty()) Text(w(ru, "Полки пока пустые. Всё, что приготовите, встанет сюда.", "The shelves are empty. Whatever you cook goes here."), style = T.Small)
+                        else FlowRow(Modifier.padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            products.forEach { k -> ItemSlot(app.greenstreet.ui.art.ItemIcons.of(c.content, k), s.bag[k], false) {} }
+                        }
+                    }
+                }
+                else -> HouseholdPart(c, ru, open)
+            }
+        }
+    }
+}
+
+/** The yard itself: the picture, who's about, the hens, the pots. */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun YardPart(c: app.greenstreet.AppContainer, ver: Int, ru: Boolean, home: Boolean, open: (Sheet) -> Unit) {
+    val s = c.state ?: return
+    val now = c.now()
+    YardWithLabels(c, ver, ru)
+    Section(w(ru, "Соседи по двору", "The yard's people"), "people") {
+        Text(if (home) w(ru, "Нажмите на соседа, чтобы поговорить.", "Tap a neighbour to talk.") else w(ru, "Поговорить можно, когда вы дома.", "You can talk to them when you're home."), style = T.Small)
+        Row(Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.SpaceBetween) {
+            c.content.people.filter { it.yard }.forEach { p ->
+                val asks = c.game.request(s, p.id) != null
+                val awake = c.whereabouts(p.id) != app.greenstreet.domain.Whereabouts.ASLEEP
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    app.greenstreet.ui.components.Avatar(portrait(c, p.id), 58.dp, dim = !home || !awake, mark = if (!awake) "z" else if (asks) "!" else null) {
                         if (home && awake) open(Sheet.Visit(p.id)) else open(Sheet.Place(p.id))
                     }
+                    Text(p.name(ru).substringBefore(' '), style = T.Small.copy(color = if (awake) C.ink else C.muted), maxLines = 1, modifier = Modifier.padding(top = 2.dp))
                 }
             }
         }
-        Section(w(ru, "Курятник", "The hen house"), "hen") {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(w(ru, "Яиц в гнёздах: %d", "Eggs in the nests: %d").format(s.eggs), style = T.Body, modifier = Modifier.weight(1f))
-                PixelButton(w(ru, "Собрать", "Collect"), { c.game.collectEggs(s); c.changed() }, enabled = home && s.eggs > 0)
+    }
+    Section(w(ru, "Курятник", "The hen house"), "hen") {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            BufImage(app.greenstreet.ui.art.ItemIcons.of(c.content, "egg"), Modifier, 1.25.dp)
+            Column(Modifier.weight(1f).padding(start = 10.dp)) {
+                Text(if (s.eggs > 0) w(ru, "В гнёздах %d яиц", "%d eggs in the nests").format(s.eggs) else w(ru, "Гнёзда пусты", "The nests are empty"), style = T.Body)
+                Text(w(ru, "Куры несутся каждое утро.", "The hens lay every morning."), style = T.Small)
             }
+            if (s.eggs > 0) PixelButton(w(ru, "Собрать", "Collect"), { c.game.collectEggs(s); c.changed() }, enabled = home)
         }
-        for (place in listOf(Place.SILL, Place.BALCONY, Place.GARDEN)) {
-            if (!c.game.placeOpen(s, now, place)) continue
-            val title = when (place) { Place.SILL -> w(ru, "Подоконник", "The windowsill"); Place.BALCONY -> w(ru, "Балкон-теплица", "The balcony greenhouse"); else -> w(ru, "Общий сад", "The shared garden") }
-            Section(title, when (place) { Place.SILL -> "sill"; Place.BALCONY -> "balcony"; else -> "garden" }) {
-                val pots = s.beds.filter { c.content.variety[it.variety]?.place == place }
-                pots.forEach { b ->
-                    val v = c.content.variety.getValue(b.variety)
-                    Row(Modifier.padding(top = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Text("${v.name(ru)} · ${bedState(c, b, now, ru)}", style = T.Small.copy(color = C.ink), modifier = Modifier.weight(1f))
-                        if (c.game.ripe(b)) PixelButton(w(ru, "Собрать", "Pick"), { c.game.harvest(s, now, b.id); c.changed() }, kind = Kind.LAMP, enabled = home)
+    }
+    for (place in listOf(Place.SILL, Place.BALCONY, Place.GARDEN)) {
+        if (!c.game.placeOpen(s, now, place)) continue
+        val title = when (place) { Place.SILL -> w(ru, "Подоконник", "The windowsill"); Place.BALCONY -> w(ru, "Балкон-теплица", "The balcony greenhouse"); else -> w(ru, "Общий сад", "The shared garden") }
+        val pots = s.beds.filter { c.content.variety[it.variety]?.place == place }
+        Section(title + if (pots.isNotEmpty()) " · ${pots.size}/${c.game.capacity(s, now, place)}" else "", when (place) { Place.SILL -> "sill"; Place.BALCONY -> "balcony"; else -> "garden" }) {
+            // what grows: the crop's picture, its name and state, and Pick when it's ripe
+            pots.forEach { b ->
+                val v = c.content.variety.getValue(b.variety)
+                val ripe = c.game.ripe(b)
+                Row(Modifier.fillMaxWidth().padding(top = 6.dp).clickable { open(Sheet.BedInfo(b.id)) }, verticalAlignment = Alignment.CenterVertically) {
+                    Box(Modifier.size(44.dp).slot(gold = ripe), contentAlignment = Alignment.Center) { BufImage(app.greenstreet.ui.art.ItemIcons.of(c.content, v.key), Modifier, 1.1.dp) }
+                    Column(Modifier.weight(1f).padding(start = 10.dp)) {
+                        Text(v.name(ru), style = T.Body, maxLines = 1)
+                        Text(bedState(c, b, now, ru), style = T.Small.copy(color = if (ripe) C.green else C.muted), maxLines = 1)
                     }
+                    if (ripe) PixelButton(w(ru, "Собрать", "Pick"), { c.game.harvest(s, now, b.id); c.changed() }, kind = Kind.LAMP, enabled = home)
                 }
-                val sowable = s.seeds.keys.mapNotNull { c.content.variety[it] }.filter { it.place == place && c.game.canSow(s, now, it) }
-                if (sowable.isNotEmpty() && home) {
-                    Text(w(ru, "Посеять — нажмите на пакетик:", "To sow, tap a packet:"), style = T.Small, modifier = Modifier.padding(top = 6.dp))
-                    FlowRow(Modifier.padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        sowable.forEach { v -> ItemSlot(app.greenstreet.ui.art.ItemIcons.packet(c.content, v.key), s.seeds[v.key], false) { c.game.sow(s, now, v.key, s.home ?: Geo(0.0, 0.0)); c.changed() } }
-                    }
+            }
+            val sowable = s.seeds.keys.mapNotNull { c.content.variety[it] }.filter { it.place == place && c.game.canSow(s, now, it) }
+            if (sowable.isNotEmpty() && home) {
+                Text(w(ru, "Посеять — нажмите на пакетик:", "To sow, tap a packet:"), style = T.Small, modifier = Modifier.padding(top = 10.dp))
+                FlowRow(Modifier.padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    sowable.forEach { v -> ItemSlot(app.greenstreet.ui.art.ItemIcons.packet(c.content, v.key), s.seeds[v.key], false) { c.game.sow(s, now, v.key, s.home ?: Geo(0.0, 0.0)); c.changed() } }
                 }
-                if (sowable.isNotEmpty() && !home) Text(w(ru, "Семена есть — посеять можно, когда вы дома.", "You have seeds: sow them when you're home."), style = T.Small, modifier = Modifier.padding(top = 6.dp))
-                if (pots.isEmpty() && sowable.isEmpty()) Text(
-                    if (place == Place.SILL) w(ru, "Пусто. Семена для подоконника — ростки, зелень, луковицы — круглый год продаёт рынок. Растут в любой месяц.",
-                        "Empty. The market sells windowsill seeds — shoots, greens, bulbs — all year. They grow in any month.")
-                    else w(ru, "Пусто. Семена для этого места дают соседи.", "Empty. Neighbours give seeds for this spot."), style = T.Small)
             }
+            if (sowable.isNotEmpty() && !home) Text(w(ru, "Семена есть — посеять можно, когда вы дома.", "You have seeds: sow them when you're home."), style = T.Small, modifier = Modifier.padding(top = 6.dp))
+            if (pots.isEmpty() && sowable.isEmpty()) Text(
+                if (place == Place.SILL) w(ru, "Пусто. Семена для подоконника — ростки, зелень, луковицы — круглый год продаёт рынок. Растут в любой месяц.",
+                    "Empty. The market sells windowsill seeds — shoots, greens, bulbs — all year. They grow in any month.")
+                else w(ru, "Пусто. Семена для этого места дают соседи.", "Empty. Neighbours give seeds for this spot."), style = T.Small)
         }
-        Section(w(ru, "Кухня", "The kitchen"), "kitchen") { Kitchen(c, home) }
-        Section(w(ru, "Погреб и кладовка", "Cellar and pantry"), "cellar") {
-            val products = s.bag.keys.filter { it in c.content.products }
-            if (products.isEmpty()) Text(w(ru, "Полки пока пустые. Всё, что приготовите, встанет сюда.", "The shelves are empty. Whatever you cook goes here."), style = T.Small)
-            else FlowRow(Modifier.padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                products.forEach { k -> ItemSlot(app.greenstreet.ui.art.ItemIcons.of(c.content, k), s.bag[k], false) {} }
-            }
-        }
-        Section(w(ru, "Доска объявлений", "The notice board"), "board") {
-            Text(w(ru, "Объявлений: %d", "Notices: %d").format(s.board.size), style = T.Body)
-            PixelButton(w(ru, "Посмотреть", "Read them"), { open(Sheet.Board) }, Modifier.padding(top = 6.dp), Kind.GHOST)
-        }
-        Section(w(ru, "Хозяйство", "Household"), "household") {
-            Text(w(ru, "На что копить гроши. Каждое улучшение меняет одно правило — выбирайте, что вам нужнее.", "What the groats are for. Each upgrade changes one rule — pick what you need most."), style = T.Small)
-            for (u in app.greenstreet.domain.Upgrades.all) {
+    }
+}
+
+/** What the groats are for, the tools in hand, the board by the door. */
+@Composable
+private fun HouseholdPart(c: app.greenstreet.AppContainer, ru: Boolean, open: (Sheet) -> Unit) {
+    val s = c.state ?: return
+    val now = c.now()
+    Section(w(ru, "Хозяйство", "Household"), "household") {
+        Text(w(ru, "Каждое улучшение меняет одно правило — выбирайте, что вам нужнее.", "Each upgrade changes one rule — pick what you need most."), style = T.Small)
+        // affordable first, then the dearer ones, the finished ones last
+        val ups = app.greenstreet.domain.Upgrades.all.sortedBy { u -> c.game.nextPrice(s, u.key)?.let { if (it <= s.coins) 0 else 1 } ?: 2 }
+        for (row in ups.chunked(2)) Row(Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            for (u in row) {
                 val lvl = c.game.up(s, u.key)
                 val price = c.game.nextPrice(s, u.key)
-                Panel(Modifier.fillMaxWidth().padding(top = 6.dp), fill = if (lvl > 0) C.paper else C.light) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Column(Modifier.weight(1f)) {
-                            Text(u.name(ru) + if (u.max > 1) "  ${"●".repeat(lvl)}${"○".repeat(u.max - lvl)}" else if (lvl > 0) "  ✓" else "", style = T.Body)
-                            Text(u.effect(if (price == null) lvl else lvl + 1)(ru).replaceFirstChar { it.uppercase() }, style = T.Small)
-                        }
-                        if (price != null) PixelButton(money(price, ru), { if (c.game.buyUpgrade(s, u.key)) c.changed() }, kind = if (s.coins >= price) Kind.LAMP else Kind.GHOST, enabled = s.coins >= price)
-                    }
+                Column(Modifier.weight(1f).slot(fill = if (price == null) C.paper2 else C.light).padding(10.dp)) {
+                    Text(u.name(ru), style = T.Body, maxLines = 2)
+                    if (u.max > 1) Text("●".repeat(lvl) + "○".repeat(u.max - lvl), style = T.Small.copy(color = C.accent))
+                    Text(u.effect(if (price == null) lvl else lvl + 1)(ru).replaceFirstChar { it.uppercase() }, style = T.Small, modifier = Modifier.padding(top = 2.dp).heightIn(min = 54.dp))
+                    if (price != null) PixelButton(money(price, ru), { if (c.game.buyUpgrade(s, u.key)) c.changed() }, Modifier.fillMaxWidth().padding(top = 6.dp),
+                        kind = if (s.coins >= price) Kind.LAMP else Kind.GHOST, enabled = s.coins >= price)
+                    else Text(w(ru, "✓ готово", "✓ done"), style = T.Body.copy(color = C.green), modifier = Modifier.padding(top = 6.dp))
                 }
             }
+            if (row.size == 1) Spacer(Modifier.weight(1f))
         }
-        Section(w(ru, "Инструменты", "Tools"), "tools") {
-            Text(w(ru, "Лейка: ", "Watering can: ") + listOf("", w(ru, "жестяная, 10 м", "tin, 10 m"), w(ru, "медная, 20 м", "copper, 20 m"), w(ru, "лужёная, 30 м", "tinned, 30 m"))[s.tool("can")], style = T.Body)
-            Text(w(ru, "Корзина: ", "Basket: ") + listOf("", w(ru, "плетёная", "wicker"), w(ru, "большая, +1", "big, +1"), w(ru, "короб, +2", "a pack basket, +2"))[s.tool("basket")], style = T.Body)
-            Text(w(ru, "Удочка: ", "Rod: ") + listOf("", w(ru, "ореховая", "hazel"), w(ru, "бамбуковая", "bamboo"), w(ru, "с катушкой", "with a reel"))[s.tool("rod")], style = T.Body)
-            Text(w(ru, "Мест под грядки: %d", "Bed places: %d").format(c.game.maxBeds(s, now)), style = T.Body)
-            Text(w(ru, "Инструменты улучшает Михалыч из хозтоваров — за помощь.", "Mikhalych at the hardware shop improves tools — for a helping hand."), style = T.Small)
+    }
+    Section(w(ru, "Инструменты", "Tools"), "tools") {
+        val tools = listOf(
+            w(ru, "Лейка", "Watering can") to listOf("", w(ru, "жестяная, 10 м", "tin, 10 m"), w(ru, "медная, 20 м", "copper, 20 m"), w(ru, "лужёная, 30 м", "tinned, 30 m"))[s.tool("can")],
+            w(ru, "Корзина", "Basket") to listOf("", w(ru, "плетёная", "wicker"), w(ru, "большая, +1", "big, +1"), w(ru, "короб, +2", "a pack basket, +2"))[s.tool("basket")],
+            w(ru, "Удочка", "Rod") to listOf("", w(ru, "ореховая", "hazel"), w(ru, "бамбуковая", "bamboo"), w(ru, "с катушкой", "with a reel"))[s.tool("rod")],
+            w(ru, "Мест под грядки", "Bed places") to "${c.game.maxBeds(s, now)}",
+        )
+        for ((k, v) in tools) Row(Modifier.fillMaxWidth().padding(top = 4.dp)) {
+            Text(k, style = T.Body.copy(color = C.muted), modifier = Modifier.weight(1f))
+            Text(v, style = T.Body)
+        }
+        Text(w(ru, "Инструменты улучшает Михалыч из хозтоваров — за помощь.", "Mikhalych at the hardware shop improves tools — for a helping hand."), style = T.Small, modifier = Modifier.padding(top = 6.dp))
+    }
+    Section(w(ru, "Доска объявлений", "The notice board"), "board") {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(w(ru, "Объявлений: %d", "Notices: %d").format(s.board.size), style = T.Body, modifier = Modifier.weight(1f))
+            PixelButton(w(ru, "Посмотреть", "Read them"), { open(Sheet.Board) }, kind = Kind.GHOST)
         }
     }
 }
@@ -201,6 +264,7 @@ private fun catFace(b: Buf) {
 }
 
 /** Neighbours met so far, their requests and the letterbox. */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun PeopleScreen(open: (Sheet) -> Unit) {
     val c = LocalContext.current.container
@@ -208,80 +272,131 @@ fun PeopleScreen(open: (Sheet) -> Unit) {
     ver.let { }
     val ru = ru()
     val s = c.state ?: return
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(vertical = 8.dp)) {
-        // every open request in one place: what's still missing and where to get it, the ones ready to take first
-        val now = c.now()
-        val asks = s.bonds.keys.mapNotNull { id -> c.game.request(s, id)?.let { id to it } }
-            .sortedWith(compareByDescending<Pair<String, app.greenstreet.data.Request>> { c.game.canFulfil(s, it.second.needs) }.thenBy { s.bonds[it.first]?.reqShown ?: 0 })
-        if (asks.isNotEmpty()) Section(w(ru, "Что нужно соседям", "What the neighbours need"), "asks") {
-            for ((id, r) in asks) {
-                val ready = c.game.canFulfil(s, r.needs)
-                Panel(Modifier.fillMaxWidth().padding(top = 6.dp), fill = if (ready) C.light else C.paper, onClick = { open(Sheet.Place(id)) }) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(c.content.person[id]?.name?.invoke(ru) ?: id, style = T.Heading, modifier = Modifier.weight(1f))
-                        if (ready) Text(w(ru, "можно отнести", "ready to take"), style = T.Small.copy(color = C.light),
-                            modifier = Modifier.pixelBox(C.green, bevel = null, lip = null).padding(horizontal = 7.dp, vertical = 3.dp))
+    val now = c.now()
+    val asks = s.bonds.keys.mapNotNull { id -> c.game.request(s, id)?.let { id to it } }
+        .sortedWith(compareByDescending<Pair<String, app.greenstreet.data.Request>> { c.game.canFulfil(s, it.second.needs) }.thenBy { s.bonds[it.first]?.reqShown ?: 0 })
+    val ready = asks.count { c.game.canFulfil(s, it.second.needs) }
+    val unread = s.inbox.count { !it.read }
+    var part by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(0) }
+    Column(Modifier.fillMaxSize()) {
+        app.greenstreet.ui.components.PlaqueTabs(listOf(
+            w(ru, "Соседи", "People"),
+            w(ru, "Просьбы", "Requests") + if (asks.isNotEmpty()) " ${asks.size}" else "",
+            w(ru, "Письма", "Letters") + if (unread > 0) " $unread" else "",
+        ), part, Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) { part = it }
+        Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(bottom = 8.dp)) {
+            when (part) {
+                0 -> {
+                    // a nudge to what's waiting, so the other tabs are found
+                    if (ready > 0 || unread > 0) Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp).background(C.lamp, app.greenstreet.ui.components.ChipShape)
+                        .clickable { part = if (ready > 0) 1 else 2 }.padding(horizontal = 12.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Text(listOfNotNull(
+                            if (ready > 0) w(ru, "Можно отнести: %d", "Ready to take: %d").format(ready) else null,
+                            if (unread > 0) w(ru, "новых писем: %d", "new letters: %d").format(unread) else null,
+                        ).joinToString(" · ").replaceFirstChar { it.uppercase() }, style = T.Body, modifier = Modifier.weight(1f))
+                        Text("›", style = T.Heading)
                     }
-                    for (n in r.needs) {
-                        val have = app.greenstreet.domain.Sources.have(c.content, s, n.key).coerceAtMost(n.qty)
-                        Text("${c.content.name(n.key)(ru).replaceFirstChar { it.uppercase() }} $have/${n.qty}" +
-                            if (have < n.qty) " — " + app.greenstreet.domain.Sources.hint(c.game, s, now, n)(ru) else " ✓",
-                            style = T.Small.copy(color = if (have >= n.qty) C.green else C.ink), modifier = Modifier.padding(top = 2.dp))
-                    }
+                    val all = c.content.people.sortedWith(compareByDescending<app.greenstreet.data.Person> { s.bonds[it.id]?.isOpen == true }.thenByDescending { s.bonds[it.id]?.points ?: -1 })
+                    PeopleGrid(c, ru, all.filter { s.bonds[it.id]?.isOpen == true }, w(ru, "Знакомые", "Friends"), open)
+                    PeopleGrid(c, ru, all.filter { s.bonds[it.id]?.isOpen != true }, w(ru, "Ещё не знакомы", "Not met yet"), open)
                 }
-            }
-        }
-        val mail = s.inbox.sortedByDescending { it.day }
-        Section(w(ru, "Почтовый ящик", "The letterbox"), "letterbox") {
-            if (mail.isEmpty()) Text(w(ru, "Пока пусто. Соседи пишут, когда узнают вас получше.", "Empty so far. Neighbours write once they know you better."), style = T.Small)
-            mail.take(30).forEach { m ->
-                val n = c.game.note(m.key) ?: return@forEach
-                Row(Modifier.fillMaxWidth().padding(top = 6.dp).clickable { open(Sheet.Letter(m.key)) }, verticalAlignment = Alignment.CenterVertically) {
-                    BufImage(envelope(!m.read), Modifier.width(40.dp), 2.5.dp)
-                    Column(Modifier.padding(start = 10.dp).weight(1f)) {
-                        Text(c.content.person[n.who]?.name?.invoke(ru) ?: "", style = T.Body.copy(color = if (m.read) C.muted else C.ink))
-                        Text(n.text(ru).take(46) + "…", style = T.Small, maxLines = 1)
-                    }
+                1 -> Section(w(ru, "Что нужно соседям", "What the neighbours need"), "asks") {
+                    if (asks.isEmpty()) Text(w(ru, "Сейчас никто ни о чём не просит. Просьбы появляются, когда соседи узнают вас получше.", "Nobody needs anything right now. Requests come once neighbours know you better."), style = T.Small)
+                    for ((id, r) in asks) RequestRow(c, ru, now, id, r, open)
                 }
-            }
-        }
-        val people = c.content.people.sortedByDescending { s.bonds[it.id]?.points ?: -1 }
-        for (p in people) {
-            val b = s.bonds[p.id]
-            val opened = b?.isOpen == true
-            Panel(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp), onClick = { open(Sheet.Place(p.id)) }) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    app.greenstreet.ui.components.Avatar(remember(p.id) { portrait(c, p.id) }, 58.dp)
-                    Column(Modifier.padding(start = 10.dp).weight(1f)) {
-                        Text(if (opened) p.name(ru) else "???", style = T.Heading)
-                        Text(p.role(ru), style = T.Small)
-                        val st = c.whereabouts(p.id)
-                        Text(app.greenstreet.domain.Schedule.now(p, app.greenstreet.Clock.now())(ru).replaceFirstChar { it.uppercase() },
-                            style = T.Small.copy(color = if (st == app.greenstreet.domain.Whereabouts.ASLEEP) C.muted else C.green))
-                        if (opened) {
-                            val h = c.game.hearts(s, p.id)
-                            Hearts(h, Modifier.padding(vertical = 3.dp))
-                            c.game.request(s, p.id)?.let { r -> Text(w(ru, "Просит: ", "Asks for: ") + r.needs.joinToString { "${c.content.name(it.key)(ru).lowercase()} ×${it.qty}" }, style = T.Small.copy(color = C.ink)) }
-                            val loves = b!!.known.filterValues { it == "love" || it == "like" }.keys
-                            if (loves.isNotEmpty()) Text(w(ru, "Радуется: ", "Glad of: ") + loves.joinToString { c.content.name(it)(ru).lowercase() }, style = T.Small)
-                            val notes = p.facts.count { it.hearts <= h }
-                            Text(w(ru, "В блокноте записей: %d из %d", "Notebook: %d of %d lines").format(notes, p.facts.size), style = T.Small)
-                        } else Text(if (p.yard) w(ru, "Живёт в вашем доме.", "Lives in your house.") else w(ru, "Ещё не знакомы. Загляните — место отмечено на карте.", "Not met yet. Look in — the place is marked on the map."), style = T.Small)
-                        if (!p.yard) (c.spotNow(p.id)?.let { sp -> c.geoOf(sp) } ?: c.placeGeo(p.id))?.let { g ->
-                            val here = c.here.value ?: s.home
-                            if (here != null) Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 4.dp)) {
-                                Text(where(here, g, ru), style = T.Small.copy(color = C.green), modifier = Modifier.weight(1f))
-                                PixelButton(w(ru, "На карте", "On the map"), { c.focus.value = g; open(Sheet.Tab(0)) }, kind = Kind.GHOST)
-                            }
-                        }
-                    }
-                }
+                else -> Letters(c, ru, open)
             }
         }
     }
 }
 
-/** "320 m north-east" — how far and which way a place is from here. */
+/** Neighbours as a grid of faces: name, trade, whether they're in, the hearts; tap for the full card. */
+@Composable
+private fun PeopleGrid(c: app.greenstreet.AppContainer, ru: Boolean, people: List<app.greenstreet.data.Person>, title: String, open: (Sheet) -> Unit) {
+    if (people.isEmpty()) return
+    val s = c.state ?: return
+    Text(title.uppercase(), style = T.Eyebrow, modifier = Modifier.padding(start = 16.dp, top = 10.dp, bottom = 2.dp))
+    for (row in people.chunked(3)) Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 5.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        for (p in row) {
+            val opened = s.bonds[p.id]?.isOpen == true
+            val st = c.whereabouts(p.id)
+            val asks = opened && c.game.request(s, p.id) != null
+            val mark = when { !opened -> "?"; st == app.greenstreet.domain.Whereabouts.ASLEEP -> "z"; asks -> "!"; else -> null }
+            Column(Modifier.weight(1f).card().clip(app.greenstreet.ui.components.CardShape).clickable { open(Sheet.Place(p.id)) }.padding(vertical = 10.dp, horizontal = 6.dp),
+                horizontalAlignment = Alignment.CenterHorizontally) {
+                app.greenstreet.ui.components.Avatar(remember(p.id) { portrait(c, p.id) }, 62.dp, dim = !opened, mark = mark)
+                Text(if (opened) p.name(ru).substringBefore(' ') else "???", style = T.Body, maxLines = 1, modifier = Modifier.padding(top = 4.dp))
+                Text(p.role(ru), style = T.Small, maxLines = 1, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+                val (dot, word) = when (st) {
+                    app.greenstreet.domain.Whereabouts.WORK -> C.green to w(ru, "на месте", "in")
+                    app.greenstreet.domain.Whereabouts.OUT -> C.ochre to w(ru, "гуляет", "out")
+                    else -> C.faint to w(ru, "спит", "asleep")
+                }
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 2.dp)) {
+                    Box(Modifier.size(7.dp).background(dot, androidx.compose.foundation.shape.CircleShape))
+                    Text(word, style = T.Small.copy(color = C.ink), modifier = Modifier.padding(start = 4.dp))
+                    if (opened) Text("  ♥ ${c.game.hearts(s, p.id)}", style = T.Small.copy(color = C.accent))
+                }
+            }
+        }
+        repeat(3 - row.size) { Spacer(Modifier.weight(1f)) }
+    }
+}
+
+/** One request: the face, the name, each thing asked with its picture and how far along; ready ones say so. */
+@Composable
+private fun RequestRow(c: app.greenstreet.AppContainer, ru: Boolean, now: app.greenstreet.domain.Now, id: String, r: app.greenstreet.data.Request, open: (Sheet) -> Unit) {
+    val s = c.state ?: return
+    val ready = c.game.canFulfil(s, r.needs)
+    Row(Modifier.fillMaxWidth().padding(top = 8.dp).slot(gold = ready).clip(app.greenstreet.ui.components.ChipShape).clickable { open(Sheet.Place(id)) }.padding(10.dp),
+        verticalAlignment = Alignment.CenterVertically) {
+        app.greenstreet.ui.components.Avatar(remember(id) { portrait(c, id) }, 46.dp)
+        Column(Modifier.weight(1f).padding(start = 10.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(c.content.person[id]?.name?.invoke(ru) ?: id, style = T.Body, modifier = Modifier.weight(1f), maxLines = 1)
+                if (ready) Text(w(ru, "можно отнести", "ready"), style = T.Small.copy(color = C.light), modifier = Modifier.background(C.green, app.greenstreet.ui.components.ChipShape).padding(horizontal = 7.dp, vertical = 2.dp))
+            }
+            for (n in r.needs) {
+                val have = app.greenstreet.domain.Sources.have(c.content, s, n.key).coerceAtMost(n.qty)
+                val known = n.key in c.content.good || n.key in c.content.variety || n.key in c.content.crops || n.key in c.content.products
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 3.dp)) {
+                    if (known) BufImage(app.greenstreet.ui.art.ItemIcons.of(c.content, n.key), Modifier.padding(end = 6.dp), .7.dp)
+                    Text("${c.content.name(n.key)(ru).replaceFirstChar { it.uppercase() }} $have/${n.qty}" + if (have >= n.qty) " ✓" else "",
+                        style = T.Small.copy(color = if (have >= n.qty) C.green else C.ink))
+                }
+                if (have < n.qty) Text(app.greenstreet.domain.Sources.hint(c.game, s, now, n)(ru).replaceFirstChar { it.uppercase() }, style = T.Small, maxLines = 2)
+            }
+        }
+    }
+}
+
+/** The letterbox: new letters first and bright, the read ones folded after the latest few. */
+@Composable
+private fun Letters(c: app.greenstreet.AppContainer, ru: Boolean, open: (Sheet) -> Unit) {
+    val s = c.state ?: return
+    var all by remember { mutableStateOf(false) }
+    val mail = s.inbox.sortedWith(compareBy<app.greenstreet.domain.Mail> { it.read }.thenByDescending { it.day })
+    Section(w(ru, "Почтовый ящик", "The letterbox"), "letterbox") {
+        if (mail.isEmpty()) Text(w(ru, "Пока пусто. Соседи пишут, когда узнают вас получше.", "Empty so far. Neighbours write once they know you better."), style = T.Small)
+        val unread = mail.count { !it.read }
+        val shown = if (all) mail else mail.take(maxOf(unread, 6))
+        shown.forEach { m ->
+            val n = c.game.note(m.key) ?: return@forEach
+            Row(Modifier.fillMaxWidth().padding(top = 8.dp).then(if (!m.read) Modifier.slot(gold = true) else Modifier).clip(app.greenstreet.ui.components.ChipShape)
+                .clickable { open(Sheet.Letter(m.key)) }.padding(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                if (c.content.person.containsKey(n.who)) app.greenstreet.ui.components.Avatar(remember(n.who) { portrait(c, n.who) }, 42.dp)
+                else BufImage(envelope(!m.read), Modifier.width(40.dp), 2.5.dp)
+                Column(Modifier.padding(start = 10.dp).weight(1f)) {
+                    Text(c.content.person[n.who]?.name?.invoke(ru) ?: "", style = T.Body.copy(color = if (m.read) C.muted else C.ink), maxLines = 1)
+                    Text(n.text(ru), style = T.Small, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+                }
+                if (!m.read) Box(Modifier.size(9.dp).background(C.accent, androidx.compose.foundation.shape.CircleShape))
+            }
+        }
+        if (!all && mail.size > shown.size) PixelButton(w(ru, "Показать все (%d)", "Show all (%d)").format(mail.size), { all = true }, Modifier.fillMaxWidth().padding(top = 8.dp), Kind.GHOST)
+    }
+}
+
 fun where(from: Geo, to: Geo, ru: Boolean): String {
     val m = from.metres(to)
     val dx = (to.lon - from.lon) * Math.cos(Math.toRadians(from.lat)); val dy = to.lat - from.lat
@@ -379,4 +494,14 @@ private fun YardWithLabels(c: app.greenstreet.AppContainer, ver: Int, ru: Boolea
     }
     Text(if (labels) w(ru, "Нажмите на двор, чтобы скрыть подписи.", "Tap the yard to hide the labels.") else w(ru, "Нажмите на двор, чтобы показать подписи.", "Tap the yard to show the labels."),
         style = T.Small, modifier = Modifier.padding(horizontal = 12.dp, vertical = 2.dp))
+}
+
+/** A neighbour's painted head and shoulders, [size] pixels square, for small places like a ribbon's middle. */
+fun portraitFace(c: app.greenstreet.AppContainer, id: String, size: Int): Buf? {
+    val p = app.greenstreet.ui.art.Pictures.person(id) ?: return null
+    val side = minOf(p.w, 26)
+    val x0 = (p.w - side) / 2
+    val o = Buf(size, size)
+    for (y in 0 until size) for (x in 0 until size) o.d[y * size + x] = p.get(x0 + x * side / size, y * side / size)
+    return o
 }

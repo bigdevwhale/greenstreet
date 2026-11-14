@@ -142,6 +142,13 @@ def jobs():
         "The background layer of a mobile app icon in cozy pixel art, no objects at all: a soft clear sky, light blue at the top "
         "fading to warm pale yellow near the middle, a strip of grey granite pavement slabs and a band of green grass along the bottom "
         "quarter, chunky pixels, simple and calm, no text. Square 1024x1024.")
+    for n, (keys, lines) in enumerate(prop_sheets()):
+        cells = " ".join(f"Row {i // 4 + 1}, cell {i % 4 + 1}: {t}." for i, t in enumerate(lines))
+        out[f"props/sheet{n:02d}"] = ("square",
+            "A sprite sheet of 16 separate sprites for a cozy pixel-art farming game, laid out on an invisible 4 by 4 grid: each sprite "
+            "drawn large and centred in its own equal square cell, never touching a neighbouring cell, dark brown outlines, warm palette, "
+            "on a perfectly flat solid magenta #FF00FF background, no grid lines, no shadows on the background, no labels, no text. "
+            + cells + " Square 1024x1024.")
     for n, (keys, lines) in enumerate(bed_sheets()):
         cells = " ".join(f"Row {i // 4 + 1}, cell {i % 4 + 1}: {t}." for i, t in enumerate(lines))
         out[f"beds/sheet{n:02d}"] = ("square",
@@ -221,6 +228,74 @@ BEDS = [
 
 def bed_sheets():
     return [([k for k, _ in BEDS[i:i + 16]], [t for _, t in BEDS[i:i + 16]]) for i in range(0, len(BEDS), 16)]
+
+
+HEN = "a plump farmyard hen seen exactly from the side, facing right, whole body with legs and feet"
+PROPS = [
+    ("hen_white", f"{HEN}, white feathers, red comb, standing upright looking about"),
+    ("hen_white_peck", f"{HEN}, white feathers, red comb, head down pecking at the ground"),
+    ("hen_ginger", f"{HEN}, ginger-brown feathers, red comb, standing upright looking about"),
+    ("hen_ginger_peck", f"{HEN}, ginger-brown feathers, red comb, head down pecking at the ground"),
+    ("hen_speckled", f"{HEN}, grey and white speckled feathers, red comb, standing upright"),
+    ("hen_speckled_peck", f"{HEN}, grey and white speckled feathers, red comb, head down pecking"),
+    ("coop", "a small wooden hen house seen from the front, plank walls, a red gable roof, a little door with a wooden ramp"),
+    ("nest", "a round straw nest on the ground, empty"),
+    ("nest_eggs", "a round straw nest on the ground with four cream eggs in it"),
+    ("planter", "a long wooden planter box full of green herbs and small flowers, seen from the front"),
+    ("planter_bare", "a long wooden planter box with dark soil and a few dry brown stalks, autumn, seen from the front"),
+    ("bench", "a park bench of wooden slats on cast-iron legs, seen from the front, empty"),
+    ("hive", "a small wooden beehive painted honey yellow with a little roof, seen from the front"),
+    ("garden_bed", "a small raised wooden garden bed with lettuces, carrots and a few flowers, seen from the front"),
+    ("garden_bed_bare", "a small raised wooden garden bed with bare dark soil, seen from the front"),
+    ("coldframe", "a small wooden cold frame greenhouse with glass panes and green seedlings inside, seen from the front"),
+    ("kid", "a nine-year-old girl with two pigtails in a red coat, standing, seen from the front, whole figure"),
+    ("sit_gosha", "a thin young man with dark hair and round glasses in a navy coat sitting on an invisible seat, playing a cello, seen from the front, whole figure"),
+    ("sit_lilya", "a young woman with golden hair in a lilac coat sitting on an invisible seat, hands in her lap, seen from the front, whole figure"),
+    ("snowman", "a snowman of three snowballs with a carrot nose, coal eyes and a red scarf"),
+    ("newyear_tree", "a small fir tree decorated with red and gold baubles and a gold star on top"),
+    ("spring_tools", "a garden rake leaning on a blue watering can and two tin buckets"),
+    ("barrel", "a wooden rain barrel with iron hoops, full of water"),
+    ("feeder", "a wooden bird feeder with a little red roof on a wooden post, a bird on it"),
+    ("tyre", "an old car tyre painted turquoise used as a flower bed with orange marigolds"),
+    ("gnome", "a garden gnome with a red pointed hat, white beard and blue coat"),
+    ("birdhouse", "a wooden birdhouse with a red roof on a tall thin wooden pole"),
+    ("kennel", "a wooden dog kennel with a red roof and a dark round doorway, seen from the front"),
+    ("dog", "a friendly ginger mongrel dog lying down, seen from the side, facing right"),
+]
+WASH = "hanging from a washing line by two wooden clothes pegs at the top, seen from the front, the line itself not drawn"
+LAUNDRY = [
+    ("wash_shirt", f"a cream white shirt {WASH}"), ("wash_towel_blue", f"a blue striped towel {WASH}"),
+    ("wash_dress", f"a red polka-dot summer dress {WASH}"), ("wash_sheet", f"a white bed sheet with a lilac border {WASH}"),
+    ("wash_socks", f"a pair of green knitted wool socks {WASH}"), ("wash_apron", f"a yellow kitchen apron {WASH}"),
+    ("wash_pillow", f"a pink pillowcase {WASH}"), ("wash_trousers", f"brown corduroy trousers {WASH}"),
+]
+RIBBON = "a prize rosette ribbon: a round pleated rosette with two ribbon tails hanging below, seen from the front"
+RIBBONS = [
+    ("harvest", f"{RIBBON}, green, with a wheat sheaf and a carrot in the centre"),
+    ("variety", f"{RIBBON}, teal, with three different seed packets fanned out in the centre"),
+    ("album", f"{RIBBON}, brown, with an open herbarium book in the centre"),
+    ("fish", f"{RIBBON}, blue, with a silver fish in the centre"),
+    ("find", f"{RIBBON}, olive, with a mushroom and an acorn in the centre"),
+    ("cook", f"{RIBBON}, orange, with a steaming cooking pot in the centre"),
+    ("km", f"{RIBBON}, sky blue, with a walking boot in the centre"),
+    ("beds", f"{RIBBON}, dark green, with a small raised garden bed and a sprout in the centre"),
+    ("wild", f"{RIBBON}, khaki, with a garden hoe and a weed in the centre"),
+    ("hearts", f"{RIBBON}, pink, with a red heart in the centre"),
+    ("fair", f"{RIBBON}, red, with a market stall with a striped awning in the centre"),
+    ("days", f"{RIBBON}, purple, with a tear-off calendar in the centre"),
+    ("request", f"{RIBBON}, golden, with a paper note tied with string in the centre"),
+    ("fest", f"{RIBBON}, festive red and gold, with a firework burst in the centre"),
+    ("blank", f"{RIBBON}, gold, with a plain cream disc in the centre, nothing drawn on it"),
+    ("season_spring", f"{RIBBON}, light green, with a snowdrop flower in the centre"),
+    ("season_summer", f"{RIBBON}, yellow, with a bright sun in the centre"),
+    ("season_autumn", f"{RIBBON}, rust orange, with a maple leaf in the centre"),
+    ("season_winter", f"{RIBBON}, ice blue, with a snowflake in the centre"),
+]
+
+
+def prop_sheets():
+    xs = PROPS + RIBBONS + LAUNDRY
+    return [([k for k, _ in xs[i:i + 16]], [t for _, t in xs[i:i + 16]]) for i in range(0, len(xs), 16)]
 
 
 def ui_sheets():

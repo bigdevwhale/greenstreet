@@ -36,6 +36,8 @@ import app.greenstreet.container
 import app.greenstreet.data.GoodKind
 import app.greenstreet.data.Place
 import app.greenstreet.ui.art.ItemIcons
+import app.greenstreet.ui.art.blit
+import app.greenstreet.ui.art.up2
 import app.greenstreet.ui.art.ball
 import app.greenstreet.ui.components.BufImage
 import app.greenstreet.ui.components.Panel
@@ -118,7 +120,7 @@ fun BagScreen() {
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 for ((k, n) in keys) {
                     val known = when (tab) { 2 -> k in s.album; 3 -> k in s.ribbons; else -> true }
-                    val icon = when (tab) { 0 -> ItemIcons.packet(c.content, k); 3 -> ribbonIcon(k); else -> if (known) ItemIcons.of(c.content, k) else null }
+                    val icon = when (tab) { 0 -> ItemIcons.packet(c.content, k); 3 -> ribbonIcon(c, k); else -> if (known) ItemIcons.of(c.content, k) else null }
                     val dim = tab == 3 && !known
                     ItemSlot(icon, n, picked == k, dim) { picked = if (picked == k) null else k }
                 }
@@ -192,12 +194,39 @@ private fun albumKeys(c: AppContainer): List<String> =
     c.content.varieties.map { it.key } + c.content.goods.filter { it.kind != GoodKind.STAPLE }.map { it.key } + c.content.products.toList()
 
 /** A small rosette for a ribbon. */
-private fun ribbonIcon(k: String): app.greenstreet.ui.art.Buf {
+private val ribbonCache = HashMap<String, app.greenstreet.ui.art.Buf>()
+
+/**
+ * A ribbon: a painted rosette for its kind; for one earned by a particular crop, fish, find or dish, a plain rosette
+ * with that thing's own icon in the middle, and for a neighbour's friendship, their face.
+ */
+private fun ribbonIcon(c: app.greenstreet.AppContainer, k: String): app.greenstreet.ui.art.Buf = ribbonCache.getOrPut(k) {
+    val r = c.content.ribbons.firstOrNull { it.key == k }
+    val kind = r?.kind ?: k.substringBefore('_')
+    val arg = r?.arg?.substringBefore(':') ?: ""
+    fun pic(n: String) = app.greenstreet.ui.art.Pictures.buf("art/ribbons/$n.png")
+    val centre: app.greenstreet.ui.art.Buf? = when {
+        kind == "hearts" && c.content.person.containsKey(arg) -> app.greenstreet.ui.portraitFace(c, arg, 14)
+        kind in setOf("harvest", "fish", "find", "cook") && arg.isNotEmpty() && arg != "any" ->
+            app.greenstreet.ui.art.Pictures.buf("art/items/$arg.t.png") ?: c.content.crops[arg]?.firstOrNull()?.let { app.greenstreet.ui.art.Pictures.buf("art/items/${it.key}.t.png") }
+        else -> null
+    }
+    val base = if (centre != null) pic("blank") else pic(if (kind == "season") "season_$arg" else kind) ?: pic(if (kind == "season") k else kind)
+    if (base == null) return@getOrPut ribbonDrawn(k)
+    if (centre == null) return@getOrPut base
+    val o = app.greenstreet.ui.art.Buf(base.w, base.h)
+    o.blit(base, 0, 0)
+    // the rosette's disc is about a third of the way down
+    o.blit(centre, (o.w - centre.w) / 2, (o.h * 38 / 100) - centre.h / 2)
+    o
+}
+
+private fun ribbonDrawn(k: String): app.greenstreet.ui.art.Buf {
     val b = app.greenstreet.ui.art.Buf(16, 16)
     val colours = listOf(app.greenstreet.ui.art.R.red, app.greenstreet.ui.art.R.roofB, app.greenstreet.ui.art.R.green, app.greenstreet.ui.art.R.honey, app.greenstreet.ui.art.R.lilac)
     val r = colours[(k.hashCode() and 0x7fffffff) % colours.size]
     b.ball(8, 6, 5, r, app.greenstreet.ui.art.R.INK)
     b.ball(8, 6, 2, app.greenstreet.ui.art.R.gold, null)
     for (j in 0 until 5) { b.p(5 - j / 2, 11 + j, r[2]); b.p(6 - j / 2, 11 + j, r[3]); b.p(10 + j / 2, 11 + j, r[2]); b.p(11 + j / 2, 11 + j, r[3]) }
-    return b
+    return b.up2()
 }
