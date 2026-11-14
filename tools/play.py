@@ -139,6 +139,43 @@ def feature(lang):
     g.convert("RGB").save(OUT / f"feature-graphic-{lang}.png", optimize=True)
 
 
+def post(lang):
+    """The launch post: the feature graphic's look at 1600x900, with a «now on Google Play» plaque."""
+    W, H = 1600, 900
+    cover = Image.open(ROOT / "docs/cover.png").convert("RGB")
+    k = max(W / cover.width, H / cover.height)
+    cover = cover.resize((round(cover.width * k), round(cover.height * k)), Image.NEAREST)
+    x0 = cover.width - W
+    g = cover.crop((x0, (cover.height - H) // 2, x0 + W, (cover.height - H) // 2 + H)).convert("RGBA")
+    shade = Image.new("L", (W, H), 0)
+    sd = ImageDraw.Draw(shade)
+    for x in range(W):
+        sd.line([(x, 0), (x, H)], fill=max(0, min(235, int(300 * (1 - x / (W * .62))))))
+    g.paste(Image.new("RGBA", (W, H), GREEN_DEEP + (255,)), (0, 0), shade)
+    d = ImageDraw.Draw(g)
+    def shadowed(xy, text, font, fill, off=6):
+        d.text((xy[0] + off, xy[1] + off), text, font=font, fill=(20, 28, 18))
+        d.text(xy, text, font=font, fill=fill)
+    logo = Image.open(ROOT / "docs/logo.png").convert("RGBA").resize((192, 192), Image.NEAREST)
+    g.alpha_composite(logo, (90, 110))
+    name = "Green Street" if lang == "en" else "Зелёная улица"
+    lines = ("A cozy farm on the map", "of your own district") if lang == "en" else ("Уютная ферма на карте", "вашего района")
+    shadowed((90, 350), name, fit(name, 128, 800), PAPER)
+    d.rectangle((94, 500, 400, 507), fill=ACCENT)
+    f = min((fit(l, 64, 760) for l in lines), key=lambda x: x.size)
+    for i, l in enumerate(lines):
+        shadowed((94, 536 + i * 72), l, f, PAPER if i == 0 else LAMP, 4)
+    # the plaque: terracotta, rounded, a lip below, like the game's main button
+    plaque = "Now on Google Play" if lang == "en" else "Теперь в Google Play"
+    pf = fit(plaque, 48, 640)
+    tw = int(pf.getlength(plaque))
+    px, py, ph = 94, 726, 84
+    d.rounded_rectangle((px, py + 8, px + tw + 72, py + ph + 8), 22, fill=(0x8E, 0x35, 0x24))
+    d.rounded_rectangle((px, py, px + tw + 72, py + ph), 22, fill=ACCENT)
+    d.text((px + 36, py + ph // 2), plaque, font=pf, fill=PAPER, anchor="lm")
+    g.convert("RGB").save(OUT / f"post-{lang}.png", optimize=True)
+
+
 def main():
     OUT.mkdir(parents=True, exist_ok=True)
     # Play rounds the icon itself: the full square, no transparent corners
@@ -147,6 +184,7 @@ def main():
     Image.alpha_composite(bg, fg).resize((512, 512), Image.NEAREST).convert("RGB").save(OUT / "icon-512.png", optimize=True)
     for lang in ("en", "ru"):
         feature(lang)
+        post(lang)
         folder = OUT / f"screenshots-{lang}"
         folder.mkdir(exist_ok=True)
         for i, (name, en, ru) in enumerate(PAGES, 1):

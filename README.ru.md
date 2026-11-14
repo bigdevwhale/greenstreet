@@ -11,6 +11,7 @@
 *Двоюродная бабушка оставила вам кур, двор и свою давнюю привычку — сажать что-нибудь живое вдоль улиц района. Разбейте грядку на газоне у дороги, по которой ходите каждый день, — и она будет полита всякий раз, когда вы проходите мимо. Ферма — это ваш настоящий район, нарисованный яркими пикселями по OpenStreetMap. В пекарне, аптеке и на рынке вас ждут соседи, и их истории растягиваются на три года. Бесплатно, без рекламы и аккаунтов.*
 
 [![Android CI](https://github.com/bigdevwhale/greenstreet/actions/workflows/android.yml/badge.svg)](https://github.com/bigdevwhale/greenstreet/actions/workflows/android.yml)
+[![Google Play](https://img.shields.io/badge/Google_Play-скачать-34A853?logo=googleplay&logoColor=white)](https://play.google.com/store/apps/details?id=app.greenstreet)
 ![Android 9+](https://img.shields.io/badge/Android-9%2B-3C9D50?logo=android&logoColor=white)
 ![Languages](https://img.shields.io/badge/lang-EN%20%7C%20RU-6C77B6)
 ![Beta](https://img.shields.io/badge/status-beta-F2B04A)
@@ -20,7 +21,7 @@
 
 <img src="docs/screenshots/ru/1-street.jpg" width="200" /> <img src="docs/screenshots/ru/3-neighbour.jpg" width="200" /> <img src="docs/screenshots/ru/4-yard.jpg" width="200" /> <img src="docs/screenshots/ru/8-bag.jpg" width="200" />
 
-**[Скачать APK](https://github.com/bigdevwhale/greenstreet/releases/latest/download/GreenStreet.apk)** · Android 9+
+**[Скачать в Google Play](https://play.google.com/store/apps/details?id=app.greenstreet)** · [Скачать APK](https://github.com/bigdevwhale/greenstreet/releases/latest/download/GreenStreet.apk) · Android 9+
 
 </div>
 

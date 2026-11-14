@@ -11,6 +11,7 @@
 *Your great-aunt has left you her hens, her yard and her old habit: planting something living along the streets of the district. Sow a bed on a lawn by the road you take every day, and walking past it waters it. Your real neighbourhood, drawn in bright pixel art from OpenStreetMap, is the farm. The bakery, the pharmacy and the market have neighbours with stories that last three years. Free, no ads, no accounts.*
 
 [![Android CI](https://github.com/bigdevwhale/greenstreet/actions/workflows/android.yml/badge.svg)](https://github.com/bigdevwhale/greenstreet/actions/workflows/android.yml)
+[![Google Play](https://img.shields.io/badge/Google_Play-get_it-34A853?logo=googleplay&logoColor=white)](https://play.google.com/store/apps/details?id=app.greenstreet)
 ![Android 9+](https://img.shields.io/badge/Android-9%2B-3C9D50?logo=android&logoColor=white)
 ![Languages](https://img.shields.io/badge/lang-EN%20%7C%20RU-6C77B6)
 ![Beta](https://img.shields.io/badge/status-beta-F2B04A)
@@ -20,7 +21,7 @@
 
 <img src="docs/screenshots/en/1-street.jpg" width="200" /> <img src="docs/screenshots/en/3-neighbour.jpg" width="200" /> <img src="docs/screenshots/en/4-yard.jpg" width="200" /> <img src="docs/screenshots/en/8-bag.jpg" width="200" />
 
-**[Download the APK](https://github.com/bigdevwhale/greenstreet/releases/latest/download/GreenStreet.apk)** · Android 9+
+**[Get it on Google Play](https://play.google.com/store/apps/details?id=app.greenstreet)** · [Download APK](https://github.com/bigdevwhale/greenstreet/releases/latest/download/GreenStreet.apk) · Android 9+
 
 </div>
 
