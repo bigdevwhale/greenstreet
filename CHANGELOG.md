@@ -6,6 +6,26 @@ line "<!-- tg", then 2-4 short lines in Russian for users (what is new, what is 
 then close it like any HTML comment. The release notes carry it, and the chat bot posts those lines.
 -->
 
+## [0.14.0] - 2026-11-14
+
+### Added
+- Painted pictures, at twice the old resolution: every neighbour and Pryanik, the fronts of their places and the park path, the three kinds of yard, all 261 items in the bag, the beds on the map at every stage (each ripe bed shows its own harvest), the prologue, the onboarding cover and the map's loading picture. Sky, weather, night, lit windows, the season and the life of the yard are still drawn live over them.
+- A Support button in Settings.
+
+### Changed
+- The people on the map are the same figures as in their places. The player is redrawn and easier to find: bigger, with a ring at the feet and a marker overhead, never shaded by the night.
+- A tidier interface with the same pixel font: cream cards on a soft shadow, a painted icon by each section's title, round faces, buttons that press in, painted tabs.
+- The street panel is shorter: tap a seed packet to sow (with the day it would be ripe), small chips for what the spot offers, one wide button for the walk.
+- The map's loading screen shows a map being drawn, with a bar of how far along it is; labels and zoom buttons wait until the map is ready.
+- A new launcher icon: a bed with a calendula on the pavement, with a monochrome version for themed icons.
+
+<!-- tg
+Новая графика: соседи, их дома, двор, все предметы и грядки нарисованы заново
+Обновлённый интерфейс: аккуратные карточки, иконки разделов, круглые портреты
+Себя на карте теперь легко найти, а сажать проще: нажмите на пакетик семян
+Новая иконка и кнопка «Поддержать» в настройках
+-->
+
 ## [0.13.2] - 2026-11-14
 
 ### Fixed
