@@ -54,6 +54,9 @@ data class Mail(val key: String, val day: Long, var read: Boolean = false)
 /** The place a neighbour keeps on the district map (where they stand, the place's tag and its sign), once chosen. */
 data class Kept(val lat: Double, val lon: Double, val kind: String, val name: String)
 
+/** A town picked for the weather instead of home (found by name, see [Weather.search]). */
+data class Town(val name: String, val region: String, val lat: Double, val lon: Double)
+
 /** A notice pinned on the district board. */
 data class Pinned(val key: String, val day: Long)
 
@@ -62,6 +65,10 @@ class GameState {
     /** The epoch day the game started; years of play count from here. */
     var start: Long = 0
     var home: Geo? = null
+    /** Where the weather comes from: home when null, unless [ownSky]. */
+    var town: Town? = null
+    /** The game's own weather, by the season, with nothing asked of the weather services. */
+    var ownSky: Boolean = false
     /** The district box (south, west, north, east) the map was downloaded for. */
     var box: DoubleArray? = null
     /** The last day the night has been run for. */
@@ -108,6 +115,8 @@ class GameState {
         put("v", 1); put("start", start); put("day", day); put("coins", coins); put("km", km); put("kmToday", kmToday)
         put("eggs", eggs); put("nextId", nextId); put("fair", fair); put("fairDay", fairDay)
         home?.let { put("home", JSONObject().put("lat", it.lat).put("lon", it.lon)) }
+        town?.let { put("town", JSONObject().put("n", it.name).put("r", it.region).put("lat", it.lat).put("lon", it.lon)) }
+        if (ownSky) put("ownSky", true)
         box?.let { put("box", JSONArray(it.toList())) }
         put("beds", JSONArray().apply {
             beds.forEach { b ->
@@ -138,6 +147,8 @@ class GameState {
             kmToday = o.optDouble("kmToday", 0.0); eggs = o.optInt("eggs"); nextId = o.optLong("nextId", 1)
             fair = o.optInt("fair"); fairDay = o.optLong("fairDay", -1)
             o.optJSONObject("home")?.let { home = Geo(it.getDouble("lat"), it.getDouble("lon")) }
+            o.optJSONObject("town")?.let { town = Town(it.optString("n"), it.optString("r"), it.getDouble("lat"), it.getDouble("lon")) }
+            ownSky = o.optBoolean("ownSky")
             o.optJSONArray("box")?.let { a -> box = DoubleArray(a.length()) { a.getDouble(it) } }
             o.optJSONArray("beds")?.let { a ->
                 for (i in 0 until a.length()) {

@@ -54,6 +54,14 @@ class Store(context: Context) {
         write(skiesFile, o.toString())
     }
 
+    /** Drops the skies on record from [day] on: they were seen for a place the weather no longer comes from. */
+    @Synchronized
+    fun forget(day: Long) {
+        val o = skies()
+        o.keys().asSequence().toList().filter { (it.toLongOrNull() ?: 0) >= day }.forEach { o.remove(it) }
+        write(skiesFile, o.toString())
+    }
+
     /** The skies on record, read from disk once and then kept in memory (the screen asks for today's on every frame). */
     private var skiesCache: JSONObject? = null
     private fun skies(): JSONObject = skiesCache ?: runCatching { JSONObject(skiesFile.readText()) }.getOrDefault(JSONObject()).also { skiesCache = it }

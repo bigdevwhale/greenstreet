@@ -188,6 +188,10 @@ fun Onboarding() {
                         if (Build.VERSION.SDK_INT >= 33) perms += Manifest.permission.POST_NOTIFICATIONS
                         ask.launch(perms.toTypedArray())
                     }, Modifier.fillMaxWidth(), Kind.LAMP)
+                    Spacer(Modifier.height(20.dp))
+                    Text(w(ru, "Погода", "Weather"), style = T.Heading)
+                    Spacer(Modifier.height(6.dp))
+                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) { WeatherPlace() }
                 }
                 else -> {
                     Text(w(ru, "Где ваш дом?", "Where is home?"), style = T.Title)

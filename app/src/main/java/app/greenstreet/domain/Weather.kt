@@ -103,6 +103,24 @@ object Weather {
     }
 
     /** A plausible sky for a day with no forecast on record: the same for everyone, by the month. */
+    /** Towns matching a name, for picking where the weather comes from. Only the name typed is sent. */
+    fun search(name: String, lang: String): List<Town> {
+        val q = java.net.URLEncoder.encode(name.trim(), "UTF-8")
+        val c = URL("https://geocoding-api.open-meteo.com/v1/search?name=$q&count=8&language=$lang&format=json").openConnection() as HttpURLConnection
+        c.connectTimeout = 7000; c.readTimeout = 10_000
+        c.setRequestProperty("User-Agent", AGENT)
+        val body = try {
+            if (c.responseCode !in 200..299) error("HTTP ${c.responseCode}")
+            c.inputStream.bufferedReader().use { it.readText() }
+        } finally { c.disconnect() }
+        val r = JSONObject(body).optJSONArray("results") ?: return emptyList()
+        return (0 until r.length()).map { i ->
+            val o = r.getJSONObject(i)
+            Town(o.getString("name"), listOf(o.optString("admin1"), o.optString("country")).filter { it.isNotBlank() }.joinToString(", "),
+                o.getDouble("latitude"), o.getDouble("longitude"))
+        }
+    }
+
     fun simulated(date: LocalDate, month: Int): Sky {
         val r = hash(date.toEpochDay().toInt(), 77)
         val r2 = hash(date.toEpochDay().toInt(), 13)

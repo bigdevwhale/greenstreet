@@ -70,6 +70,9 @@ fun SettingsView() {
             }
         }
 
+        Text(w(ru, "погода", "weather"), style = T.Eyebrow, modifier = Modifier.padding(top = 6.dp))
+        WeatherPlace()
+
         Text(w(ru, "перенос прогресса", "moving to another phone"), style = T.Eyebrow, modifier = Modifier.padding(top = 6.dp))
         Text(w(ru, "Сохраните игру в файл и загрузите его на новом телефоне. Вместе с прогрессом переедет и карта района: дом, грядки и соседи окажутся на своих местах.",
             "Save the game to a file and load it on the new phone. The district map goes with it: home, the beds and the neighbours stay where they were."), style = T.Small)

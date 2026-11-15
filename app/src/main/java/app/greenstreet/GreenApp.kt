@@ -23,6 +23,7 @@ import app.greenstreet.domain.Quests
 import app.greenstreet.domain.Schedule
 import app.greenstreet.domain.Whereabouts
 import app.greenstreet.domain.Terrain
+import app.greenstreet.domain.Town
 import app.greenstreet.domain.Weather
 import app.greenstreet.domain.metres
 import kotlinx.coroutines.CoroutineScope
@@ -99,8 +100,9 @@ class AppContainer(context: Context) {
         val today = at.toLocalDate()
         val f = forecastFor(today)
         // the day's record first: it keeps the rain already fallen, which an evening forecast knows nothing of
-        val sky = store.sky(today.toEpochDay()) ?: f?.today ?: Weather.simulated(today, today.monthValue)
-        val tomorrow = f?.tomorrow ?: Weather.simulated(today.plusDays(1), today.plusDays(1).monthValue)
+        val own = state?.ownSky == true
+        val sky = (if (own) null else store.sky(today.toEpochDay()) ?: f?.today) ?: Weather.simulated(today, today.monthValue)
+        val tomorrow = (if (own) null else f?.tomorrow) ?: Weather.simulated(today.plusDays(1), today.plusDays(1).monthValue)
         return Now(today, at.hour, sky, tomorrow, south = (state?.home?.lat ?: 1.0) < 0)
     }
 
@@ -348,6 +350,7 @@ class AppContainer(context: Context) {
         store.saveTiles(tiles)
         val s = state ?: game.newGame(now(), at).also { state = it }
         s.home = at; s.box = box
+        pendingSky?.let { (town, own) -> s.town = town; s.ownSky = own; pendingSky = null }
         s.places.clear()
         loadDistrict()
         changed()
@@ -387,7 +390,7 @@ class AppContainer(context: Context) {
     fun wake() {
         val s = state ?: return
         val today = LocalDate.now()
-        if (s.day != 0L && s.day < today.toEpochDay() && pastOn != today && s.home != null) {
+        if (s.day != 0L && s.day < today.toEpochDay() && pastOn != today && skyAt() != null) {
             if (waking) return
             waking = true
             scope.launch {
@@ -422,8 +425,32 @@ class AppContainer(context: Context) {
     @Volatile private var pastOn: LocalDate? = null
     @Volatile private var pastAt = 0L
 
+    /** Where the weather is asked for: the town picked, or home; none for the game's own weather. */
+    fun skyAt(): Geo? {
+        val s = state ?: return null
+        if (s.ownSky) return null
+        return s.town?.let { Geo(it.lat, it.lon) } ?: s.home
+    }
+
+    /**
+     * The weather picked in the settings: [town] (home when null), or the game's [own]. The skies on record
+     * from today on were seen elsewhere, so they go, and the new place's weather is fetched at once.
+     */
+    fun setSky(town: Town?, own: Boolean) {
+        val s = state ?: run { pendingSky = town to own; return }
+        s.town = town; s.ownSky = own
+        store.forget(LocalDate.now().toEpochDay())
+        forecast = null; pastOn = null; pastAt = 0
+        changed()
+        refreshWeather()
+    }
+
+    /** The weather picked during the welcome, before there is a game to keep it in. */
+    var pendingSky: Pair<Town?, Boolean>? = null
+        private set
+
     fun refreshWeather() {
-        if (state?.home == null || waking) return
+        if (skyAt() == null || waking) return
         val fresh = System.currentTimeMillis() - 3 * 3600_000L
         if (forecastFor(LocalDate.now())?.let { it.at > fresh } == true && pastAt > fresh) return
         scope.launch { fetchWeather() }
@@ -434,7 +461,7 @@ class AppContainer(context: Context) {
      * Either may fail on its own; the other is still kept.
      */
     private suspend fun fetchWeather() = withContext(Dispatchers.IO) {
-        val h = state?.home ?: return@withContext
+        val h = skyAt() ?: return@withContext
         val today = LocalDate.now()
         val ahead = async { runCatching { Weather.fetch(h.lat, h.lon) }.getOrNull() }
         val past = async { runCatching { Weather.past(h.lat, h.lon) }.getOrNull() }
