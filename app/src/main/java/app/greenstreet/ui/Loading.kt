@@ -80,7 +80,9 @@ fun Loading(modifier: Modifier = Modifier) {
     // the stages in order, for a bar of how far along it is
     val steps = listOf("download", "parse", "terrain", "bind", "paint")
     app.greenstreet.ui.components.Panel(modifier.padding(16.dp)) {
-        PixelView(remember { app.greenstreet.ui.art.introScene("loading") { DrawingScene() } })
+        // where room is short (over a small map), the picture gives way so the words below stay whole
+        PixelView(remember { app.greenstreet.ui.art.introScene("loading") { DrawingScene() } },
+            Modifier.weight(1f, fill = false).align(androidx.compose.ui.Alignment.CenterHorizontally))
         app.greenstreet.ui.components.Segments((steps.indexOf(stage).coerceAtLeast(0) + 1f) / steps.size, Modifier.padding(top = 12.dp), n = steps.size)
         Text(when (stage) {
             "download" -> w(ru, "Скачиваю карту из OpenStreetMap…", "Downloading the map from OpenStreetMap…")

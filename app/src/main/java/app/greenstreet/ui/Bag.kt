@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -55,7 +56,11 @@ fun ItemSlot(icon: app.greenstreet.ui.art.Buf?, count: Int?, picked: Boolean, di
         if (icon != null) BufImage(icon, Modifier.size(44.dp).then(if (dim) Modifier.background(Color.Transparent) else Modifier), 44.dp / icon.w)
         else Text("?", style = T.Title.copy(color = C.faint))
         if (dim && icon != null) Box(Modifier.size(SLOT).background(Color(0x99E6CFA0)))
-        if (count != null && count > 1) Text("$count", style = T.Small.copy(color = C.ink), modifier = Modifier.align(Alignment.BottomEnd).padding(end = 5.dp, bottom = 3.dp))
+        // the count on a little plaque in the corner, so the picture's frame doesn't run through the digits
+        if (count != null && count > 1) Text("$count", style = T.Small.copy(color = C.ink),
+            modifier = Modifier.align(Alignment.BottomEnd).padding(end = 2.dp, bottom = 2.dp)
+                .background(C.paper, app.greenstreet.ui.components.ChipShape).border(1.dp, C.faint, app.greenstreet.ui.components.ChipShape)
+                .padding(horizontal = 4.dp))
         if (mark != null) Text(mark, style = T.Small.copy(color = C.red), modifier = Modifier.align(Alignment.TopEnd).padding(end = 5.dp, top = 2.dp))
     }
 }

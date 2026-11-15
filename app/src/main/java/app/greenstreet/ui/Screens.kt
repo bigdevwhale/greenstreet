@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.ui.draw.clip
 import app.greenstreet.ui.components.slot
@@ -316,27 +317,30 @@ private fun PeopleGrid(c: app.greenstreet.AppContainer, ru: Boolean, people: Lis
     if (people.isEmpty()) return
     val s = c.state ?: return
     Text(title.uppercase(), style = T.Eyebrow, modifier = Modifier.padding(start = 16.dp, top = 10.dp, bottom = 2.dp))
-    for (row in people.chunked(3)) Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 5.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+    // the cards of a row are as tall as the tallest, and every line keeps to one line, so nothing drifts
+    for (row in people.chunked(3)) Row(Modifier.fillMaxWidth().height(androidx.compose.foundation.layout.IntrinsicSize.Min).padding(horizontal = 12.dp, vertical = 5.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         for (p in row) {
             val opened = s.bonds[p.id]?.isOpen == true
             val st = c.whereabouts(p.id)
             val asks = opened && c.game.request(s, p.id) != null
             val mark = when { !opened -> "?"; st == app.greenstreet.domain.Whereabouts.ASLEEP -> "z"; asks -> "!"; else -> null }
-            Column(Modifier.weight(1f).card().clip(app.greenstreet.ui.components.CardShape).clickable { open(Sheet.Place(p.id)) }.padding(vertical = 10.dp, horizontal = 6.dp),
+            val one = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+            Column(Modifier.weight(1f).fillMaxHeight().card().clip(app.greenstreet.ui.components.CardShape).clickable { open(Sheet.Place(p.id)) }.padding(vertical = 10.dp, horizontal = 6.dp),
                 horizontalAlignment = Alignment.CenterHorizontally) {
                 app.greenstreet.ui.components.Avatar(remember(p.id) { portrait(c, p.id) }, 62.dp, dim = !opened, mark = mark)
-                Text(if (opened) p.name(ru).substringBefore(' ') else "???", style = T.Body, maxLines = 1, modifier = Modifier.padding(top = 4.dp))
-                Text(p.role(ru), style = T.Small, maxLines = 1, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+                Text(if (opened) p.name(ru).substringBefore(' ') else "???", style = T.Body, maxLines = 1, overflow = one, modifier = Modifier.padding(top = 4.dp))
+                Text(p.role(ru), style = T.Small, maxLines = 1, overflow = one, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
                 val (dot, word) = when (st) {
                     app.greenstreet.domain.Whereabouts.WORK -> C.green to w(ru, "на месте", "in")
                     app.greenstreet.domain.Whereabouts.OUT -> C.ochre to w(ru, "гуляет", "out")
                     else -> C.faint to w(ru, "спит", "asleep")
                 }
-                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 2.dp)) {
+                Spacer(Modifier.weight(1f))
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 4.dp)) {
                     Box(Modifier.size(7.dp).background(dot, androidx.compose.foundation.shape.CircleShape))
-                    Text(word, style = T.Small.copy(color = C.ink), modifier = Modifier.padding(start = 4.dp))
-                    if (opened) Text("  ♥ ${c.game.hearts(s, p.id)}", style = T.Small.copy(color = C.accent))
+                    Text(word, style = T.Small.copy(color = C.ink), maxLines = 1, overflow = one, modifier = Modifier.padding(start = 4.dp))
                 }
+                if (opened) Text("♥ ${c.game.hearts(s, p.id)}", style = T.Small.copy(color = C.accent), maxLines = 1)
             }
         }
         repeat(3 - row.size) { Spacer(Modifier.weight(1f)) }
