@@ -6,6 +6,17 @@ line "<!-- tg", then 2-4 short lines in Russian for users (what is new, what is 
 then close it like any HTML comment. The release notes carry it, and the chat bot posts those lines.
 -->
 
+## [0.14.6] - 2026-11-15
+
+### Added
+- Weather choice in Settings and on the welcome pages: the real weather at home (as before), the real weather of another town found by name, or weather made up by the game for the season, with no internet. Each option says what it means. The choice is kept in the save and moves to another phone with it.
+
+<!-- tg
+Погоду теперь можно выбрать: настоящая у дома, настоящая в другом городе или придуманная игрой
+Город ищется по названию прямо в настройках
+Придуманная погода работает без интернета
+-->
+
 ## [0.14.5] - 2026-11-15
 
 ### Changed

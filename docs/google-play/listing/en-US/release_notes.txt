@@ -1,3 +1,2 @@
-The player on the map is now as tall as the neighbours and easy to spot: a red pompom hat, a yellow scarf, a bag.
-Seed counts in the bag no longer run into the packets, and the neighbour cards line up neatly.
-Move your game to another phone: Settings → Save progress to a file.
+Choose the game's weather in Settings: the real weather at your home, the real weather of another town (search by name), or weather made up by the game for the season, with no internet.
+Rain still waters the beds, and frost and snow still change the district.
