@@ -70,6 +70,11 @@ fun SettingsView() {
             }
         }
 
+        Text(w(ru, "перенос прогресса", "moving to another phone"), style = T.Eyebrow, modifier = Modifier.padding(top = 6.dp))
+        Text(w(ru, "Сохраните игру в файл и загрузите его на новом телефоне. Вместе с прогрессом переедет и карта района: дом, грядки и соседи окажутся на своих местах.",
+            "Save the game to a file and load it on the new phone. The district map goes with it: home, the beds and the neighbours stay where they were."), style = T.Small)
+        Transfer(canSave = true)
+
         Text(w(ru, "поддержать", "support"), style = T.Eyebrow, modifier = Modifier.padding(top = 6.dp))
         Text(w(ru, "Игра бесплатная, без рекламы и аккаунтов. Если она вам по душе — можно поддержать её разработку.",
             "The game is free, with no ads and no accounts. If you like it, you can support its making."), style = T.Small)

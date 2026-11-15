@@ -13,6 +13,7 @@ import app.greenstreet.domain.Find
 import app.greenstreet.domain.Forecast
 import app.greenstreet.domain.Game
 import app.greenstreet.domain.GameState
+import app.greenstreet.domain.Kept
 import app.greenstreet.domain.Geo
 import app.greenstreet.domain.Morning
 import app.greenstreet.domain.Now
@@ -124,19 +125,35 @@ class AppContainer(context: Context) {
      * Each town neighbour takes the nearest place of their kind, or else the nearest unclaimed shop. A place
      * the public ways don't reach (behind a fence, on closed land) loses to an open one unless that is much
      * further; if it still wins, its keeper stands on the nearest pavement outside instead.
+     *
+     * A place once taken is kept in the save ([GameState.places]) and comes back as it was, even when the map
+     * has been downloaded again since and the shop is gone from it; only newcomers are placed afresh.
      */
     private fun bind(d: District, home: Geo) {
         places.clear()
+        val s = state
         val ter = terrain
         val hx = d.x(home.lon); val hy = d.y(home.lat)
         fun open(p: Spot) = ter == null || ter.reachable(p.x.toInt(), p.y.toInt(), REACH_PX)
         fun dist(p: Spot) = Math.hypot((p.x - hx).toDouble(), (p.y - hy).toDouble()) + if (open(p)) 0.0 else FENCE_PX
+        val taken = HashSet<Spot>()
+        val town = content.people.filter { !it.yard }.map { it.id }.toSet()
+        s?.places?.forEach { (id, k) ->
+            if (id !in town) return@forEach
+            val at = Spot(d.x(k.lon), d.y(k.lat), k.kind, k.name)
+            places[id] = at
+            // the shop it stands for (or outside of) is no one else's
+            d.places.filter { it.kind == k.kind && it.name == k.name && it !in taken }
+                .minByOrNull { Math.hypot((it.x - at.x).toDouble(), (it.y - at.y).toDouble()) }
+                ?.takeIf { Math.hypot((it.x - at.x).toDouble(), (it.y - at.y).toDouble()) <= 400 }?.let { taken += it }
+        }
+        var fresh = false
         fun settle(id: String, p: Spot) {
             val out = if (ter == null || open(p)) p else ter.nearestOpen(p.x.toInt(), p.y.toInt(), 400)?.let { Spot(it[0].toFloat(), it[1].toFloat(), p.kind, p.name) } ?: p
             places[id] = out
+            s?.places?.put(id, Kept(d.lat(out.y), d.lon(out.x), out.kind, out.name)); fresh = true
         }
-        val taken = HashSet<Spot>()
-        for (p in content.people.filter { !it.yard }) {
+        for (p in content.people.filter { !it.yard && it.id !in places }) {
             val match = d.places.filter { s -> p.osm.any { (k, v) -> s.kind == "$k=$v" } && s !in taken }.minByOrNull(::dist)
             if (match != null) { settle(p.id, match); taken += match }
         }
@@ -144,6 +161,7 @@ class AppContainer(context: Context) {
             val any = d.places.filter { it !in taken && (it.kind.startsWith("shop=") || it.kind.startsWith("amenity=")) }.minByOrNull(::dist)
             if (any != null) { settle(p.id, any); taken += any }
         }
+        if (fresh && s != null) store.save(s)
         pools.clear(); legs.clear()
     }
 
@@ -330,8 +348,36 @@ class AppContainer(context: Context) {
         store.saveTiles(tiles)
         val s = state ?: game.newGame(now(), at).also { state = it }
         s.home = at; s.box = box
+        s.places.clear()
         loadDistrict()
         changed()
+    }
+
+    /** The whole game in one file to carry to another phone: the save, the district map and the skies on record. */
+    fun exportSave(): ByteArray? = state?.let { store.pack(it) }
+
+    /**
+     * Puts a carried game in place of this one. The map comes with it, so home, the beds and every neighbour's
+     * place are where they were; a file without the map has it downloaded again for the same box, and the
+     * neighbours still keep the places written in the save. Heavy: call off the main thread.
+     */
+    suspend fun importSave(bytes: ByteArray) {
+        var p = withContext(Dispatchers.IO) { Store.unpack(bytes) }
+        val s = p.state
+        if (p.tiles == null && p.json == null) {
+            // nothing on this phone is touched until the map is here: a failed download leaves the old game as it was
+            val box = s.box ?: District.box(s.home!!.lat, s.home!!.lon, DISTRICT_HALF)
+            stage.value = "download"
+            val tiles = try { withContext(Dispatchers.IO) { Tiles.download(box) } } catch (e: Exception) { stage.value = ""; throw e }
+            s.box = box; p = p.copy(tiles = tiles)
+        }
+        withContext(Dispatchers.IO) { store.install(p) }
+        withContext(Dispatchers.Main) {
+            state = s; district = null; terrain = null; morning = null; pastOn = null
+            version.value++
+        }
+        withContext(Dispatchers.Default) { loadDistrict() }
+        withContext(Dispatchers.Main) { changed(); wake() }
     }
 
     /**

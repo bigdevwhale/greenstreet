@@ -51,6 +51,9 @@ class Bond(
 /** A note in the letterbox. */
 data class Mail(val key: String, val day: Long, var read: Boolean = false)
 
+/** The place a neighbour keeps on the district map (where they stand, the place's tag and its sign), once chosen. */
+data class Kept(val lat: Double, val lon: Double, val kind: String, val name: String)
+
 /** A notice pinned on the district board. */
 data class Pinned(val key: String, val day: Long)
 
@@ -87,6 +90,11 @@ class GameState {
     /** Groats taken at the fair on [fairDay]. */
     var fair: Int = 0
     var fairDay: Long = -1
+    /**
+     * Neighbour id → the place they took. Kept so they stay put when the map is downloaded again (on another
+     * phone, after a transfer) and OpenStreetMap has changed meanwhile; cleared when home moves.
+     */
+    val places: MutableMap<String, Kept> = LinkedHashMap()
 
     fun tool(k: String) = tools[k] ?: 1
     fun bond(id: String) = bonds.getOrPut(id) { Bond() }
@@ -121,6 +129,7 @@ class GameState {
         })
         put("inbox", JSONArray().apply { inbox.forEach { put(JSONObject().put("k", it.key).put("d", it.day).put("r", it.read)) } })
         put("board", JSONArray().apply { board.forEach { put(JSONObject().put("k", it.key).put("d", it.day)) } })
+        put("places", JSONObject().apply { places.forEach { (id, p) -> put(id, JSONObject().put("lat", p.lat).put("lon", p.lon).put("k", p.kind).put("n", p.name)) } })
     }
 
     companion object {
@@ -155,6 +164,7 @@ class GameState {
             }
             o.optJSONArray("inbox")?.let { a -> for (i in 0 until a.length()) a.getJSONObject(i).let { inbox += Mail(it.getString("k"), it.getLong("d"), it.optBoolean("r")) } }
             o.optJSONArray("board")?.let { a -> for (i in 0 until a.length()) a.getJSONObject(i).let { board += Pinned(it.getString("k"), it.getLong("d")) } }
+            o.optJSONObject("places")?.let { j -> j.keys().forEach { id -> j.getJSONObject(id).let { places[id] = Kept(it.getDouble("lat"), it.getDouble("lon"), it.optString("k"), it.optString("n")) } } }
         }
     }
 }

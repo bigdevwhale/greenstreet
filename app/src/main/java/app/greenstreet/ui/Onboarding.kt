@@ -209,6 +209,11 @@ fun Onboarding() {
                         Text(w(ru, "Сервер карты не ответил вовремя — так бывает, он бесплатный и иногда занят. Нажмите ещё раз: попробуем другой.", "The map server didn't answer in time — it's free and sometimes busy. Tap again: we'll try another one."), style = T.Small.copy(color = C.red), modifier = Modifier.padding(top = 8.dp))
                         if (why.isNotBlank()) Text(why, style = T.Small, modifier = Modifier.padding(top = 2.dp))
                     }
+                    Spacer(Modifier.height(20.dp))
+                    Text(w(ru, "Уже играли на другом телефоне? Загрузите файл прогресса — дом, грядки и соседи будут на своих местах.",
+                        "Played on another phone already? Load your progress file: home, the beds and the neighbours will be where they were."), style = T.Small)
+                    Spacer(Modifier.height(8.dp))
+                    Transfer(canSave = false)
                     Spacer(Modifier.height(16.dp))
                     Text(w(ru, "Карта © участники OpenStreetMap. Погода — MET Norway, Open-Meteo.com.", "Map © OpenStreetMap contributors. Weather by MET Norway and Open-Meteo.com."), style = T.Small)
                 }

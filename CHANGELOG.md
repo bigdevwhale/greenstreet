@@ -6,6 +6,23 @@ line "<!-- tg", then 2-4 short lines in Russian for users (what is new, what is 
 then close it like any HTML comment. The release notes carry it, and the chat bot posts those lines.
 -->
 
+## [0.14.4] - 2026-11-15
+
+### Added
+- Moving to another phone: Settings can save the game to a file, and the new phone loads it in Settings or on the first screens. The district map goes in the file too, so home, the beds and every neighbour stay where they were.
+
+### Changed
+- The place each neighbour took is now kept in the save, so they stay put even when the map is downloaded again and OpenStreetMap has changed meanwhile. Only newcomers, and a move of home, place people afresh.
+
+### Fixed
+- In the painted old courtyard the cat no longer floats in the air over the arch, and on the bench he lies on the seat instead of hiding behind it.
+
+<!-- tg
+Прогресс можно перенести на другой телефон: Настройки → Сохранить прогресс в файл
+Соседи остаются на своих местах, даже если карту скачать заново
+Кот больше не висит над аркой и не прячется за скамейкой
+-->
+
 ## [0.14.3] - 2026-11-15
 
 ### Added

@@ -1,1 +1,2 @@
-First release on Google Play: 22 neighbours with their stories, 128 varieties, a yard with hens and a kitchen, all painted in pixel art.
+Move your game to another phone: Settings → Save progress to a file, then Load progress from a file on the new phone. The district map goes with it, so home, the beds and the neighbours stay where they were.
+The yard cat no longer floats over the arch or hides behind the bench.
