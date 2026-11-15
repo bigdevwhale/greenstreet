@@ -64,6 +64,9 @@ class YardScene(val m: Moment, val life: YardLife = YardLife(), private val bd: 
     /** Painted figures to stand over a painted yard: the figure, its feet in yard coordinates. */
     private val figures = ArrayList<Triple<Buf, Int, Int>>()
 
+    /** The cat lying up on something, drawn over everything else so the thing under him doesn't cover him. */
+    private var perched: Triple<Buf, Int, Int>? = null
+
     /** A painted prop of the yard (assets/art/yard/props), or null when drawn in code. */
     private fun propPic(name: String): Buf? = if (bd == null) null else Pictures.buf("art/yard/props/$name.png")
 
@@ -106,11 +109,13 @@ class YardScene(val m: Moment, val life: YardLife = YardLife(), private val bd: 
         }
         val lo = Buf(LW, LH)
         figures.clear()
+        perched = null
         alive(lo)
         b.blit(lo.up2(), 0, dy2)
         for (j in 0 until LH) for (i in 0 until LW) if (keep[j * LW + i])
             for (k in 0 until 4) { val y = j * 2 + k / 2 + dy2; if (y in 0 until h) hiKeep[y * w + i * 2 + k % 2] = true }
         for ((f, x, y) in figures.sortedBy { it.third }) b.stand(f, x * 2, y * 2 + dy2)
+        perched?.let { (f, x, y) -> b.stand(f, x * 2, y * 2 + dy2) }
     }
 
     /** Everything alive in the yard, over whichever backdrop. */
@@ -566,11 +571,18 @@ class YardScene(val m: Moment, val life: YardLife = YardLife(), private val bd: 
             m.sky.rain -> listOf(roof, dry)
             life.kind == "house" -> listOf(102 to 85, roof, 54 to 68, 60 to 77)
             life.kind == "block" -> listOf(102 to 85, roof, 60 to 77)
+            // the sill by the arch is only in the code-drawn well; the painted one has the bare arch there
+            bd != null -> listOf(102 to 85, roof, 60 to 77)
             else -> listOf(102 to 85, roof, 60 to 77, 30 to 56)
         }
-        val (x, y) = if (life.guest?.contains("cat") == true) GUEST_X - 5 to 96 else spots[(hash(day, 77) * 10).toInt() % spots.size]
+        val guest = life.guest?.contains("cat") == true
+        val (x, y) = if (guest) GUEST_X - 5 to 96 else spots[(hash(day, 77) * 10).toInt() % spots.size]
         val painted = if (bd != null) Pictures.person("pryanik") else null
-        if (painted != null) { figures += Triple(painted, x + 5, y + 5); return }
+        if (painted != null) {
+            // up on a bench, a roof or a planter he lies on it, so it mustn't be drawn over him for standing lower
+            if (guest) figures += Triple(painted, x + 5, y + 5) else perched = Triple(painted, x + 5, y + 5)
+            return
+        }
         b.vol(x, y, 10, 5, ell(5.0, 3.0, 5.0, 2.6), sph(5.0, 2.5, 5.0, 2.5), R.ginger, R.INK)
         b.p(x + 1, y + 1, R.ginger[5]); b.p(x + 3, y + 1, R.INK); b.r(x + 8, y + 3, 4, 1, R.ginger[2])
     }
