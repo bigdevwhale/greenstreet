@@ -14,7 +14,6 @@ PREVIEW = os.path.join(REPO, "build", "art-preview")
 
 PERSON_H = 58      # a neighbour, feet to the top of the hat, at the doubled resolution
 MAP_H = 18         # the same person walking about the map
-MAP_H_HERO = 24    # the player stands out a little bigger
 CAT_W = 26
 PLACE = (256, 200)
 YARD = (256, 208)
@@ -245,8 +244,9 @@ def main():
             continue
         if group == "people":
             img = sprite(path, key)
-            if key != "pryanik":
-                Image.fromarray(sprite(path, key, MAP_H_HERO if key == "hero" else MAP_H), "RGBA").save(os.path.join(OUT, group, key + ".m.png"), optimize=True)
+            # the cat has no map figure; the player's is drawn by hand (hero_map.py)
+            if key not in ("pryanik", "hero"):
+                Image.fromarray(sprite(path, key, MAP_H), "RGBA").save(os.path.join(OUT, group, key + ".m.png"), optimize=True)
             Image.fromarray(img, "RGBA").save(os.path.join(OUT, group, key + ".png"), optimize=True)
             Image.fromarray(img, "RGBA").resize((img.shape[1] * 4, img.shape[0] * 4), Image.NEAREST).save(os.path.join(PREVIEW, f"{group}_{key}.png"))
         else:
