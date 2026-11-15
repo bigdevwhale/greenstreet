@@ -9,7 +9,9 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -55,20 +57,39 @@ fun WeatherPlace() {
     redraw
     fun pick(t: Town?, o: Boolean) { c.setSky(t, o); searching = false; redraw++ }
 
-    Text(when {
-        own -> w(ru, "Сейчас: своя погода игры — по сезону, без интернета.", "Now: the game's own weather, by the season, with no internet.")
-        town != null -> w(ru, "Сейчас: погода в городе ${town.name}", "Now: the weather in ${town.name}") + if (town.region.isNotBlank()) " (${town.region})." else "."
-        else -> w(ru, "Сейчас: погода у вашего дома.", "Now: the weather at your home.")
-    }, style = T.Body)
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        PixelButton(w(ru, "У дома", "At home"), { pick(null, false) }, Modifier.weight(1f), kind = if (!own && town == null && !searching) Kind.PRIMARY else Kind.GHOST)
-        PixelButton(w(ru, "Город", "A town"), { searching = true }, Modifier.weight(1f), kind = if (!own && town != null || searching) Kind.PRIMARY else Kind.GHOST)
-        PixelButton(w(ru, "Своя", "Own"), { pick(null, true) }, Modifier.weight(1f), kind = if (own && !searching) Kind.PRIMARY else Kind.GHOST)
-    }
+    Text(w(ru, "Дождь в игре поливает грядки, мороз и снег меняют район. Какую погоду брать:",
+        "In the game rain waters the beds, frost and snow change the district. Which weather to use:"), style = T.Small)
+    Choice(ru, !own && town == null && !searching,
+        w(ru, "Настоящая, у моего дома", "The real one, at my home"),
+        w(ru, "Как за окном там, где вы поставили дом на карте.", "As it is outside where you put your home on the map.")) { pick(null, false) }
+    Choice(ru, !own && town != null || searching,
+        w(ru, "Настоящая, в другом городе", "The real one, in another town") + (town?.let { ": " + it.name } ?: ""),
+        w(ru, "Если дом в игре в одном месте, а живёте вы в другом, или хочется погоды родного города.",
+            "If the game's home is in one place and you live in another, or you'd like the weather of your home town.")) { searching = true }
     if (searching) TownSearch(ru, town?.name.orEmpty()) { pick(it, false) }
+    Choice(ru, own && !searching,
+        w(ru, "Придуманная игрой", "Made up by the game"),
+        w(ru, "Обычная для этого времени года, без интернета. С настоящей не совпадает.",
+            "Usual for the time of year, with no internet. It won't match the real one.")) { pick(null, true) }
     Text(w(ru,
-        "Дождь поливает грядки, мороз и снег меняют район. Погоду дают MET Norway и Open-Meteo: туда уходят только округлённые координаты места, без вас.",
-        "Rain waters the beds, frost and snow change the district. The weather comes from MET Norway and Open-Meteo: only the place's rounded coordinates are sent, nothing about you."), style = T.Small)
+        "Настоящую погоду дают MET Norway и Open-Meteo: туда уходят только округлённые координаты места.",
+        "The real weather comes from MET Norway and Open-Meteo: only the place's rounded coordinates are sent."), style = T.Small)
+}
+
+/** One way to have the weather: a card with a round mark, a name and a line on what it means. */
+@Composable
+private fun Choice(ru: Boolean, on: Boolean, title: String, text: String, onClick: () -> Unit) {
+    Panel(Modifier.fillMaxWidth(), fill = if (on) C.accentSoft else C.light, onClick = onClick) {
+        Row(verticalAlignment = Alignment.Top) {
+            Box(Modifier.padding(top = 3.dp).size(18.dp).border(2.dp, if (on) C.accent else C.faint, CircleShape), contentAlignment = Alignment.Center) {
+                if (on) Box(Modifier.size(8.dp).background(C.accent, CircleShape))
+            }
+            Column(Modifier.padding(start = 10.dp)) {
+                Text(title, style = T.Body)
+                Text(text, style = T.Small)
+            }
+        }
+    }
 }
 
 /** A search for a town by name. The field starts with the town already chosen, so the choice doesn't look forgotten. */
