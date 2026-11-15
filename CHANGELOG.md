@@ -6,6 +6,22 @@ line "<!-- tg", then 2-4 short lines in Russian for users (what is new, what is 
 then close it like any HTML comment. The release notes carry it, and the chat bot posts those lines.
 -->
 
+## [0.14.5] - 2026-11-15
+
+### Changed
+- The player on the map is as tall as the neighbours and drawn by hand: a red knitted hat with a pompom, a face you can see, a yellow scarf, the green coat and a canvas bag. The ring at the feet and the arrow overhead stay.
+
+### Fixed
+- Bag: the number of seeds sits on a little plaque in the corner instead of running into the packet's frame.
+- Neighbours: whether someone is in and their hearts no longer crowd one line, so the heart and its number stay in place; the cards of a row are one height, and a long trade ends in an ellipsis.
+- The "Colouring the district…" card no longer cuts off its last line over a small map.
+
+<!-- tg
+Игрок на карте теперь одного роста с соседями и его легко узнать: красная шапка, шарф, сумка
+В сумке числа семян больше не наезжают на пакетики
+Карточки соседей ровные: статус и сердца не съезжают
+-->
+
 ## [0.14.4] - 2026-11-15
 
 ### Added

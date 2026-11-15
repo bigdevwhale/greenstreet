@@ -1,2 +1,3 @@
-Move your game to another phone: Settings → Save progress to a file, then Load progress from a file on the new phone. The district map goes with it, so home, the beds and the neighbours stay where they were.
-The yard cat no longer floats over the arch or hides behind the bench.
+The player on the map is now as tall as the neighbours and easy to spot: a red pompom hat, a yellow scarf, a bag.
+Seed counts in the bag no longer run into the packets, and the neighbour cards line up neatly.
+Move your game to another phone: Settings → Save progress to a file.
