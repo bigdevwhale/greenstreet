@@ -7,12 +7,15 @@ import org.json.JSONObject
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.File
+import java.io.FileOutputStream
 import java.util.zip.ZipEntry
 import java.util.zip.ZipInputStream
 import java.util.zip.ZipOutputStream
 
 /**
- * Saves the game as JSON in the app's files, atomically (write aside, then rename). Also keeps the raw
+ * Saves the game as JSON in the app's files, atomically and durably: write aside, force it to the disk, then
+ * rename, keeping the previous save as a spare. A sudden power-off then leaves either the old save or the new one,
+ * never an empty file that would start the game over. Also keeps the raw
  * district map and a short log of the skies, so missed nights are replayed with the real weather.
  */
 class Store(context: Context) {
@@ -22,7 +25,9 @@ class Store(context: Context) {
     private val tilesFile = File(dir, "district.bin")
     private val skiesFile = File(dir, "skies.json")
 
-    fun load(): GameState? = runCatching { GameState.fromJson(JSONObject(stateFile.readText())) }.getOrNull()
+    /** The save; if it is missing mid-write, the synced new copy beside it; else the previous save. */
+    fun load(): GameState? = sequenceOf(stateFile, File(dir, "state.json.tmp"), spare(stateFile))
+        .firstNotNullOfOrNull { f -> runCatching { GameState.fromJson(JSONObject(f.readText())) }.getOrNull() }
 
     @Synchronized
     fun save(s: GameState) = write(stateFile, s.toJson().toString())
@@ -32,7 +37,7 @@ class Store(context: Context) {
 
     /** The district as vector tiles (the normal case); the JSON above is only the demo's bundled Overpass dump. */
     fun tiles(): ByteArray? = tilesFile.takeIf { it.exists() }?.readBytes()
-    fun saveTiles(b: ByteArray) { val tmp = File(dir, "district.bin.tmp"); tmp.writeBytes(b); if (!tmp.renameTo(tilesFile)) { tilesFile.delete(); tmp.renameTo(tilesFile) } }
+    fun saveTiles(b: ByteArray) = write(tilesFile, b)
     fun hasDistrict() = tilesFile.exists() || districtFile.exists()
 
     /**
@@ -124,9 +129,14 @@ class Store(context: Context) {
         }
     }
 
-    private fun write(f: File, text: String) {
+    private fun write(f: File, text: String) = write(f, text.toByteArray())
+
+    private fun write(f: File, bytes: ByteArray) {
         val tmp = File(f.parentFile, f.name + ".tmp")
-        tmp.writeText(text)
-        if (!tmp.renameTo(f)) { f.delete(); tmp.renameTo(f) }
+        FileOutputStream(tmp).use { out -> out.write(bytes); out.flush(); out.fd.sync() }
+        if (f.exists()) f.renameTo(spare(f))
+        tmp.renameTo(f)   // if this fails, load() still finds the spare or the synced .tmp
     }
+
+    private fun spare(f: File) = File(f.parentFile, f.name + ".bak")
 }

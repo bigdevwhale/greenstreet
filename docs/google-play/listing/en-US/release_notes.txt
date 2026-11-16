@@ -1,2 +1,1 @@
-Choose the game's weather in Settings: the real weather at your home, the real weather of another town (search by name), or weather made up by the game for the season, with no internet.
-Rain still waters the beds, and frost and snow still change the district.
+Saving is now safe from a sudden power-off: if the battery dies or the phone freezes, the game no longer starts over. The previous save is kept as a spare.
