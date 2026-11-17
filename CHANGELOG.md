@@ -6,7 +6,7 @@ line "<!-- tg", then 2-4 short lines in Russian for users (what is new, what is 
 then close it like any HTML comment. The release notes carry it, and the chat bot posts those lines.
 -->
 
-## [Unreleased]
+## [0.14.9] - 2026-11-17
 
 ### Added
 - Fishing: where the map has next to no water within 500 m of home, the game digs a lake and two ponds in the parks or on open ground, each with a path to its bank. The lake is fished like a river.
