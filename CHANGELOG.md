@@ -6,6 +6,23 @@ line "<!-- tg", then 2-4 short lines in Russian for users (what is new, what is 
 then close it like any HTML comment. The release notes carry it, and the chat bot posts those lines.
 -->
 
+## [0.14.8] - 2026-11-17
+
+### Added
+- Yard: all the verge beds in one list: what grows, when it ripens, whether it has had water today and how far it is. A tap opens the bed's card, "Show" finds it on the map.
+- Street: the panel under the map folds away with "Hide", and the map takes the whole screen; "Details" brings it back.
+- Seed packets are named under the picture: the crop and the ripening date on the street, the crop and the variety in the yard.
+
+### Fixed
+- Tapping a bed or a neighbour on the map after zooming often missed: the tap was read at the old scale. The tap area is now as wide as a finger at any zoom.
+
+<!-- tg
+Во дворе появился список всех грядок у дороги: что растёт, полита ли и куда идти. Кнопка «Показать» находит грядку на карте
+Панель под картой можно скрыть кнопкой «Скрыть», и карта займёт весь экран
+Под пакетиками семян подписано, что это за культура, больше не нужно угадывать рожь по картинке
+Нажатие на грядку на карте теперь срабатывает при любом масштабе
+-->
+
 ## [0.14.7] - 2026-11-16
 
 ### Fixed

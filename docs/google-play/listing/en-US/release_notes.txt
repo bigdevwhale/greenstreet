@@ -1,1 +1,4 @@
-Saving is now safe from a sudden power-off: if the battery dies or the phone freezes, the game no longer starts over. The previous save is kept as a spare.
+The yard lists every verge bed: what grows, whether it's watered and which way to go; "Show" finds it on the map.
+The panel under the map can be hidden so the map fills the screen.
+Seed packets are named under the picture.
+Tapping a bed on the map works at any zoom.
