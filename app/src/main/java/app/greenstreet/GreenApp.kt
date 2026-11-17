@@ -45,8 +45,12 @@ const val DISTRICT_HALF = 800.0
 private const val REACH_PX = 12
 /** How much nearer, in map pixels (about 100 m), a fenced-off place must be to win over an open one. */
 private const val FENCE_PX = 60.0
-/** A strolling neighbour stops and waits while the player is this close, metres. */
-private const val WAIT_M = 60.0
+/** A strolling neighbour stops and waits once the player is this close, metres (GPS alone can be 30 m off)… */
+private const val WAIT_M = 80.0
+/** …and walks on only when the player is this far again, so a jumpy fix at the edge doesn't set them off. */
+private const val LEAVE_M = 120.0
+/** How far a neighbour's place may be moved from where the map first put it, metres. */
+const val MOVE_M = 150.0
 
 /** Holds the game for the whole app: content, the player's state, the district and the weather. */
 class AppContainer(context: Context) {
@@ -305,12 +309,49 @@ class AppContainer(context: Context) {
     private val seen = HashMap<String, Long>()
     private val held = HashMap<String, Long>()
     private val lastSpot = HashMap<String, Spot>()
+    private val waiting = HashSet<String>()
 
-    /** Is the player close enough to a strolling neighbour that they stop and wait? */
+    /** Is the player close enough to a strolling neighbour that they stop and wait? Once waiting, they wait till the player is well away. */
     private fun waits(id: String): Boolean {
         val me = here.value ?: return false
         val g = lastSpot[id]?.let(::geoOf) ?: return false
-        return g.metres(me) <= WAIT_M
+        val stay = g.metres(me) <= if (id in waiting) LEAVE_M else WAIT_M
+        if (stay) waiting += id else waiting -= id
+        return stay
+    }
+
+    /**
+     * Works the strolls out at a new fix: the map does it every second, but with the screen off nobody does, and
+     * a neighbour the player was walking up to would have counted the whole time as walking on, and be gone.
+     */
+    private fun stepStrolls() {
+        for (id in places.keys) if (whereabouts(id) == Whereabouts.OUT) spotNow(id)
+    }
+
+    /** The neighbour whose place the player is moving on the map, or null. */
+    val moving = MutableStateFlow<String?>(null)
+
+    /** Where the map first put a neighbour's place: moves are measured from here. */
+    fun origin(id: String): Geo? = state?.places?.get(id)?.let { Geo(it.olat, it.olon) }
+
+    /**
+     * Moves a neighbour's place to map point (x, y), for places the player can't get to (behind a fence, in a
+     * locked yard): no further than [MOVE_M] from where the map first put it, and onto ground the public ways
+     * reach (a spot a little off them goes to the nearest pavement). False if it can't go there.
+     */
+    fun movePlace(id: String, x: Float, y: Float): Boolean {
+        val d = district ?: return false; val ter = terrain ?: return false; val s = state ?: return false
+        val old = s.places[id] ?: return false
+        val xi = x.toInt(); val yi = y.toInt()
+        val at = if (ter.reachable(xi, yi, 3)) intArrayOf(xi, yi) else ter.nearestOpen(xi, yi, 12) ?: return false
+        val sp = Spot(at[0].toFloat(), at[1].toFloat(), old.kind, old.name)
+        val g = Geo(d.lat(sp.y), d.lon(sp.x))
+        if (Geo(old.olat, old.olon).metres(g) > MOVE_M) return false
+        places[id] = sp
+        s.places[id] = Kept(g.lat, g.lon, old.kind, old.name, old.olat, old.olon)
+        pools.remove(id); legs.remove(id)
+        store.save(s); version.value++
+        return true
     }
 
     fun geoOf(s: Spot): Geo? { val d = district ?: return null; return Geo(d.lat(s.y), d.lon(s.x)) }
@@ -479,6 +520,7 @@ class AppContainer(context: Context) {
     @Synchronized
     fun fix(at: Geo, accuracy: Float): Int {
         here.value = at
+        stepStrolls()
         val s = state ?: return 0
         if (accuracy > 40f) return 0
         var find: Find? = null

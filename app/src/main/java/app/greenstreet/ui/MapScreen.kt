@@ -83,7 +83,7 @@ private val ZOOMS = intArrayOf(80, 128, 192, 288)
 /** The painted district, kept per month: painting takes a second, so it is done once and off the main thread. */
 object MapCache {
     /** Bump when the map art changes so old pictures on disk are repainted. */
-    private const val ART = 3
+    private const val ART = 4
     var month = -1
     var buf: Buf? = null
     var windows: List<Int> = emptyList()
@@ -165,6 +165,12 @@ fun MapScreen(open: (Sheet) -> Unit) {
     val walkers = status.filterValues { it == Whereabouts.OUT }.keys.mapNotNull { id -> c.spotNow(id, clock)?.let { id to it } }.toMap()
     // the tap handler lives across recompositions: it reads where the walkers are now, not where they were when it was made
     val walkersNow by rememberUpdatedState(walkers)
+    // moving a neighbour's place: the next tap on the map says where to
+    val moving by c.moving.collectAsState()
+    val movingNow by rememberUpdatedState(moving)
+    var moveMsg by remember { mutableStateOf<String?>(null) }
+    // the whole ring has to be in sight to choose a spot in it: zoom right out
+    LaunchedEffect(moving) { if (moving != null) { moveMsg = null; zoom = ZOOMS.size - 1 } }
     // the panel under the map folds away, and the map takes the whole screen
     var panelOpen by rememberSaveable { mutableStateOf(true) }
 
@@ -202,6 +208,11 @@ fun MapScreen(open: (Sheet) -> Unit) {
                             val ax = cx + o.x / k; val ay = cy + o.y / k
                             // a finger is about 24 dp wide whatever the zoom: far out, a bed is only a few map pixels
                             val finger = 24.dp.toPx() / k
+                            movingNow?.let { id ->
+                                if (c.movePlace(id, ax, ay)) { c.moving.value = null; moveMsg = w(ru, "Готово: место передвинуто.", "Done: the place has moved.") }
+                                else moveMsg = w(ru, "Сюда нельзя: не дальше %d м от исходного места и рядом с тротуаром или дорожкой.", "Not there: within %d m of where it was, and by a pavement or path.").format(app.greenstreet.MOVE_M.toInt())
+                                return@detectTapGestures
+                            }
                             val bed = s.beds.filter { c.content.variety[it.variety]?.place == Place.VERGE }.minByOrNull { Math.hypot(d.x(it.lon) - ax.toDouble(), d.y(it.lat) - ay.toDouble()) }
                             if (bed != null && Math.hypot(d.x(bed.lon) - ax.toDouble(), d.y(bed.lat) - ay.toDouble()) < maxOf(7f, finger)) { open(Sheet.BedInfo(bed.id)); return@detectTapGestures }
                             val walker = walkersNow.entries.minByOrNull { Math.hypot(it.value.x - ax.toDouble(), it.value.y - 6 - ay.toDouble()) }
@@ -247,6 +258,22 @@ fun MapScreen(open: (Sheet) -> Unit) {
                     val look = app.greenstreet.ui.art.Look.of(p.look)
                     val moving = c.walkingNow(id)
                     objs += sy to { view.villager(sx, sy, look, if (moving) ((tick / 3) + id.length) % 2 else 0, p.kind, id) }
+                }
+                // the ring a moved place must stay in
+                moving?.let { id -> c.origin(id) }?.let { o ->
+                    val ox = d.x(o.lon) - cx; val oy = d.y(o.lat) - cy
+                    val rr = (app.greenstreet.MOVE_M / d.mpp).toFloat()
+                    val n = (rr * 7).toInt()
+                    // dashes, dark with a light core, so they show on lawns and roofs alike
+                    for (q in 0 until n) if ((q / 6) % 3 != 2) {
+                        val a = q * 2 * Math.PI / n
+                        val px = (ox + rr * Math.cos(a)).roundToInt(); val py = (oy + rr * Math.sin(a)).roundToInt()
+                        for (j in -1..1) for (i in -1..1) view.p(px + i, py + j, 0xFF2B1A14.toInt(), .8f)
+                    }
+                    for (q in 0 until n) if ((q / 6) % 3 != 2) {
+                        val a = q * 2 * Math.PI / n
+                        view.p((ox + rr * Math.cos(a)).roundToInt(), (oy + rr * Math.sin(a)).roundToInt(), 0xFFFFE9A8.toInt())
+                    }
                 }
                 s.home?.let { h -> val hx = d.x(h.lon).roundToInt() - cx; val hy = d.y(h.lat).roundToInt() - cy; objs += hy to { view.sign(hx, hy, Icons.home, true) } }
                 System.arraycopy(view.d, 0, under, 0, under.size)
@@ -305,7 +332,20 @@ fun MapScreen(open: (Sheet) -> Unit) {
                 PixelButton("+", { if (zoom > 0) zoom-- }, kind = Kind.GHOST, enabled = zoom > 0)
                 PixelButton("−", { if (zoom < ZOOMS.size - 1) zoom++ }, kind = Kind.GHOST, enabled = zoom < ZOOMS.size - 1)
             }
-            if (pan != IntOffset.Zero) PixelButton(w(ru, "К себе", "To me"), { pan = IntOffset.Zero }, Modifier.align(Alignment.TopEnd).padding(8.dp), Kind.GHOST)
+            moving?.let { id ->
+                val who = c.content.person[id]
+                // a neighbour not met yet goes by their trade, as on their card
+                val whoName = who?.let { if (s.bonds[id]?.isOpen == true) it.name(ru) else it.role(ru) } ?: ""
+                Panel(Modifier.align(Alignment.TopCenter).padding(start = 56.dp, end = 8.dp, top = 8.dp).fillMaxWidth(), fill = C.light) {
+                    Text(w(ru, "Нажмите на карте, куда передвинуть место: ", "Tap the map where the place should go: ") + whoName +
+                        w(ru, ". Не дальше %d м — в пределах кольца.", ". Within %d m — inside the ring.").format(app.greenstreet.MOVE_M.toInt()), style = T.Small.copy(color = C.ink))
+                    moveMsg?.let { Text(it, style = T.Small.copy(color = C.red)) }
+                    PixelButton(w(ru, "Отмена", "Cancel"), { c.moving.value = null }, kind = Kind.GHOST)
+                }
+            }
+            if (moving == null) moveMsg?.let { m -> LaunchedEffect(m) { kotlinx.coroutines.delay(3000); moveMsg = null }
+                Text(m, style = T.Small.copy(color = C.green), modifier = Modifier.align(Alignment.TopCenter).padding(top = 8.dp).pixelBox(C.light, bevel = null, lip = null).padding(horizontal = 8.dp, vertical = 4.dp)) }
+            if (pan != IntOffset.Zero && moving == null) PixelButton(w(ru, "К себе", "To me"), { pan = IntOffset.Zero }, Modifier.align(Alignment.TopEnd).padding(8.dp), Kind.GHOST)
             if (!mapLoading) PixelButton(if (panelOpen) w(ru, "Скрыть ▾", "Hide ▾") else w(ru, "Описание ▴", "Details ▴"), { panelOpen = !panelOpen },
                 Modifier.align(Alignment.BottomEnd).padding(8.dp), Kind.GHOST)
         }
@@ -391,7 +431,7 @@ fun MapScreen(open: (Sheet) -> Unit) {
                     }
                     app.greenstreet.ui.components.ActionChip(label, { open(Sheet.Visit(id)) }, leading = { app.greenstreet.ui.components.Avatar(portrait(c, id), 28.dp) })
                 }
-                if (t.nearWater(mx, my, 6)) app.greenstreet.ui.components.ActionChip(w(ru, "Удочка", "Fish"), { open(Sheet.Fish(isBigWater(t, mx, my))) }, "walk")
+                if (t.nearWater(mx, my, 6)) app.greenstreet.ui.components.ActionChip(w(ru, "Удочка", "Fish"), { open(Sheet.Fish(isBigWater(t, mx, my) || t.byBigPond(mx, my))) }, "walk")
                 if (c.near("mikhalych", me)) app.greenstreet.ui.components.ActionChip(w(ru, "Хозтовары", "Hardware"), { open(Sheet.Shop) }, "tools")
                 if (c.near("zina", me)) app.greenstreet.ui.components.ActionChip(if (now.saturday) w(ru, "Ярмарка", "The fair") else w(ru, "Семена", "Seeds"), { open(Sheet.Market) }, if (now.saturday) "fair" else "market")
                 if (c.atHome(me)) app.greenstreet.ui.components.ActionChip(w(ru, "Во двор", "Courtyard"), { open(Sheet.Tab(1)) }, "tab_yard")

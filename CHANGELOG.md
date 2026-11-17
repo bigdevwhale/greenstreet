@@ -6,6 +6,25 @@ line "<!-- tg", then 2-4 short lines in Russian for users (what is new, what is 
 then close it like any HTML comment. The release notes carry it, and the chat bot posts those lines.
 -->
 
+## [Unreleased]
+
+### Added
+- Fishing: where the map has next to no water within 500 m of home, the game digs a lake and two ponds in the parks or on open ground, each with a path to its bank. The lake is fished like a river.
+- Neighbours: a place you can't get to (a locked yard, behind a fence) can be moved up to 150 m from where the map put it: "Move it" on the neighbour's card, then a tap on the map inside the ring.
+
+### Changed
+- Fish bite all year round: no more months for fish. Time of day and weather still bring the rarer ones.
+- A strolling neighbour stops and waits once you are within 80 m (was 60) and walks on only when you are 120 m away again.
+
+### Fixed
+- A neighbour you were walking up to with the screen off had counted all that time as walking on and was gone. The strolls are now worked out at every GPS fix too.
+
+<!-- tg
+Рыба теперь клюёт круглый год, а если рядом с домом нет воды, игра выкопает пруды в ближайших парках
+Сосед на прогулке ждёт, когда вы в 80 м, и не уходит, пока вы не отойдёте на 120 м
+Место соседа, к которому не подойти, можно передвинуть до 150 м: кнопка «Передвинуть» в его карточке
+-->
+
 ## [0.14.8] - 2026-11-17
 
 ### Added

@@ -167,7 +167,8 @@ fun Root() {
         }
         Tabs(tab, badges(c)) { tab = it }
     }
-    sheet?.let { sh -> SheetView(sh, { sheet = it }) { sheet = null } }
+    // a sheet may send you to a tab (to the map, to move a place): switch to it and close the sheet
+    sheet?.let { sh -> SheetView(sh, { if (it is Sheet.Tab) { tab = it.n; sheet = null } else sheet = it }) { sheet = null } }
     QuestBanner(c)
     FindBanner(c)
 }
@@ -565,7 +566,7 @@ private fun Fishing(c: AppContainer, big: Boolean) {
 
 private fun catch(c: AppContainer, big: Boolean): String {
     val n = c.now()
-    val ok = c.content.goods.filter { it.kind == app.greenstreet.data.GoodKind.FISH && (it.months.isEmpty() || n.month in it.months) &&
+    val ok = c.content.goods.filter { it.kind == app.greenstreet.data.GoodKind.FISH &&
         (it.where in setOf("", "any") || (big && it.where in setOf("river", "canal", "lake")) || (!big && it.where in setOf("pond", "lake", "canal"))) }
     if (ok.isEmpty()) return "roach"
     val weights = ok.map { g -> (4 - g.rare).coerceAtLeast(1) * (if (g.weather.isNotBlank() && g.weather in n.sky.tags) 2 else 1) * (if (g.time.isNotBlank() && g.time == n.part) 2 else 1) }

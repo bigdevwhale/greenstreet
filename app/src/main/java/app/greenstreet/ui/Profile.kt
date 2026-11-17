@@ -100,6 +100,7 @@ fun Profile(c: AppContainer, id: String, go: (Sheet) -> Unit, close: () -> Unit)
         }, style = T.Body, modifier = Modifier.padding(top = 10.dp))
         Text(w(ru, "Часы: ", "Hours: ") + Schedule.hours(p)(ru), style = T.Small, modifier = Modifier.padding(top = 4.dp))
         WhereRow(c, p, ru, st, close)
+        MoveRow(c, p, ru, go)
         return
     }
     Friendship(c, p, ru)
@@ -123,6 +124,7 @@ fun Profile(c: AppContainer, id: String, go: (Sheet) -> Unit, close: () -> Unit)
                 }
             }
             WhereRow(c, p, ru, st, close)
+            MoveRow(c, p, ru, go)
         }
         1 -> {
             Text(w(ru, "Записей: %d из %d. Новые появляются, когда вы становитесь ближе.", "%d of %d lines. New ones come as you grow closer.").format(notes, p.facts.size), style = T.Small, modifier = Modifier.padding(top = 10.dp))
@@ -155,6 +157,21 @@ private fun WhereRow(c: AppContainer, p: Person, ru: Boolean, st: Whereabouts, c
     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
         Text(where(here, g, ru), style = T.Small.copy(color = C.green), modifier = Modifier.weight(1f))
         PixelButton(if (st == Whereabouts.OUT) w(ru, "Где сейчас", "Where now") else w(ru, "На карте", "On the map"), { c.focus.value = g; close() }, kind = Kind.GHOST)
+    }
+}
+
+/** For a place you can't get to (a locked yard, behind a fence): move it a little, on the map. */
+@Composable
+private fun MoveRow(c: AppContainer, p: Person, ru: Boolean, go: (Sheet) -> Unit) {
+    if (p.yard || c.places[p.id] == null) return
+    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
+        Text(w(ru, "Не подойти к месту? Его можно передвинуть до %d м.", "Can't get to the place? It can be moved up to %d m.").format(app.greenstreet.MOVE_M.toInt()),
+            style = T.Small, modifier = Modifier.weight(1f))
+        PixelButton(w(ru, "Передвинуть", "Move it"), {
+            c.moving.value = p.id
+            c.origin(p.id)?.let { c.focus.value = it }
+            go(Sheet.Tab(0))
+        }, kind = Kind.GHOST)
     }
 }
 

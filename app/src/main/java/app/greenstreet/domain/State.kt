@@ -51,8 +51,11 @@ class Bond(
 /** A note in the letterbox. */
 data class Mail(val key: String, val day: Long, var read: Boolean = false)
 
-/** The place a neighbour keeps on the district map (where they stand, the place's tag and its sign), once chosen. */
-data class Kept(val lat: Double, val lon: Double, val kind: String, val name: String)
+/**
+ * The place a neighbour keeps on the district map (where they stand, the place's tag and its sign), once chosen;
+ * [olat], [olon] are where the map first put it, if the player has moved it since.
+ */
+data class Kept(val lat: Double, val lon: Double, val kind: String, val name: String, val olat: Double = lat, val olon: Double = lon)
 
 /** A town picked for the weather instead of home (found by name, see [Weather.search]). */
 data class Town(val name: String, val region: String, val lat: Double, val lon: Double)
@@ -138,7 +141,7 @@ class GameState {
         })
         put("inbox", JSONArray().apply { inbox.forEach { put(JSONObject().put("k", it.key).put("d", it.day).put("r", it.read)) } })
         put("board", JSONArray().apply { board.forEach { put(JSONObject().put("k", it.key).put("d", it.day)) } })
-        put("places", JSONObject().apply { places.forEach { (id, p) -> put(id, JSONObject().put("lat", p.lat).put("lon", p.lon).put("k", p.kind).put("n", p.name)) } })
+        put("places", JSONObject().apply { places.forEach { (id, p) -> put(id, JSONObject().put("lat", p.lat).put("lon", p.lon).put("k", p.kind).put("n", p.name).apply { if (p.olat != p.lat || p.olon != p.lon) put("olat", p.olat).put("olon", p.olon) }) } })
     }
 
     companion object {
@@ -175,7 +178,7 @@ class GameState {
             }
             o.optJSONArray("inbox")?.let { a -> for (i in 0 until a.length()) a.getJSONObject(i).let { inbox += Mail(it.getString("k"), it.getLong("d"), it.optBoolean("r")) } }
             o.optJSONArray("board")?.let { a -> for (i in 0 until a.length()) a.getJSONObject(i).let { board += Pinned(it.getString("k"), it.getLong("d")) } }
-            o.optJSONObject("places")?.let { j -> j.keys().forEach { id -> j.getJSONObject(id).let { places[id] = Kept(it.getDouble("lat"), it.getDouble("lon"), it.optString("k"), it.optString("n")) } } }
+            o.optJSONObject("places")?.let { j -> j.keys().forEach { id -> j.getJSONObject(id).let { places[id] = Kept(it.getDouble("lat"), it.getDouble("lon"), it.optString("k"), it.optString("n"), it.optDouble("olat", it.getDouble("lat")), it.optDouble("olon", it.getDouble("lon"))) } } }
         }
     }
 }

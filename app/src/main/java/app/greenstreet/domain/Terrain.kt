@@ -34,6 +34,8 @@ class Block(
 
 class Tree(val x: Int, val y: Int, val r: Int, val kind: String, val seed: Double)
 class Prop(val kind: String, val x: Int, val y: Int, val arg: String = "")
+/** A pond the game digs where the map has no water near home: its middle and radii in pixels; a [big] one is fished like a river. */
+class Pond(val x: Int, val y: Int, val rx: Int, val ry: Int, val big: Boolean)
 
 /**
  * The district rasterised into classes, one per map pixel (1.6 m): lawns, pavements, roads, water,
@@ -59,6 +61,8 @@ class Terrain(val d: District) {
     val trees = ArrayList<Tree>()
     val lamps = ArrayList<IntArray>()
     val props = ArrayList<Prop>()
+    /** Ponds dug by the game, not on the map (see [dig]). */
+    val ponds = ArrayList<Pond>()
 
     fun at(x: Int, y: Int): Int = if (x < 0 || y < 0 || x >= w || y >= h) K.GROUND else cls[y * w + x].toInt()
 
@@ -154,6 +158,7 @@ class Terrain(val d: District) {
         }
         for (r in roads) if (r.tunnel) stroke(r.pts, RW[r.type] ?: 2f) { x, y, _ -> pass[y * w + x] = true }
         closeOff()
+        dig()
         plant()
     }
 
@@ -190,6 +195,64 @@ class Terrain(val d: District) {
         for (i in 0 until n) if (!seen[i] && way(i)) { val k = flood(i, seen); if (k > size) { size = k; best = i } }
         if (best >= 0) flood(best, open)
     }
+
+    /**
+     * Where there's next to no water within [DRY_M] of home (the middle of the district), digs a lake and two
+     * ponds there: on parkland or lawns if possible, on open ground otherwise, never over a house or a way,
+     * each with a path or pavement at its edge so there's somewhere to stand with a rod. Same map, same ponds.
+     */
+    private fun dig() {
+        val cx = w / 2; val cy = h / 2
+        val r = (DRY_M / d.mpp).toInt()
+        var wet = 0
+        for (y in max(0, cy - r)..min(h - 1, cy + r)) for (x in max(0, cx - r)..min(w - 1, cx + r)) if (cls[y * w + x].toInt() == K.WATER) wet++
+        if (wet * d.mpp * d.mpp >= WET_M2) return
+        val minR = (90 / d.mpp).toInt(); val apart = (150 / d.mpp)
+        fun dry(c: Int) = c == K.LAWN || c == K.WOOD || c == K.GROUND
+        for ((rx, ry, big) in listOf(Triple(14, 9, true), Triple(9, 6, false), Triple(8, 6, false))) {
+            var best: IntArray? = null; var score = -1e9
+            var y = cy - r
+            while (y <= cy + r) {
+                var x = cx - r
+                while (x <= cx + r) {
+                    val dist = Math.hypot((x - cx).toDouble(), (y - cy).toDouble())
+                    if (dist in minR.toDouble()..r.toDouble() && ponds.none { Math.hypot((it.x - x).toDouble(), (it.y - y).toDouble()) < apart }) {
+                        var ok = x - rx - 2 >= 0 && y - ry - 2 >= 0 && x + rx + 2 < w && y + ry + 2 < h
+                        var green = 0; var all = 0
+                        // the pond and a pixel round it on dry public ground
+                        if (ok) loop@ for (j in -ry - 1..ry + 1) for (i in -rx - 1..rx + 1) {
+                            if (i * i * (ry + 1) * (ry + 1) + j * j * (rx + 1) * (rx + 1) > (rx + 1) * (rx + 1) * (ry + 1) * (ry + 1)) continue
+                            val k = (y + j) * w + x + i
+                            val c = cls[k].toInt()
+                            if (!dry(c) || shut[k] || open[k]) { ok = false; break@loop }
+                            all++; if (c != K.GROUND) green++
+                        }
+                        // a way within a few pixels of the bank
+                        if (ok) ok = (-ry - 5..ry + 5).any { j -> (-rx - 5..rx + 5).any { i ->
+                            val xx = x + i; val yy = y + j
+                            xx in 0 until w && yy in 0 until h && open[yy * w + xx] && !pass[yy * w + xx]
+                        } }
+                        if (ok) {
+                            val sc = green.toDouble() / all * 2 - Math.abs(dist * d.mpp - 250) / 400 + hash(x, y) * .3
+                            if (sc > score) { score = sc; best = intArrayOf(x, y) }
+                        }
+                    }
+                    x += 4
+                }
+                y += 4
+            }
+            val b = best ?: continue
+            for (j in -ry..ry) for (i in -rx..rx) {
+                // a bank that wobbles a little, so it doesn't look drawn with a compass
+                val e = i.toDouble() * i / (rx * rx) + j.toDouble() * j / (ry * ry)
+                if (e <= 1 - (hash(b[0] + i, b[1] + j) - .5) * .25) cls[(b[1] + j) * w + b[0] + i] = K.WATER.toByte()
+            }
+            ponds += Pond(b[0], b[1], rx, ry, big)
+        }
+    }
+
+    /** Is (x, y) by one of the dug lakes that are fished like a river? */
+    fun byBigPond(x: Int, y: Int): Boolean = ponds.any { it.big && Math.hypot((x - it.x).toDouble(), (y - it.y).toDouble()) <= maxOf(it.rx, it.ry) + 10 }
 
     /** Can a person get to (x, y): it isn't on shut ground and the public ways pass within [r] pixels. */
     fun reachable(x: Int, y: Int, r: Int): Boolean {
@@ -358,6 +421,9 @@ class Terrain(val d: District) {
             "cycleway" to 2f, "track" to 2f, "bridleway" to 2f, "steps" to 2f)
         val SIDE = setOf("primary", "secondary", "tertiary", "residential", "unclassified")
         val CARS = setOf("primary", "primary_link", "secondary", "secondary_link", "tertiary", "tertiary_link", "residential", "unclassified", "living_street", "service")
+        /** Dig ponds when there is less than [WET_M2] square metres of water within this many metres of home. */
+        const val DRY_M = 500.0
+        const val WET_M2 = 1500.0
         val UNPAVED = setOf("unpaved", "ground", "dirt", "gravel", "fine_gravel", "compacted", "sand", "grass", "earth", "pebblestone")
 
         fun hash(i: Int, j: Int): Double {
