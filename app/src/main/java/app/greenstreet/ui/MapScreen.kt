@@ -33,6 +33,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.unit.sp
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameMillis
 import androidx.compose.ui.Alignment
@@ -160,6 +163,10 @@ fun MapScreen(open: (Sheet) -> Unit) {
     LaunchedEffect(Unit) { while (true) { kotlinx.coroutines.delay(1000); clock = app.greenstreet.Clock.now() } }
     val status = c.places.keys.associateWith { c.whereabouts(it, clock) }
     val walkers = status.filterValues { it == Whereabouts.OUT }.keys.mapNotNull { id -> c.spotNow(id, clock)?.let { id to it } }.toMap()
+    // the tap handler lives across recompositions: it reads where the walkers are now, not where they were when it was made
+    val walkersNow by rememberUpdatedState(walkers)
+    // the panel under the map folds away, and the map takes the whole screen
+    var panelOpen by rememberSaveable { mutableStateOf(true) }
 
     Column(Modifier.fillMaxSize()) {
         // the map takes all the room the panel below leaves; its height in map pixels follows the box
@@ -186,18 +193,21 @@ fun MapScreen(open: (Sheet) -> Unit) {
                         if (acc < .74f && zoom < ZOOMS.size - 1) { zoom++; acc = 1f }
                     }
                 }
-                .pointerInput(ver) {
+                // keyed on the zoom and the player's spot too: a handler kept from before a zoom read taps at the old scale and missed the beds
+                .pointerInput(ver, vw, vh, mx, my) {
                     detectTapGestures(
                         onTap = { o ->
                             val k = size.width / vw.toFloat()
                             val cx = clampCam(mx - vw / 2 + pan.x, t.w, vw); val cy = clampCam(my - vh * 11 / 20 + pan.y, t.h, vh)
                             val ax = cx + o.x / k; val ay = cy + o.y / k
+                            // a finger is about 24 dp wide whatever the zoom: far out, a bed is only a few map pixels
+                            val finger = 24.dp.toPx() / k
                             val bed = s.beds.filter { c.content.variety[it.variety]?.place == Place.VERGE }.minByOrNull { Math.hypot(d.x(it.lon) - ax.toDouble(), d.y(it.lat) - ay.toDouble()) }
-                            if (bed != null && Math.hypot(d.x(bed.lon) - ax.toDouble(), d.y(bed.lat) - ay.toDouble()) < 7) { open(Sheet.BedInfo(bed.id)); return@detectTapGestures }
-                            val walker = walkers.entries.minByOrNull { Math.hypot(it.value.x - ax.toDouble(), it.value.y - 6 - ay.toDouble()) }
-                            if (walker != null && Math.hypot(walker.value.x - ax.toDouble(), walker.value.y - 6 - ay.toDouble()) < 8) { open(Sheet.Place(walker.key)); return@detectTapGestures }
+                            if (bed != null && Math.hypot(d.x(bed.lon) - ax.toDouble(), d.y(bed.lat) - ay.toDouble()) < maxOf(7f, finger)) { open(Sheet.BedInfo(bed.id)); return@detectTapGestures }
+                            val walker = walkersNow.entries.minByOrNull { Math.hypot(it.value.x - ax.toDouble(), it.value.y - 6 - ay.toDouble()) }
+                            if (walker != null && Math.hypot(walker.value.x - ax.toDouble(), walker.value.y - 6 - ay.toDouble()) < maxOf(8f, finger)) { open(Sheet.Place(walker.key)); return@detectTapGestures }
                             val who = c.places.entries.minByOrNull { Math.hypot(it.value.x - ax.toDouble(), it.value.y - 6 - ay.toDouble()) }
-                            if (who != null && Math.hypot(who.value.x - ax.toDouble(), who.value.y - 6 - ay.toDouble()) < 9) open(Sheet.Place(who.key))
+                            if (who != null && Math.hypot(who.value.x - ax.toDouble(), who.value.y - 6 - ay.toDouble()) < maxOf(9f, finger)) open(Sheet.Place(who.key))
                         },
                         onLongPress = { o ->
                             if (!BuildConfig.DEMO) return@detectTapGestures
@@ -296,11 +306,13 @@ fun MapScreen(open: (Sheet) -> Unit) {
                 PixelButton("−", { if (zoom < ZOOMS.size - 1) zoom++ }, kind = Kind.GHOST, enabled = zoom < ZOOMS.size - 1)
             }
             if (pan != IntOffset.Zero) PixelButton(w(ru, "К себе", "To me"), { pan = IntOffset.Zero }, Modifier.align(Alignment.TopEnd).padding(8.dp), Kind.GHOST)
+            if (!mapLoading) PixelButton(if (panelOpen) w(ru, "Скрыть ▾", "Hide ▾") else w(ru, "Описание ▴", "Details ▴"), { panelOpen = !panelOpen },
+                Modifier.align(Alignment.BottomEnd).padding(8.dp), Kind.GHOST)
         }
         // what can be done right here: a compact block that never needs scrolling
         val near = s.beds.filter { c.content.variety[it.variety]?.place == Place.VERGE && Geo(it.lat, it.lon).metres(me) <= c.game.reach(s) }
         var questOpen by remember { mutableStateOf(false) }
-        Column(Modifier.fillMaxWidth().heightIn(max = 340.dp).verticalScroll(rememberScrollState()).padding(horizontal = 12.dp, vertical = 8.dp),
+        if (panelOpen) Column(Modifier.fillMaxWidth().heightIn(max = 340.dp).verticalScroll(rememberScrollState()).padding(horizontal = 12.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp)) {
             ver.let { }
             Row(verticalAlignment = Alignment.Bottom) {
@@ -354,11 +366,8 @@ fun MapScreen(open: (Sheet) -> Unit) {
                         Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(top = 6.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             sowable.forEach { v ->
                                 val hot = c.game.demand(s, now) == v.crop
-                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                    ItemSlot(app.greenstreet.ui.art.ItemIcons.packet(c.content, v.key), s.seeds[v.key], false, mark = if (hot) "★" else null) {
-                                        c.game.sow(s, now, v.key, Geo(d.lat(spot[1] + .5f), d.lon(spot[0] + .5f))); c.changed()
-                                    }
-                                    Text(dayMonth(c.game.ripeOn(v, now), ru), style = T.Small)
+                                SeedPacket(c, v, s.seeds[v.key], ru, dayMonth(c.game.ripeOn(v, now), ru), mark = if (hot) "★" else null, variety = false) {
+                                    c.game.sow(s, now, v.key, Geo(d.lat(spot[1] + .5f), d.lon(spot[0] + .5f))); c.changed()
                                 }
                             }
                         }
@@ -394,6 +403,23 @@ fun MapScreen(open: (Sheet) -> Unit) {
             if (System.currentTimeMillis() - tended.first < 6000 && tended.second > 0)
                 Text(w(ru, "Грядок проведано: %d. Полито.", "Beds looked after: %d. Watered.").format(tended.second), style = T.Body.copy(color = C.green))
         }
+    }
+}
+
+/** A seed packet to sow with a tap, its name written under it so nobody has to tell rye from wheat by the picture; on the street, under the map, only the crop and the date, to keep the walk button in sight. */
+@Composable
+fun SeedPacket(c: app.greenstreet.AppContainer, v: app.greenstreet.data.Variety, count: Int?, ru: Boolean, sub: String? = null, mark: String? = null, variety: Boolean = true, onClick: () -> Unit) {
+    // the crop in dark letters ("Рожь"), the variety under it, pale ("«Северянка»"): a long name never breaks mid-word
+    val full = v.name(ru)
+    val cut = full.indexOf(if (ru) " «" else " '")
+    val crop = if (cut > 0) full.substring(0, cut) else full
+    val sort = if (cut > 0) full.substring(cut + 1) else null
+    val ell = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+    Column(Modifier.width(90.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+        ItemSlot(app.greenstreet.ui.art.ItemIcons.packet(c.content, v.key), count, false, mark = mark, onClick = onClick)
+        Text(crop, style = T.Small.copy(color = C.ink, lineHeight = 16.sp), textAlign = TextAlign.Center, maxLines = 2, overflow = ell, modifier = Modifier.padding(top = 2.dp))
+        if (sort != null && variety) Text(sort, style = T.Small.copy(lineHeight = 16.sp), textAlign = TextAlign.Center, maxLines = 1, overflow = ell)
+        if (sub != null) Text(sub, style = T.Small.copy(color = C.ink), maxLines = 1)
     }
 }
 

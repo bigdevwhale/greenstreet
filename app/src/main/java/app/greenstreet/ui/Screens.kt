@@ -146,6 +146,7 @@ private fun YardPart(c: app.greenstreet.AppContainer, ver: Int, ru: Boolean, hom
             if (s.eggs > 0) PixelButton(w(ru, "Собрать", "Collect"), { c.game.collectEggs(s); c.changed() }, enabled = home)
         }
     }
+    VergeBeds(c, ru, open)
     for (place in listOf(Place.SILL, Place.BALCONY, Place.GARDEN)) {
         if (!c.game.placeOpen(s, now, place)) continue
         val title = when (place) { Place.SILL -> w(ru, "Подоконник", "The windowsill"); Place.BALCONY -> w(ru, "Балкон-теплица", "The balcony greenhouse"); else -> w(ru, "Общий сад", "The shared garden") }
@@ -168,7 +169,7 @@ private fun YardPart(c: app.greenstreet.AppContainer, ver: Int, ru: Boolean, hom
             if (sowable.isNotEmpty() && home) {
                 Text(w(ru, "Посеять — нажмите на пакетик:", "To sow, tap a packet:"), style = T.Small, modifier = Modifier.padding(top = 10.dp))
                 FlowRow(Modifier.padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    sowable.forEach { v -> ItemSlot(app.greenstreet.ui.art.ItemIcons.packet(c.content, v.key), s.seeds[v.key], false) { c.game.sow(s, now, v.key, s.home ?: Geo(0.0, 0.0)); c.changed() } }
+                    sowable.forEach { v -> SeedPacket(c, v, s.seeds[v.key], ru) { c.game.sow(s, now, v.key, s.home ?: Geo(0.0, 0.0)); c.changed() } }
                 }
             }
             if (sowable.isNotEmpty() && !home) Text(w(ru, "Семена есть — посеять можно, когда вы дома.", "You have seeds: sow them when you're home."), style = T.Small, modifier = Modifier.padding(top = 6.dp))
@@ -176,6 +177,39 @@ private fun YardPart(c: app.greenstreet.AppContainer, ver: Int, ru: Boolean, hom
                 if (place == Place.SILL) w(ru, "Пусто. Семена для подоконника — ростки, зелень, луковицы — круглый год продаёт рынок. Растут в любой месяц.",
                     "Empty. The market sells windowsill seeds — shoots, greens, bulbs — all year. They grow in any month.")
                 else w(ru, "Пусто. Семена для этого места дают соседи.", "Empty. Neighbours give seeds for this spot."), style = T.Small)
+        }
+    }
+}
+
+/**
+ * Every bed on the street in one list: what grows, when it ripens, whether it has had water today and how far it is,
+ * so nobody has to find each one on the map and hit it with a finger. A tap opens the bed's card; "Show" finds it on the map.
+ */
+@Composable
+private fun VergeBeds(c: app.greenstreet.AppContainer, ru: Boolean, open: (Sheet) -> Unit) {
+    val s = c.state ?: return
+    val now = c.now()
+    val me = c.here.collectAsState().value ?: s.home ?: return
+    val beds = s.beds.filter { c.content.variety[it.variety]?.place == Place.VERGE }
+    if (beds.isEmpty()) return
+    // ripe first, then the thirsty ones, then the rest by distance
+    val order = beds.sortedWith(compareBy<app.greenstreet.domain.Bed>({ !c.game.ripe(it) }, { c.game.outlook(s, it, now).watered || c.game.outlook(s, it, now).rain }, { Geo(it.lat, it.lon).metres(me) }))
+    Section(w(ru, "Грядки у дороги", "Verge beds") + " · ${beds.size}/${c.game.capacity(s, now, Place.VERGE)}", "tab_street") {
+        order.forEach { b ->
+            val v = c.content.variety.getValue(b.variety)
+            val ripe = c.game.ripe(b)
+            val o = c.game.outlook(s, b, now)
+            val dry = !ripe && !o.watered && !o.rain
+            val g = Geo(b.lat, b.lon)
+            Row(Modifier.fillMaxWidth().padding(top = 6.dp).clickable { open(Sheet.BedInfo(b.id)) }, verticalAlignment = Alignment.CenterVertically) {
+                Box(Modifier.size(44.dp).slot(gold = ripe), contentAlignment = Alignment.Center) { BufImage(app.greenstreet.ui.art.ItemIcons.of(c.content, v.key), Modifier, 1.1.dp) }
+                Column(Modifier.weight(1f).padding(start = 10.dp)) {
+                    Text(v.name(ru), style = T.Body, maxLines = 2)
+                    Text(bedState(c, b, now, ru), style = T.Small.copy(color = if (ripe) C.green else if (dry || b.wild) C.red else C.muted), maxLines = 2)
+                    Text(where(me, g, ru), style = T.Small, maxLines = 1)
+                }
+                PixelButton(w(ru, "Показать", "Show"), { c.focus.value = g; open(Sheet.Tab(0)) }, kind = Kind.GHOST)
+            }
         }
     }
 }
