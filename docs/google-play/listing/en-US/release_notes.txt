@@ -1,4 +1,3 @@
-Fish bite all year round.
-No water near home? The game digs a lake and ponds in the nearest parks.
-A strolling neighbour waits for you from 80 m and doesn't walk off until you're 120 m away.
-A neighbour's place you can't get to can be moved up to 150 m: "Move it" on their card.
+The "Where is home?" page no longer hangs waiting for your location: it now uses Wi-Fi too and notices when location is switched on.
+With approximate location only, the game asks for precise location: otherwise home would land a kilometre off.
+If no position comes within 30 seconds, the game suggests what to check.

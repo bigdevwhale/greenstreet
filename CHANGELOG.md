@@ -6,6 +6,19 @@ line "<!-- tg", then 2-4 short lines in Russian for users (what is new, what is 
 then close it like any HTML comment. The release notes carry it, and the chat bot posts those lines.
 -->
 
+## [0.14.10] - 2026-11-18
+
+### Fixed
+- "Where is home?" could wait for the phone forever. The game listened only to the providers that were on when it started: location switched on later, or allowed only as approximate, left it deaf. It now listens to the fused provider too, picks up providers switched on later and checks the permission every two seconds.
+- With approximate location only, the game says so and asks for precise location (or points to the app's settings once it was refused): home placed by an approximate fix would land a kilometre off.
+- Location switched off on the phone: the page says so and opens the location settings. After 30 seconds without a fix it suggests going to a window or outdoors.
+- A position the phone remembered from long ago is no longer taken for where you are.
+
+<!-- tg
+Исправили зависание на экране «Где ваш дом?»: игра теперь ловит позицию и по Wi-Fi, и после того как геолокацию включили в шторке
+Если разрешено только приблизительное местоположение, игра попросит точное: иначе дом встал бы за километр
+-->
+
 ## [0.14.9] - 2026-11-17
 
 ### Added
