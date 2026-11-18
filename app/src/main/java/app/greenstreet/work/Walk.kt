@@ -17,6 +17,7 @@ import android.location.LocationManager
 import android.os.Build
 import android.os.IBinder
 import android.os.Looper
+import android.os.SystemClock
 import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
 import androidx.core.content.ContextCompat
@@ -31,25 +32,48 @@ class Tracker(private val context: Context) : LocationListener {
     private val lm = context.getSystemService(LocationManager::class.java)
     private var users = 0
 
-    val allowed get() = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
+    private fun has(p: String) = ContextCompat.checkSelfPermission(context, p) == PackageManager.PERMISSION_GRANTED
+    /** Any location at all: precise or only approximate. */
+    val allowed get() = has(Manifest.permission.ACCESS_FINE_LOCATION) || has(Manifest.permission.ACCESS_COARSE_LOCATION)
+    /** Precise location: an approximate one is off by a kilometre or more, too coarse for beds and home. */
+    val precise get() = has(Manifest.permission.ACCESS_FINE_LOCATION)
+    /** Whether location is switched on in the phone at all. */
+    val locationOn get() = runCatching { lm.isLocationEnabled }.getOrDefault(true)
+    /** The providers listened to now. */
+    private val on = mutableSetOf<String>()
 
-    @SuppressLint("MissingPermission")
     @Synchronized
     fun start() {
-        if (!allowed) return
-        if (users++ > 0) return
-        for (p in listOf(LocationManager.GPS_PROVIDER, LocationManager.NETWORK_PROVIDER)) {
-            if (runCatching { lm.isProviderEnabled(p) }.getOrDefault(false)) {
-                runCatching { lm.requestLocationUpdates(p, 4000L, 4f, this, Looper.getMainLooper()) }
-                runCatching { lm.getLastKnownLocation(p) }.getOrNull()?.let { onLocationChanged(it) }
-            }
-        }
+        if (users++ == 0) refresh()
     }
 
     @Synchronized
     fun stop() {
         if (users == 0) return
-        if (--users == 0) runCatching { lm.removeUpdates(this) }
+        if (--users == 0) { runCatching { lm.removeUpdates(this) }; on.clear() }
+    }
+
+    /**
+     * Listens to every provider that is on and isn't listened to yet. Called again after a permission is given
+     * or location is switched on in the phone: a provider that was off at the start is otherwise never heard.
+     */
+    @SuppressLint("MissingPermission")
+    @Synchronized
+    fun refresh() {
+        if (users == 0 || !allowed) return
+        val ps = buildList {
+            // "fused" (Wi-Fi, cells and satellites together) is there before Android 12 too, only not named in the SDK
+            add("fused")
+            add(LocationManager.GPS_PROVIDER); add(LocationManager.NETWORK_PROVIDER)
+        }
+        for (p in ps) {
+            if (p in on || !runCatching { lm.isProviderEnabled(p) }.getOrDefault(false)) continue
+            if (runCatching { lm.requestLocationUpdates(p, 4000L, 4f, this, Looper.getMainLooper()) }.isSuccess) on += p
+            // a remembered position only if it's fresh: an old one may be another street or another town
+            runCatching { lm.getLastKnownLocation(p) }.getOrNull()
+                ?.takeIf { SystemClock.elapsedRealtimeNanos() - it.elapsedRealtimeNanos < 120_000_000_000L }
+                ?.let { onLocationChanged(it) }
+        }
     }
 
     override fun onLocationChanged(l: Location) {
@@ -61,7 +85,7 @@ class Tracker(private val context: Context) : LocationListener {
 
     @Deprecated("Deprecated in Java")
     override fun onStatusChanged(provider: String?, status: Int, extras: android.os.Bundle?) = Unit
-    override fun onProviderEnabled(provider: String) = Unit
+    override fun onProviderEnabled(provider: String) = refresh()
     override fun onProviderDisabled(provider: String) = Unit
 
     companion object {

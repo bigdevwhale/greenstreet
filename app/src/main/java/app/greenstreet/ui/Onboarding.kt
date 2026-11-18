@@ -1,8 +1,10 @@
 package app.greenstreet.ui
 
 import android.Manifest
-import android.content.pm.PackageManager
+import android.content.Intent
+import android.net.Uri
 import android.os.Build
+import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -34,7 +36,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import androidx.core.content.ContextCompat
 import app.greenstreet.container
 import app.greenstreet.domain.Sky
 import app.greenstreet.ui.art.FacadeScene
@@ -62,6 +63,7 @@ import app.greenstreet.ui.components.parchment
 import app.greenstreet.ui.theme.C
 import app.greenstreet.ui.theme.T
 import app.greenstreet.work.Tracker
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.time.LocalDateTime
 
@@ -121,15 +123,46 @@ fun Onboarding() {
     var busy by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf(false) }
     var why by remember { mutableStateOf("") }
-    var granted by remember { mutableStateOf(ContextCompat.checkSelfPermission(ctx, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) }
-    val ask = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { r ->
-        granted = r[Manifest.permission.ACCESS_FINE_LOCATION] == true || r[Manifest.permission.ACCESS_COARSE_LOCATION] == true
-        if (granted) Tracker.of(ctx).start()
+    val tracker = remember { Tracker.of(ctx) }
+    var granted by remember { mutableStateOf(tracker.allowed) }
+    var precise by remember { mutableStateOf(tracker.precise) }
+    var locOn by remember { mutableStateOf(tracker.locationOn) }
+    // asked for precise location and still didn't get it: the dialog won't show again, only the app's settings help
+    var refused by remember { mutableStateOf(false) }
+    var upgrading by remember { mutableStateOf(false) }
+    val ask = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
+        // a fix heard while only approximate is allowed is off by a kilometre: wait for a precise one
+        if (!precise && tracker.precise) c.here.value = null
+        granted = tracker.allowed; precise = tracker.precise
+        if (upgrading && !precise) refused = true
+        tracker.refresh()
     }
-    LaunchedEffect(granted) { if (granted) Tracker.of(ctx).start() }
+    fun askLocation() {
+        if (refused) {
+            runCatching { ctx.startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", ctx.packageName, null))) }
+            return
+        }
+        val perms = mutableListOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)
+        if (Build.VERSION.SDK_INT >= 33) perms += Manifest.permission.POST_NOTIFICATIONS
+        upgrading = granted && !precise
+        ask.launch(perms.toTypedArray())
+    }
+    // seconds spent waiting for a position on the last page
+    var waited by remember { mutableIntStateOf(0) }
     val now = app.greenstreet.Clock.now()
     val m = Moment(now.hour * 60 + now.minute, Sky(sun = true), now.monthValue, now.toLocalDate().toEpochDay())
     val pages = 6
+    // the permission and the location switch can change in the phone's settings meanwhile: look again every two seconds
+    LaunchedEffect(page) {
+        waited = 0
+        while (true) {
+            if (!precise && tracker.precise) c.here.value = null
+            granted = tracker.allowed; precise = tracker.precise; locOn = tracker.locationOn
+            tracker.refresh()
+            delay(2000)
+            if (page == pages - 1 && c.here.value == null) waited += 2
+        }
+    }
 
     Column(Modifier.fillMaxSize().then(Modifier.parchment()).statusBarsPadding().navigationBarsPadding()) {
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(20.dp)) {
@@ -182,12 +215,11 @@ fun Onboarding() {
                         "Геолокация — чтобы знать, мимо каких грядок вы прошли. Пока приложение открыто, оно слушает GPS само. Если нажать «Выйти на прогулку», будет слушать и в кармане, с тихим уведомлением, пока вы не закончите.\n\nУведомления — для прогулки и чтобы сказать, что созрел урожай.\n\nКоординаты не уходят никуда, кроме запросов карты (OpenStreetMap) и погоды (MET Norway, Open-Meteo) для вашего района.",
                         "Location — to know which beds you walk past. While the app is open it listens to the GPS itself. Tap 'Go for a walk' and it keeps listening with the phone in your pocket, with a quiet notification, until you're done.\n\nNotifications — for the walk and to say a harvest is ripe.\n\nYour location goes nowhere except the map (OpenStreetMap) and weather (MET Norway, Open-Meteo) requests for your area."), style = T.Body)
                     Spacer(Modifier.height(14.dp))
-                    if (granted) Text(w(ru, "Геолокация разрешена.", "Location is allowed."), style = T.Body.copy(color = C.green))
-                    else PixelButton(w(ru, "Разрешить", "Allow"), {
-                        val perms = mutableListOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)
-                        if (Build.VERSION.SDK_INT >= 33) perms += Manifest.permission.POST_NOTIFICATIONS
-                        ask.launch(perms.toTypedArray())
-                    }, Modifier.fillMaxWidth(), Kind.LAMP)
+                    if (precise) Text(w(ru, "Геолокация разрешена.", "Location is allowed."), style = T.Body.copy(color = C.green))
+                    else {
+                        if (granted) Text(preciseNeeded(ru, refused), style = T.Body.copy(color = C.red), modifier = Modifier.padding(bottom = 8.dp))
+                        PixelButton(allowLabel(ru, granted, refused), { askLocation() }, Modifier.fillMaxWidth(), Kind.LAMP)
+                    }
                     Spacer(Modifier.height(20.dp))
                     Text(w(ru, "Погода", "Weather"), style = T.Heading)
                     Spacer(Modifier.height(6.dp))
@@ -202,8 +234,26 @@ fun Onboarding() {
                     Spacer(Modifier.height(16.dp))
                     when {
                         !granted -> Text(w(ru, "Сначала разрешите геолокацию — на прошлой странице.", "Allow location first — on the previous page."), style = T.Body.copy(color = C.red))
+                        !locOn -> {
+                            Text(w(ru, "Геолокация в телефоне выключена. Включите её в шторке или в настройках.", "Location is switched off on the phone. Turn it on in the quick settings or in Settings."), style = T.Body.copy(color = C.red))
+                            Spacer(Modifier.height(8.dp))
+                            PixelButton(w(ru, "Настройки геолокации", "Location settings"), {
+                                runCatching { ctx.startActivity(Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS)) }
+                            }, Modifier.fillMaxWidth(), Kind.LAMP)
+                        }
+                        !precise -> {
+                            Text(preciseNeeded(ru, refused), style = T.Body.copy(color = C.red))
+                            Spacer(Modifier.height(8.dp))
+                            PixelButton(allowLabel(ru, true, refused), { askLocation() }, Modifier.fillMaxWidth(), Kind.LAMP)
+                        }
                         busy -> Loading()
-                        here == null -> Text(w(ru, "Жду, пока телефон найдёт, где вы… На улице это быстрее.", "Waiting for the phone to find where you are… It's quicker outdoors."), style = T.Body)
+                        here == null -> {
+                            Text(w(ru, "Жду, пока телефон найдёт, где вы… На улице это быстрее.", "Waiting for the phone to find where you are… It's quicker outdoors."), style = T.Body)
+                            if (waited >= 30) Text(w(ru,
+                                "Долго не находит? Подойдите к окну или выйдите на улицу: в доме спутники часто не слышно. И проверьте в настройках геолокации, что включён поиск по Wi-Fi и повышенная точность.",
+                                "Taking long? Go to a window or outdoors: satellites are often out of reach indoors. And check in the location settings that Wi-Fi scanning and improved accuracy are on."),
+                                style = T.Small, modifier = Modifier.padding(top = 8.dp))
+                        }
                         else -> PixelButton(w(ru, "Здесь мой дом", "My home is here"), {
                             busy = true; error = false
                             scope.launch { runCatching { c.setHome(here!!) }.onFailure { error = true; why = it.message ?: it.javaClass.simpleName }; busy = false; c.wake() }
@@ -231,4 +281,18 @@ fun Onboarding() {
             if (page < pages - 1) PixelButton(w(ru, "Дальше", "Next"), { page++ }) else Spacer(Modifier.size(1.dp))
         }
     }
+}
+
+/** Why approximate location isn't enough and what to do: allow it in the dialog, or in the app's settings once it was refused there. */
+private fun preciseNeeded(ru: Boolean, refused: Boolean) = when {
+    ru -> "Разрешено только приблизительное местоположение: с ним дом встанет за километр от настоящего, а грядки не заметят, что вы прошли. " +
+        if (refused) "В настройках приложения: Разрешения → Местоположение → включите «Точное местоположение»." else "Нужно точное."
+    else -> "Only approximate location is allowed: home would land a kilometre off and the beds wouldn't notice you passing. " +
+        if (refused) "In the app's settings: Permissions → Location → turn on 'Use precise location'." else "Precise location is needed."
+}
+
+private fun allowLabel(ru: Boolean, granted: Boolean, refused: Boolean) = when {
+    refused -> w(ru, "Открыть настройки", "Open settings")
+    granted -> w(ru, "Разрешить точное", "Allow precise")
+    else -> w(ru, "Разрешить", "Allow")
 }
