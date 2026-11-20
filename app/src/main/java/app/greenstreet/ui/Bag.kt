@@ -122,13 +122,19 @@ fun BagScreen() {
             }, style = T.Body.copy(color = C.muted))
             if (tab == 2) Text(w(ru, "Записано %d из %d", "%d of %d recorded").format(s.album.size, keys.size), style = T.Small, modifier = Modifier.padding(bottom = 8.dp))
             if (tab == 3) Text(w(ru, "Получено %d из %d", "%d of %d earned").format(s.ribbons.size, keys.size), style = T.Small, modifier = Modifier.padding(bottom = 8.dp))
+            // seeds in groups with a heading each (#39); the other tabs as one grid
+            val groups = if (tab == 0) keys.groupBy { (k, _) -> app.greenstreet.data.SeedGroup.of(c.content.variety[k]?.crop ?: "") }.toSortedMap().toList()
+                else listOf(-1 to keys)
+            for ((g, part) in groups) {
+            if (g >= 0) Text(app.greenstreet.data.SeedGroup.name(g)(ru).uppercase(), style = T.Eyebrow, modifier = Modifier.padding(top = 8.dp, bottom = 4.dp))
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                for ((k, n) in keys) {
+                for ((k, n) in part) {
                     val known = when (tab) { 2 -> k in s.album; 3 -> k in s.ribbons; else -> true }
                     val icon = when (tab) { 0 -> ItemIcons.packet(c.content, k); 3 -> ribbonIcon(c, k); else -> if (known) ItemIcons.of(c.content, k) else null }
                     val dim = tab == 3 && !known
                     ItemSlot(icon, n, picked == k, dim) { picked = if (picked == k) null else k }
                 }
+            }
             }
             Spacer(Modifier.height(16.dp))
             c.content.almanac["%02d-%02d".format(now.date.monthValue, now.date.dayOfMonth)]?.let {

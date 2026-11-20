@@ -452,9 +452,11 @@ private fun Visit(c: AppContainer, id: String, go: (Sheet) -> Unit) {
         val gifts = s.bag.keys.toList()
         if (gifts.isNotEmpty()) {
             Text(w(ru, "Подарить (раз в день) — нажмите на вещь:", "Give a present (once a day) — tap a thing:"), style = T.Body, modifier = Modifier.padding(top = 10.dp))
+            // what was tried before carries its mark (#50)
+            if (s.bonds[id]?.known?.isNotEmpty() == true) Text(w(ru, "Значки — что уже дарили: ♥♥ очень любит, ♥ рад, – всё равно, ✗ не любит.", "Marks show what you've given: ♥♥ loves, ♥ glad, – doesn't mind, ✗ doesn't like."), style = T.Small)
             FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 gifts.forEach { k ->
-                    val mark = when (s.bonds[id]?.known?.get(k)) { "love" -> "♥♥"; "like" -> "♥"; "dislike" -> "✗"; else -> null }
+                    val mark = when (s.bonds[id]?.known?.get(k)) { "love" -> "♥♥"; "like" -> "♥"; "dislike" -> "✗"; "plain" -> "–"; else -> null }
                     ItemSlot(app.greenstreet.ui.art.ItemIcons.of(c.content, k), s.bag[k], false, mark = mark) {
                         val r = c.game.gift(s, now, id, k); c.changed()
                         said = when (r) {

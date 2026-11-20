@@ -51,6 +51,8 @@ private const val WAIT_M = 80.0
 private const val LEAVE_M = 120.0
 /** How far a neighbour's place may be moved from where the map first put it, metres. */
 const val MOVE_M = 150.0
+/** How many ponds the player may dig (#48). */
+const val MAX_PONDS = 2
 /** Worse than this many metres a fix is too unsure to walk, tend or set home with (#26, #45). */
 const val WEAK_GPS = 40f
 
@@ -147,6 +149,10 @@ class AppContainer(context: Context) {
         fun open(p: Spot) = ter == null || ter.reachable(p.x.toInt(), p.y.toInt(), REACH_PX)
         fun dist(p: Spot) = Math.hypot((p.x - hx).toDouble(), (p.y - hy).toDouble()) + if (open(p)) 0.0 else FENCE_PX
         val taken = HashSet<Spot>()
+        // places the player marked out of reach (#41): never offered again
+        val shut = s?.flags?.filter { it.startsWith("shut:") }?.mapNotNull { f -> f.removePrefix("shut:").split(',').takeIf { it.size == 2 }?.let { (a, b) -> a.toDoubleOrNull()?.let { la -> b.toDoubleOrNull()?.let { lo -> Spot(d.x(lo), d.y(la), "", "") } } } }.orEmpty()
+        fun isShut(p: Spot) = shut.any { Math.hypot((it.x - p.x).toDouble(), (it.y - p.y).toDouble()) * d.mpp < 25 }
+        taken += d.places.filter(::isShut)
         val town = content.people.filter { !it.yard }.map { it.id }.toSet()
         s?.places?.forEach { (id, k) ->
             if (id !in town) return@forEach
@@ -359,6 +365,47 @@ class AppContainer(context: Context) {
     }
 
     fun geoOf(s: Spot): Geo? { val d = district ?: return null; return Geo(d.lat(s.y), d.lon(s.x)) }
+
+    /** The ponds the player dug (#47, #48): where the map has too little water, a dam where they stood. */
+    fun ponds(): List<Geo> = state?.flags?.filter { it.startsWith("pond:") }?.mapNotNull { f ->
+        f.removePrefix("pond:").split(',').takeIf { it.size == 2 }?.let { (a, b) -> a.toDoubleOrNull()?.let { la -> b.toDoubleOrNull()?.let { lo -> Geo(la, lo) } } }
+    }.orEmpty()
+
+    /** By one of the player's ponds, within 25 m. */
+    fun byOwnPond(at: Geo? = here.value): Boolean = at != null && ponds().any { it.metres(at) <= 25 }
+
+    /** Why a pond can't be dug at [at] now, or null if it can. */
+    fun pondBlock(at: Geo?): String? {
+        if (at == null) return "gps"
+        if (hereAcc.value > WEAK_GPS) return "gps"
+        if (ponds().size >= MAX_PONDS) return "max"
+        if (ponds().any { it.metres(at) < 300 }) return "close"
+        val d = district ?: return "map"; val t = terrain ?: return "map"
+        if (!t.reachable(d.x(at.lon).toInt(), d.y(at.lat).toInt(), 3)) return "shut"
+        return null
+    }
+
+    /** Digs a pond where the player stands (#48): it fishes like a river. */
+    fun digPond(at: Geo): Boolean {
+        if (pondBlock(at) != null) return false
+        val s = state ?: return false
+        s.flags += "pond:%.6f,%.6f".format(java.util.Locale.ROOT, at.lat, at.lon)
+        changed(); return true
+    }
+
+    /**
+     * The player can't get to a neighbour's place at all (a locked kindergarten yard, #41): as in Postround, it is
+     * marked out of reach and the neighbour moves to the nearest fitting open place; the bond and its progress stay.
+     */
+    fun shutPlace(id: String): Boolean {
+        val d = district ?: return false; val s = state ?: return false
+        val old = places[id] ?: return false
+        s.flags += "shut:%.6f,%.6f".format(java.util.Locale.ROOT, d.lat(old.y), d.lon(old.x))
+        s.places.remove(id)
+        s.home?.let { bind(d, it) }
+        store.save(s); version.value++
+        return places[id] != null
+    }
 
     /** Can the player talk to a neighbour now: near their place while it's open, near them while they walk, or home with the yard's people awake. */
     fun near(id: String, at: Geo? = here.value): Boolean {

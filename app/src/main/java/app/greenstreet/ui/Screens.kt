@@ -332,6 +332,14 @@ fun PeopleScreen(open: (Sheet) -> Unit) {
                         Text("›", style = T.Heading)
                     }
                     val all = c.content.people.sortedWith(compareByDescending<app.greenstreet.data.Person> { s.bonds[it.id]?.isOpen == true }.thenByDescending { s.bonds[it.id]?.points ?: -1 })
+                    // who has been seen today, to know whom to catch on the street (#49)
+                    val today = all.filter { s.bonds[it.id]?.visited == now.day }
+                    val todo = all.filter { s.bonds[it.id]?.isOpen == true && s.bonds[it.id]?.visited != now.day }
+                    if (today.isNotEmpty() || todo.isNotEmpty()) Panel(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp), fill = C.paper) {
+                        Text(w(ru, "сегодня", "today"), style = T.Eyebrow)
+                        Text(if (today.isEmpty()) w(ru, "Сегодня ещё ни у кого не были.", "No visits yet today.") else w(ru, "Обошли: ", "Seen: ") + today.joinToString(", ") { shortName(it.name(ru)) }, style = T.Body)
+                        if (todo.isNotEmpty()) Text(w(ru, "Ещё не заходили: ", "Not yet: ") + todo.joinToString(", ") { shortName(it.name(ru)) }, style = T.Small)
+                    }
                     PeopleGrid(c, ru, all.filter { s.bonds[it.id]?.isOpen == true }, w(ru, "Знакомые", "Friends"), open)
                     PeopleGrid(c, ru, all.filter { s.bonds[it.id]?.isOpen != true }, w(ru, "Ещё не знакомы", "Not met yet"), open)
                 }
@@ -362,7 +370,7 @@ private fun PeopleGrid(c: app.greenstreet.AppContainer, ru: Boolean, people: Lis
             Column(Modifier.weight(1f).fillMaxHeight().card().clip(app.greenstreet.ui.components.CardShape).clickable { open(Sheet.Place(p.id)) }.padding(vertical = 10.dp, horizontal = 6.dp),
                 horizontalAlignment = Alignment.CenterHorizontally) {
                 app.greenstreet.ui.components.Avatar(remember(p.id) { portrait(c, p.id) }, 62.dp, dim = !opened, mark = mark)
-                Text(if (opened) p.name(ru).substringBefore(' ') else "???", style = T.Body, maxLines = 1, overflow = one, modifier = Modifier.padding(top = 4.dp))
+                Text(if (opened) shortName(p.name(ru)) else "???", style = T.Body, maxLines = 1, overflow = one, modifier = Modifier.padding(top = 4.dp))
                 Text(p.role(ru), style = T.Small, maxLines = 1, overflow = one, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
                 val (dot, word) = when (st) {
                     app.greenstreet.domain.Whereabouts.WORK -> C.green to w(ru, "на месте", "in")
@@ -542,4 +550,11 @@ fun portraitFace(c: app.greenstreet.AppContainer, id: String, size: Int): Buf? {
     val o = Buf(size, size)
     for (y in 0 until size) for (x in 0 until size) o.d[y * size + x] = p.get(x0 + x * side / size, y * side / size)
     return o
+}
+
+/** A neighbour's name for a small card, without «тётя», «доктор» and the like: the others show only a name (#52). */
+fun shortName(full: String): String {
+    val titles = setOf("тётя", "тетя", "дядя", "доктор", "бабушка", "дедушка", "баба", "дед", "aunt", "auntie", "uncle", "dr", "doctor", "granny", "grandpa")
+    val words = full.split(' ').filter { it.isNotBlank() }
+    return words.firstOrNull { it.lowercase().trimEnd('.') !in titles } ?: words.firstOrNull() ?: full
 }

@@ -329,3 +329,18 @@ class Content(
         }
     }
 }
+
+/** Seed groups for the bag (#39): what kind of plant a crop is, so an unfamiliar name still tells something. */
+object SeedGroup {
+    private val VEG = setOf("radish", "beet", "carrot", "turnip", "horseradish", "parsley", "garlic", "onion", "leek", "cabbage", "kohlrabi", "pumpkin", "zucchini",
+        "cucumber", "melon", "peas", "beans", "corn", "topinambur", "potato", "tomato", "cherry_tomato", "pepper", "chili", "eggplant", "lettuce", "spinach", "sorrel", "rhubarb")
+    private val HERB = setOf("basil", "catnip", "coriander", "dill", "mint", "thyme", "valerian", "cress", "green_onion", "microgreens", "sprouts", "lavender")
+    private val BERRY = setOf("strawberry", "raspberry", "currant", "gooseberry", "honeysuckle", "physalis", "apple_tree")
+    private val FLOWER = setOf("aster", "calendula", "chamomile", "cornflower", "cosmos", "marigold", "nasturtium", "poppy", "sweetpea", "sunflower",
+        "amaryllis", "crocus", "daffodil", "hyacinth", "tulip", "lupine")
+    private val GRAIN = setOf("buckwheat", "oats", "rye", "wheat", "flax")
+    /** 0 vegetables, 1 greens and herbs, 2 berries and fruit, 3 flowers, 4 grain, 5 the rest (dye plants and such). */
+    fun of(crop: String) = when (crop) { in VEG -> 0; in HERB -> 1; in BERRY -> 2; in FLOWER -> 3; in GRAIN -> 4; else -> 5 }
+    fun name(g: Int) = listOf(Tx("Овощи", "Vegetables"), Tx("Зелень и травы", "Greens and herbs"), Tx("Ягоды и фрукты", "Berries and fruit"),
+        Tx("Цветы", "Flowers"), Tx("Злаки", "Grain"), Tx("Красильные и прочие", "Dye plants and others"))[g]
+}

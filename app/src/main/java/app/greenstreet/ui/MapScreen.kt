@@ -245,6 +245,17 @@ fun MapScreen(open: (Sheet) -> Unit) {
                     if (bx < -10 || by < -20 || bx > vw + 10 || by > vh + 10) continue
                     objs += by + 3 to { view.bedOf(b, v, c.game.ripe(b), now.day, bx, by, tick) }
                 }
+                // the player's own ponds: small blue ovals with a darker rim
+                for (g in c.ponds()) {
+                    val px = d.x(g.lon).roundToInt() - cx; val py = d.y(g.lat).roundToInt() - cy
+                    if (px < -8 || py < -6 || px > vw + 8 || py > vh + 6) continue
+                    objs += py - 4 to {
+                        for (j in -4..4) for (i in -7..7) {
+                            val e = (i * i) / 49.0 + (j * j) / 16.0
+                            if (e <= 1.0) view.p(px + i, py + j, if (e > .62) 0xFF2F5E8C.toInt() else if (e < .2 && i < 0) 0xFF9CD3F2.toInt() else 0xFF4F8FC9.toInt())
+                        }
+                    }
+                }
                 for ((id, sp) in c.places) {
                     val p = c.content.person[id] ?: continue
                     val sx = sp.x.roundToInt() - cx; val sy = sp.y.roundToInt() - cy
@@ -352,6 +363,15 @@ fun MapScreen(open: (Sheet) -> Unit) {
         // what can be done right here: a compact block that never needs scrolling
         val near = s.beds.filter { c.content.variety[it.variety]?.place == Place.VERGE && Geo(it.lat, it.lon).metres(me) <= c.game.reach(s) }
         var questOpen by remember { mutableStateOf(false) }
+        var digAsk by remember { mutableStateOf(false) }
+        if (digAsk) androidx.compose.material3.AlertDialog(
+            onDismissRequest = { digAsk = false },
+            title = { Text(w(ru, "Выкопать пруд здесь?", "Dig a pond here?"), style = T.Heading) },
+            text = { Text(w(ru, "Если рядом нет воды или она за забором, можно выкопать свой пруд там, где вы стоите. В нём ловится та же рыба, что в реке. Прудов можно выкопать не больше %d, не ближе 300 м друг к другу.",
+                "If there's no water near, or it's behind a fence, dig a pond of your own where you stand. It has the same fish as a river. Up to %d ponds, at least 300 m apart.").format(app.greenstreet.MAX_PONDS), style = T.Body) },
+            confirmButton = { androidx.compose.material3.TextButton(onClick = { c.here.value?.let { c.digPond(it) }; digAsk = false }) { Text(w(ru, "Выкопать", "Dig"), style = T.Body.copy(color = C.green)) } },
+            dismissButton = { androidx.compose.material3.TextButton(onClick = { digAsk = false }) { Text(w(ru, "Отмена", "Cancel"), style = T.Body) } },
+        )
         if (panelOpen) Column(Modifier.fillMaxWidth().heightIn(max = 340.dp).verticalScroll(rememberScrollState()).padding(horizontal = 12.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp)) {
             ver.let { }
@@ -431,7 +451,11 @@ fun MapScreen(open: (Sheet) -> Unit) {
                     }
                     app.greenstreet.ui.components.ActionChip(label, { open(Sheet.Visit(id)) }, leading = { app.greenstreet.ui.components.Avatar(portrait(c, id), 28.dp) })
                 }
-                if (t.nearWater(mx, my, 6)) app.greenstreet.ui.components.ActionChip(w(ru, "Удочка", "Fish"), { open(Sheet.Fish(isBigWater(t, mx, my) || t.byBigPond(mx, my))) }, "walk")
+                // a pond the player dug fishes like a river (#47, #48)
+                val ownPond = c.byOwnPond(me)
+                if (t.nearWater(mx, my, 6) || ownPond) app.greenstreet.ui.components.ActionChip(w(ru, "Удочка", "Fish"), { open(Sheet.Fish(ownPond || isBigWater(t, mx, my) || t.byBigPond(mx, my))) }, "walk")
+                // no water close by: a pond can be dug where you stand, like home at the start
+                if (!t.nearWater(mx, my, 30) && !ownPond && c.pondBlock(c.here.value) == null) app.greenstreet.ui.components.ActionChip(w(ru, "Выкопать пруд", "Dig a pond"), { digAsk = true }, "walk")
                 if (c.near("mikhalych", me)) app.greenstreet.ui.components.ActionChip(w(ru, "Хозтовары", "Hardware"), { open(Sheet.Shop) }, "tools")
                 if (c.near("zina", me)) app.greenstreet.ui.components.ActionChip(if (now.saturday) w(ru, "Ярмарка", "The fair") else w(ru, "Семена", "Seeds"), { open(Sheet.Market) }, if (now.saturday) "fair" else "market")
                 if (c.atHome(me)) app.greenstreet.ui.components.ActionChip(w(ru, "Во двор", "Courtyard"), { open(Sheet.Tab(1)) }, "tab_yard")

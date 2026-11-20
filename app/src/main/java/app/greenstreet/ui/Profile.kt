@@ -1,5 +1,6 @@
 package app.greenstreet.ui
 
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -127,6 +128,13 @@ fun Profile(c: AppContainer, id: String, go: (Sheet) -> Unit, close: () -> Unit)
             MoveRow(c, p, ru, go)
         }
         1 -> {
+            // the player's own line about them, kept short on purpose: remembering beats writing down (#51)
+            val bond = s.bond(id)
+            var memo by remember(id) { mutableStateOf(bond.memo) }
+            Text(w(ru, "моя заметка", "my note"), style = T.Eyebrow, modifier = Modifier.padding(top = 10.dp))
+            androidx.compose.material3.OutlinedTextField(memo, { t -> memo = t.take(MEMO_MAX); bond.memo = memo.trim(); c.changed() }, Modifier.fillMaxWidth(),
+                placeholder = { Text(w(ru, "Что хочется запомнить о соседе", "Something to remember about them"), style = T.Small) },
+                supportingText = { Text("${memo.length}/$MEMO_MAX", style = T.Small) }, textStyle = T.Body, maxLines = 3)
             Text(w(ru, "Записей: %d из %d. Новые появляются, когда вы становитесь ближе.", "%d of %d lines. New ones come as you grow closer.").format(notes, p.facts.size), style = T.Small, modifier = Modifier.padding(top = 10.dp))
             if (p.intro(ru).isNotBlank()) FactCard(w(ru, "при знакомстве", "when you met"), p.intro(ru), quote = true)
             p.facts.forEach { f ->
@@ -136,15 +144,16 @@ fun Profile(c: AppContainer, id: String, go: (Sheet) -> Unit, close: () -> Unit)
         else -> {
             val tastes = s.bonds[id]?.known.orEmpty()
             Text(w(ru, "Узнаёте, когда дарите: по ответу видно, что по душе.", "You learn by giving: the answer shows what they like."), style = T.Small, modifier = Modifier.padding(top = 10.dp))
-            for ((kind, title) in listOf("love" to w(ru, "очень любит", "loves"), "like" to w(ru, "радуется", "glad of"), "dislike" to w(ru, "не любит", "doesn't like"))) {
+            // everything tried, even what left them cold, so nothing is given twice by mistake (#50)
+            for ((kind, title) in listOf("love" to w(ru, "очень любит", "loves"), "like" to w(ru, "радуется", "glad of"), "plain" to w(ru, "всё равно", "doesn't mind"), "dislike" to w(ru, "не любит", "doesn't like"))) {
                 val keys = tastes.filterValues { it == kind }.keys
                 if (keys.isEmpty()) continue
                 Text(title, style = T.Eyebrow, modifier = Modifier.padding(top = 8.dp))
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.padding(top = 4.dp)) {
-                    keys.forEach { k -> ItemSlot(app.greenstreet.ui.art.ItemIcons.of(c.content, k), null, false, mark = if (kind == "love") "♥♥" else if (kind == "like") "♥" else "✗") {} }
+                    keys.forEach { k -> ItemSlot(app.greenstreet.ui.art.ItemIcons.of(c.content, k), null, false, mark = when (kind) { "love" -> "♥♥"; "like" -> "♥"; "plain" -> "–"; else -> "✗" }) {} }
                 }
             }
-            if (tastes.none { it.value != "plain" }) Text(w(ru, "Пока ничего не известно.", "Nothing known yet."), style = T.Body, modifier = Modifier.padding(top = 8.dp))
+            if (tastes.isEmpty()) Text(w(ru, "Пока ничего не известно.", "Nothing known yet."), style = T.Body, modifier = Modifier.padding(top = 8.dp))
         }
     }
 }
@@ -172,6 +181,13 @@ private fun MoveRow(c: AppContainer, p: Person, ru: Boolean, go: (Sheet) -> Unit
             c.origin(p.id)?.let { c.focus.value = it }
             go(Sheet.Tab(0))
         }, kind = Kind.GHOST)
+    }
+    // Not even nearby (a closed yard): as in Postround, choose another place altogether (#41).
+    var shutDone by remember(p.id) { mutableStateOf(false) }
+    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(top = 4.dp)) {
+        Text(if (shutDone) w(ru, "Готово: место сменилось, загляните на карту.", "Done: the place has changed, look at the map.")
+            else w(ru, "Совсем не подойти? Сосед переберётся в другое открытое место.", "No way in at all? The neighbour will move to another open place."), style = T.Small, modifier = Modifier.weight(1f))
+        if (!shutDone) PixelButton(w(ru, "Другое место", "Another place"), { shutDone = c.shutPlace(p.id) }, kind = Kind.GHOST)
     }
 }
 
@@ -235,3 +251,6 @@ fun Hearts(h: Int, modifier: Modifier = Modifier) {
         for (i in 0 until 10) BufImage(if (i < h) FULL else EMPTY, Modifier, 2.dp)
     }
 }
+
+/** How long the player's own note about a neighbour may be (#51). */
+private const val MEMO_MAX = 120
