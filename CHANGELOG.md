@@ -6,6 +6,28 @@ line "<!-- tg", then 2-4 short lines in Russian for users (what is new, what is 
 then close it like any HTML comment. The release notes carry it, and the chat bot posts those lines.
 -->
 
+## [0.15.0] - 2026-11-20
+
+### Added
+- Weak GPS is said plainly on the map: with the phone's accuracy worse than 40 m, nothing is counted until the fix sharpens, so a jumping dot no longer walks you past neighbours or out of the yard.
+- Settings: move home to where you stand (within 500 m it keeps the street and the neighbours), a courtyard to pick (as on the map, village house, panel-block yard, well courtyard) and a pause that stops days and nights from piling up while you're away.
+- Your own pond: where there is no water near, or it is behind a fence, dig a pond where you stand (up to two, 300 m apart). It fishes like a river.
+- Neighbours: "Another place" on a neighbour you can't reach moves them somewhere new; a "today" panel shows who was visited and who wasn't; a short note of your own in each neighbour's notebook.
+- Seeds in the bag are grouped: vegetables, greens and herbs, berries and fruit, flowers, grain, dye plants.
+
+### Changed
+- Tastes list what left a neighbour cold too ("doesn't mind"), and the gift picker marks everything already given.
+- Neighbour cards show the name without "aunt", "doctor" and the like.
+- The walk button asks for the permissions it needs and says why a walk can't start.
+- Transfer to another phone is easier to find.
+
+<!-- tg
+При слабом GPS игра так и пишет и ничего не засчитывает, пока сигнал не станет точнее
+В настройках: перенести дом туда, где стоите, выбрать двор и поставить игру на паузу
+Если рядом нет воды, можно выкопать свой пруд; соседа, к которому не подойти, можно переселить в другое место
+Семена в сумке по группам, у соседей – своя заметка, «всё равно» во вкусах и список «сегодня»
+-->
+
 ## [0.14.10] - 2026-11-18
 
 ### Fixed
