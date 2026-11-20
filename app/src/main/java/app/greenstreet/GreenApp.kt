@@ -51,6 +51,8 @@ private const val WAIT_M = 80.0
 private const val LEAVE_M = 120.0
 /** How far a neighbour's place may be moved from where the map first put it, metres. */
 const val MOVE_M = 150.0
+/** Worse than this many metres a fix is too unsure to walk, tend or set home with (#26, #45). */
+const val WEAK_GPS = 40f
 
 /** Holds the game for the whole app: content, the player's state, the district and the weather. */
 class AppContainer(context: Context) {
@@ -72,6 +74,8 @@ class AppContainer(context: Context) {
         private set
     /** The player's last known position. */
     val here = MutableStateFlow<Geo?>(null)
+    /** How sure the last position is, metres: past [WEAK_GPS] it neither walks, tends nor counts (#26). */
+    val hereAcc = MutableStateFlow(0f)
     /** Neighbour id → the place they keep (a spot on the district map). */
     val places = HashMap<String, Spot>()
     var morning: Morning? = null
@@ -366,7 +370,19 @@ class AppContainer(context: Context) {
         return g.metres(at) <= 40
     }
 
-    fun atHome(at: Geo? = here.value): Boolean { val h = state?.home ?: return false; return at != null && h.metres(at) <= 40 }
+    /** Home within 40 m, a little more while the GPS wanders indoors (#46). */
+    fun atHome(at: Geo? = here.value): Boolean { val h = state?.home ?: return false; return at != null && h.metres(at) <= 40 + hereAcc.value.coerceIn(0f, 40f) }
+
+    /**
+     * Home moved to where the player stands (#45, #46): a step within the district keeps the map and everyone in
+     * it; further away, the district is downloaded again around the new home, as at the start.
+     */
+    suspend fun moveHome(at: Geo) {
+        val s = state ?: return
+        val box = s.box
+        val near = s.home?.let { it.metres(at) <= 500 } == true && box != null && at.lat in box[0]..box[2] && at.lon in box[1]..box[3]
+        if (near) { s.home = at; store.save(s); district?.let { bind(it, at) }; changed() } else setHome(at)
+    }
 
     /** Takes a ready state (the demo) and a district box it was saved for. */
     fun adopt(s: GameState, box: DoubleArray) {
@@ -520,9 +536,10 @@ class AppContainer(context: Context) {
     @Synchronized
     fun fix(at: Geo, accuracy: Float): Int {
         here.value = at
+        hereAcc.value = accuracy
         stepStrolls()
         val s = state ?: return 0
-        if (accuracy > 40f) return 0
+        if (accuracy > WEAK_GPS) return 0
         var find: Find? = null
         // the way since the last fix, if it's a step and not a jump across town
         val from = lastFix?.takeIf { it.metres(at) <= 300.0 }

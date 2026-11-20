@@ -327,6 +327,8 @@ class Game(val c: Content) {
         if (s.day == 0L) { s.day = now.day; return Morning(year = year(s, now.day)) }
         var m = Morning(year = year(s, now.day))
         var d = s.day
+        // On pause (a holiday, a stretch with no walks, #32) the street waits: no nights pass for the beds or the neighbours.
+        if ("pause" in s.flags) { s.day = now.day; return m }
         while (d < now.day) {
             val (sky, next) = past(d)
             m = night(s, Now(LocalDate.ofEpochDay(d), 23, sky, next, now.south), m)

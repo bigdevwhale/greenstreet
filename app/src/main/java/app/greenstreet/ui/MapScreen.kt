@@ -436,9 +436,29 @@ fun MapScreen(open: (Sheet) -> Unit) {
                 if (c.near("zina", me)) app.greenstreet.ui.components.ActionChip(if (now.saturday) w(ru, "Ярмарка", "The fair") else w(ru, "Семена", "Seeds"), { open(Sheet.Market) }, if (now.saturday) "fair" else "market")
                 if (c.atHome(me)) app.greenstreet.ui.components.ActionChip(w(ru, "Во двор", "Courtyard"), { open(Sheet.Tab(1)) }, "tab_yard")
             }
-            // the walk: the one main action, across the whole width
-            PixelButton(if (walking) w(ru, "Закончить прогулку", "End the walk") else w(ru, "Выйти на прогулку", "Go for a walk"),
-                { if (walking) WalkService.stop(ctx) else WalkService.start(ctx) }, Modifier.fillMaxWidth(), kind = if (walking) Kind.GHOST else Kind.PRIMARY)
+            // the walk: the one main action, across the whole width; it says why when it can't start (#26)
+            val tracker = remember { app.greenstreet.work.Tracker.of(ctx) }
+            var walkWhy by remember { mutableStateOf<String?>(null) }
+            val askWalk = androidx.activity.compose.rememberLauncherForActivityResult(androidx.activity.result.contract.ActivityResultContracts.RequestMultiplePermissions()) { got ->
+                tracker.refresh()
+                if (got.values.any { it } && tracker.allowed) { WalkService.start(ctx); walkWhy = null }
+                else walkWhy = w(ru, "Без геолокации прогулка не начнётся: разрешите её в настройках телефона.", "A walk can't start without location: allow it in the phone's settings.")
+            }
+            PixelButton(if (walking) w(ru, "Закончить прогулку", "End the walk") else w(ru, "Выйти на прогулку", "Go for a walk"), {
+                when {
+                    walking -> WalkService.stop(ctx)
+                    !tracker.allowed || (android.os.Build.VERSION.SDK_INT >= 33 && androidx.core.content.ContextCompat.checkSelfPermission(ctx, android.Manifest.permission.POST_NOTIFICATIONS) != android.content.pm.PackageManager.PERMISSION_GRANTED) ->
+                        askWalk.launch(buildList { add(android.Manifest.permission.ACCESS_FINE_LOCATION); add(android.Manifest.permission.ACCESS_COARSE_LOCATION); if (android.os.Build.VERSION.SDK_INT >= 33) add(android.Manifest.permission.POST_NOTIFICATIONS) }.toTypedArray())
+                    !tracker.locationOn -> walkWhy = w(ru, "Геолокация в телефоне выключена: включите её в шторке, и прогулка начнётся.", "Location is off on the phone: turn it on in the quick settings and the walk will start.")
+                    else -> { WalkService.start(ctx); walkWhy = null }
+                }
+            }, Modifier.fillMaxWidth(), kind = if (walking) Kind.GHOST else Kind.PRIMARY)
+            walkWhy?.let { Text(it, style = T.Small.copy(color = C.red)) }
+            // as in Fogwalk: a weak signal is said plainly, since steps then don't count
+            val acc by c.hereAcc.collectAsState()
+            if (acc > app.greenstreet.WEAK_GPS) Text(w(ru, "Слабый сигнал GPS (±%d м): шаги и грядки сейчас не засчитываются. Выйдите на открытое место, подальше от высоких стен.",
+                "Weak GPS signal (±%d m): steps and beds don't count right now. Step into the open, away from tall walls.").format(acc.toInt()), style = T.Small.copy(color = C.red))
+            if ("pause" in s.flags) Text(w(ru, "Игра на паузе: дни на улице не идут. Снять паузу – в настройках.", "The game is paused: no days pass on the street. Lift it in Settings."), style = T.Small.copy(color = C.ochre))
             val tended by Tracker.lastTended.collectAsState()
             if (System.currentTimeMillis() - tended.first < 6000 && tended.second > 0)
                 Text(w(ru, "Грядок проведано: %d. Полито.", "Beds looked after: %d. Watered.").format(tended.second), style = T.Body.copy(color = C.green))

@@ -1,5 +1,14 @@
 package app.greenstreet.ui
 
+import app.greenstreet.domain.metres
+import app.greenstreet.container
+import kotlinx.coroutines.launch
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.collectAsState
 import android.content.Intent
 import android.net.Uri
 import androidx.appcompat.app.AppCompatDelegate
@@ -68,6 +77,51 @@ fun SettingsView() {
                     AppCompatDelegate.setApplicationLocales(if (tag.isEmpty()) LocaleListCompat.getEmptyLocaleList() else LocaleListCompat.forLanguageTags(tag))
                 }, Modifier.weight(1f), kind = if (cur == tag) Kind.PRIMARY else Kind.GHOST)
             }
+        }
+
+        val c = ctx.container
+        val ver by c.version.collectAsState()
+        ver.let { }
+        val s = c.state
+        if (s != null) {
+            // Home where the player stands, if the start put it down the street (#45, #46): only on a sure fix.
+            Text(w(ru, "дом", "home"), style = T.Eyebrow, modifier = Modifier.padding(top = 6.dp))
+            val here by c.here.collectAsState()
+            val acc by c.hereAcc.collectAsState()
+            val scope = rememberCoroutineScope()
+            var moving by remember { mutableStateOf(false) }
+            val off = here?.let { h -> s.home?.metres(h)?.toInt() }
+            Text(when {
+                here == null -> w(ru, "Ищу, где вы: включите геолокацию.", "Finding where you are: turn location on.")
+                acc > app.greenstreet.WEAK_GPS -> w(ru, "Слабый сигнал GPS (±%d м): дом встанет не туда. Подойдите к окну и подождите немного.", "Weak GPS signal (±%d m): home would land in the wrong place. Go to a window and wait a little.").format(acc.toInt())
+                off != null && off <= 40 -> w(ru, "Вы дома.", "You're home.")
+                off != null -> w(ru, "Дом в %d м от вас. Если вы сейчас дома, а игра думает иначе, перенесите его сюда: соседи, грядки и прогресс останутся.", "Home is %d m away. If you're home now and the game thinks otherwise, move it here: neighbours, beds and progress stay.").format(off)
+                else -> ""
+            }, style = T.Small)
+            if (here != null && acc <= app.greenstreet.WEAK_GPS && (off ?: 0) > 40) PixelButton(if (moving) w(ru, "Переношу…", "Moving…") else w(ru, "Я дома – перенести дом сюда", "I'm home – move home here"), {
+                if (!moving) { moving = true; scope.launch { runCatching { c.moveHome(here!!) }; moving = false } }
+            }, Modifier.fillMaxWidth())
+
+            // The look of the courtyard (#43, #53): as the map shows, or one picked.
+            Text(w(ru, "двор", "courtyard"), style = T.Eyebrow, modifier = Modifier.padding(top = 6.dp))
+            val yard = s.flags.firstOrNull { it.startsWith("yard.") }?.removePrefix("yard.")
+            androidx.compose.foundation.layout.FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                for ((k, label) in listOf(null to w(ru, "Как на карте", "As on the map"), "house" to w(ru, "Деревенский дом", "Country house"), "block" to w(ru, "Панельный двор", "Block of flats"), "well" to w(ru, "Двор-колодец", "Courtyard well"))) {
+                    PixelButton(label, {
+                        s.flags.removeAll { it.startsWith("yard.") }; if (k != null) s.flags += "yard.$k"; c.changed()
+                    }, kind = if (yard == k) Kind.PRIMARY else Kind.GHOST)
+                }
+            }
+
+            // A pause: the street waits while you're away (#32).
+            Text(w(ru, "пауза", "pause"), style = T.Eyebrow, modifier = Modifier.padding(top = 6.dp))
+            val paused = "pause" in s.flags
+            Text(if (paused) w(ru, "Игра на паузе: грядки не сохнут, соседи ждут. Снимите паузу, когда вернётесь.", "The game is paused: beds don't dry out, the neighbours wait. Lift the pause when you're back.")
+                else w(ru, "Уезжаете или не выйдете гулять несколько дней? Поставьте игру на паузу: пока она стоит, дни на улице не идут.", "Going away or no walks for a few days? Pause the game: while it's paused, no days pass on the street."), style = T.Small)
+            PixelButton(if (paused) w(ru, "Снять паузу", "Lift the pause") else w(ru, "Поставить на паузу", "Pause the game"), {
+                if (paused) s.flags -= "pause" else { c.wake(); s.flags += "pause" }
+                c.changed()
+            }, Modifier.fillMaxWidth(), kind = if (paused) Kind.PRIMARY else Kind.GHOST)
         }
 
         Text(w(ru, "погода", "weather"), style = T.Eyebrow, modifier = Modifier.padding(top = 6.dp))

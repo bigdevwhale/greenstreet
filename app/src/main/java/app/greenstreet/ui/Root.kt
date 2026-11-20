@@ -131,7 +131,8 @@ fun yardLife(c: AppContainer, guest: String? = null): app.greenstreet.ui.art.Yar
     }
     return app.greenstreet.ui.art.YardLife(fac, block?.index ?: 0, c.game.year(s, now.day), s.eggs, c.game.flag(s, now, "hive"), c.game.flag(s, now, "balcony"),
         c.game.flag(s, now, "garden"), now.date.dayOfWeek.value, c.game.festival(s, now)?.key, s.flags.toSet(), pots,
-        if (t != null && d != null && home != null) t.homeKind(d.x(home.lon), d.y(home.lat)) else "well",
+        // the look the player picked (#43, #53), or the kind of house the map shows at home
+        s.flags.firstOrNull { it.startsWith("yard.") }?.removePrefix("yard.") ?: if (t != null && d != null && home != null) t.homeKind(d.x(home.lon), d.y(home.lat)) else "well",
         guest?.let { c.content.person[it]?.look },
         s.flags.filter { it.startsWith("own.") }.map { it.removePrefix("own.") }.toSet(), guest)
 }
