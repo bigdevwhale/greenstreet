@@ -88,6 +88,8 @@ class AppContainer(context: Context) {
     /** What the district loading is doing now: download, parse, terrain, bind, paint, or empty. */
     val stage = MutableStateFlow("")
 
+    /** Metres walked since the last spot by the water (#56). */
+    private var sinceWater = 1e9
     private var lastFix: Geo? = null
 
     /** The opening task just finished, for a moment's banner. */
@@ -595,7 +597,11 @@ class AppContainer(context: Context) {
             if (d in 3.0..300.0) {
                 s.km += d / 1000; s.kmToday += d / 1000
                 val t = terrain; val dd = district
-                val where = if (t != null && dd != null) with(Extras) { t.whereAt(dd.x(at.lon).toInt(), dd.y(at.lat).toInt()) } else setOf("street")
+                val here = if (t != null && dd != null) with(Extras) { t.whereAt(dd.x(at.lon).toInt(), dd.y(at.lat).toInt()) } else setOf("street")
+                // the water is remembered for 400 m: a find falls every few hundred metres, and the one that
+                // falls just after the pond still counts as found by the water (#56)
+                sinceWater = if ("water" in here) 0.0 else sinceWater + d
+                val where = if (sinceWater <= 400.0) here + "water" else here
                 find = game.walked(s, now(), d, where)
             }
         }

@@ -43,8 +43,12 @@ object Extras {
 private fun where(t: Terrain, x: Int, y: Int): Set<String> = with(t) {
     var water = 0; var wood = 0; var lawn = 0
     for (j in -9..9) for (i in -9..9) when (at(x + i, y + j)) { K.WATER -> water++; K.WOOD -> wood++; K.LAWN -> lawn++ }
+    // the water is looked for wider: ±40 m (a cell is 1.6 m), every other cell. Within ±14 m only, a path
+    // round a pond 20 m from the shore never counted as «by the water», and pebbles never turned up (#56)
+    var wet = 0
+    for (j in -25..25 step 2) for (i in -25..25 step 2) if (at(x + i, y + j) == K.WATER) wet++
     val out = linkedSetOf("street")
-    if (water > 4) out += "water"
+    if (water > 4 || wet > 3) out += "water"
     if (wood > 20) { out += "wood"; out += "park" }
     if (lawn > 30) { out += "lawn"; out += "park" }
     out

@@ -715,7 +715,8 @@ class Game(val c: Content) {
             "park" in where -> Tx("В парке", "In the park"); "lawn" in where -> Tx("На газоне", "On the grass"); else -> Tx("У дороги", "By the road")
         }
         if (goods.isNotEmpty() && r < (if (goods.any { asked(it.key) }) .6 else .5)) {
-            val w = goods.map { (4 - it.rare).coerceAtLeast(1) * if (asked(it.key)) 3 else 1 }
+            // what belongs to this very spot (pebbles by the water, mushrooms in the trees) comes up twice as often (#56)
+            val w = goods.map { (4 - it.rare).coerceAtLeast(1) * (if (asked(it.key)) 3 else 1) * (if (it.where.isNotBlank()) 2 else 1) }
             var x = rnd.nextDouble() * w.sum(); var g = goods.last()
             for (i in goods.indices) { x -= w[i]; if (x < 0) { g = goods[i]; break } }
             val n = if (g.rare >= 2) 1 else 1 + rnd.nextInt(2)

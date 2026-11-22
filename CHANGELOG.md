@@ -6,6 +6,15 @@ line "<!-- tg", then 2-4 short lines in Russian for users (what is new, what is 
 then close it like any HTML comment. The release notes carry it, and the chat bot posts those lines.
 -->
 
+## [0.15.1] - 2026-11-22
+
+### Fixed
+- **Pebbles turn up by the water (#56):** the water was looked for only within about 14 m, and only at the moment a find fell (every few hundred metres), so a path round a pond 20 m from the shore never counted. Now the water counts within 40 m and is remembered for 400 m after it, and finds that belong to a spot – pebbles by the water, willow twigs – turn up twice as often there.
+
+<!-- tg
+Гальку стало проще найти: вода засчитывается в радиусе 40 метров и ещё 400 метров после водоёма, а находки «у воды» выпадают вдвое чаще
+-->
+
 ## [0.15.0] - 2026-11-20
 
 ### Added
