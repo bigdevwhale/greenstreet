@@ -6,6 +6,20 @@ line "<!-- tg", then 2-4 short lines in Russian for users (what is new, what is 
 then close it like any HTML comment. The release notes carry it, and the chat bot posts those lines.
 -->
 
+## [0.15.2] - 2026-11-28
+
+### Fixed
+- **Home and the map stay put on a jumpy GPS (#58, #60):** a cell tower's rough guess no longer moves you while the satellites answer, a remembered position arriving late no longer undoes a newer one, and a lone fix hundreds of metres off is ignored. Off your street's map, the map is shown from home and says so.
+- **Pots on the sill grow again (#59):** watering them on opening the courtyard before the night had run lost yesterday's watering, so microgreens stayed "ripe by morning" day after day.
+- **"Another place" moves a neighbour nearby (#55):** a place of the same kind within 400 m, else the nearest shop or café, never across the district; one sent far before comes back towards home.
+- Out on a walk off the named streets, the map says "Out for a walk" (#57).
+
+<!-- tg
+Дом и карта больше не «прыгают» при плохом GPS: грубые координаты от вышек и случайные скачки не учитываются
+Микрозелень на подоконнике снова растёт, а не «созревает к утру» каждый день
+«Другое место» переселяет соседа неподалёку, а не на другой конец района
+-->
+
 ## [0.15.1] - 2026-11-22
 
 ### Fixed

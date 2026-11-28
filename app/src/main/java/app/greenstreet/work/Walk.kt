@@ -79,7 +79,9 @@ class Tracker(private val context: Context) : LocationListener {
     override fun onLocationChanged(l: Location) {
         // the demo lives on Petrogradka: the real position would put the player off its map (long-press moves instead)
         if (app.greenstreet.BuildConfig.DEMO) return
-        val tended = context.container.fix(Geo(l.latitude, l.longitude), if (l.hasAccuracy()) l.accuracy else 30f)
+        val tended = context.container.fix(Geo(l.latitude, l.longitude), if (l.hasAccuracy()) l.accuracy else 30f,
+            // when the fix was taken, not when it came: a remembered one comes late and mustn't undo a newer one
+            l.elapsedRealtimeNanos / 1_000_000)
         if (tended > 0) lastTended.value = System.currentTimeMillis() to tended
     }
 

@@ -280,7 +280,7 @@ class Game(val c: Content) {
             val p = c.variety[b.variety]?.place ?: continue
             if (p != Place.VERGE && p != Place.GARDEN) continue
             if (Geo(b.lat, b.lon).metresTo(from ?: at, at) <= r) {
-                b.lastTend = now.day; b.passed = now.day; out += b
+                b.tend(now.day); b.passed = now.day; out += b
             }
         }
         if (out.isNotEmpty()) { s.count("tend", out.size); s.count("tend_today", out.size) }
@@ -292,7 +292,7 @@ class Game(val c: Content) {
         var n = 0
         for (b in s.beds) {
             val p = c.variety[b.variety]?.place ?: continue
-            if ((p == Place.SILL || p == Place.BALCONY) && b.lastTend != now.day) { b.lastTend = now.day; n++ }
+            if ((p == Place.SILL || p == Place.BALCONY) && b.lastTend != now.day) { b.tend(now.day); n++ }
         }
         return n
     }
@@ -365,7 +365,7 @@ class Game(val c: Content) {
             val v = c.variety[b.variety] ?: continue
             if (ripe(b)) continue
             val indoors = v.place == Place.SILL || v.place == Place.BALCONY
-            val tended = b.lastTend == now.day || (!indoors && (now.sky.rain || now.sky.snow)) || b.self
+            val tended = b.tendedOn(now.day) || (!indoors && (now.sky.rain || now.sky.snow)) || b.self
             if (tended) {
                 b.grown += growth(now, indoors); grew++
                 b.tended++; b.idle = 0

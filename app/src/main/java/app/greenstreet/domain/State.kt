@@ -23,7 +23,16 @@ class Bed(
     var harvests: Int = 0,
     /** The day the player last walked by. Sowing waters a bed but isn't a walk past, so the two are kept apart. */
     var passed: Long = -1,
-)
+    /**
+     * The day it was tended before [lastTend]. A pot watered today before last night has been run (the nights
+     * wait for the weather) would otherwise lose yesterday's watering, and the night would find it dry (#59).
+     */
+    var prevTend: Long = -1,
+) {
+    /** Marks the bed tended on [day], keeping the day before for a night still to run. */
+    fun tend(day: Long) { if (lastTend != day) { prevTend = lastTend; lastTend = day } }
+    fun tendedOn(day: Long) = lastTend == day || prevTend == day
+}
 
 /** The player's ties with one neighbour. */
 class Bond(
@@ -127,7 +136,7 @@ class GameState {
             beds.forEach { b ->
                 put(JSONObject().put("id", b.id).put("v", b.variety).put("lat", b.lat).put("lon", b.lon).put("sown", b.sown)
                     .put("grown", b.grown).put("tended", b.tended).put("lastTend", b.lastTend).put("idle", b.idle)
-                    .put("wild", b.wild).put("self", b.self).put("harvests", b.harvests).put("passed", b.passed))
+                    .put("wild", b.wild).put("self", b.self).put("harvests", b.harvests).put("passed", b.passed).put("prevTend", b.prevTend))
             }
         })
         put("bag", JSONObject(bag as Map<*, *>)); put("seeds", JSONObject(seeds as Map<*, *>)); put("tools", JSONObject(tools as Map<*, *>))
@@ -162,7 +171,8 @@ class GameState {
                         b.optDouble("grown", 0.0), b.optInt("tended"), b.optLong("lastTend", -1), b.optInt("idle"),
                         b.optBoolean("wild"), b.optBoolean("self"), b.optInt("harvests"),
                         // older saves didn't keep it: a bed tended today was walked by today, unless it was sown today
-                        b.optLong("passed", b.optLong("lastTend", -1).takeIf { it != b.getLong("sown") } ?: -1))
+                        b.optLong("passed", b.optLong("lastTend", -1).takeIf { it != b.getLong("sown") } ?: -1),
+                        b.optLong("prevTend", -1))
                 }
             }
             fun ints(k: String, into: MutableMap<String, Int>) = o.optJSONObject(k)?.let { j -> j.keys().forEach { into[it] = j.getInt(it) } }

@@ -141,9 +141,15 @@ fun MapScreen(open: (Sheet) -> Unit) {
     var ready by remember { mutableIntStateOf(if (MapCache.month == now.month) 1 else 0) }
     val me = here ?: s.home ?: return
     val mx = d.x(me.lon).roundToInt(); val my = d.y(me.lat).roundToInt()
+    // off the street's map (a rough fix far away, or the player away from home, #60): the camera stays on home,
+    // which would otherwise be pinned to the map's edge with neither the player nor home in sight
+    val offMap = mx < 0 || my < 0 || mx >= t.w || my >= t.h
+    val home = s.home
+    val fx = if (offMap && home != null) d.x(home.lon).roundToInt() else mx
+    val fy = if (offMap && home != null) d.y(home.lat).roundToInt() else my
     LaunchedEffect(now.month) {
         if (MapCache.month != now.month) {
-            withContext(Dispatchers.Default) { MapCache.load(ctx, t, now.month, mx, my) { ready++ } }
+            withContext(Dispatchers.Default) { MapCache.load(ctx, t, now.month, fx, fy) { ready++ } }
             ready++
         }
     }
@@ -151,7 +157,7 @@ fun MapScreen(open: (Sheet) -> Unit) {
     val focus by c.focus.collectAsState()
     LaunchedEffect(focus) {
         val f = focus ?: return@LaunchedEffect
-        pan = IntOffset((d.x(f.lon) - mx).roundToInt(), (d.y(f.lat) - my).roundToInt()); c.focus.value = null
+        pan = IntOffset((d.x(f.lon) - fx).roundToInt(), (d.y(f.lat) - fy).roundToInt()); c.focus.value = null
     }
     var tick by remember { mutableIntStateOf(0) }
     LaunchedEffect(Unit) { var last = 0L; while (true) withFrameMillis { ms -> if (ms - last >= 110) { last = ms; tick++ } } }
@@ -200,11 +206,11 @@ fun MapScreen(open: (Sheet) -> Unit) {
                     }
                 }
                 // keyed on the zoom and the player's spot too: a handler kept from before a zoom read taps at the old scale and missed the beds
-                .pointerInput(ver, vw, vh, mx, my) {
+                .pointerInput(ver, vw, vh, fx, fy) {
                     detectTapGestures(
                         onTap = { o ->
                             val k = size.width / vw.toFloat()
-                            val cx = clampCam(mx - vw / 2 + pan.x, t.w, vw); val cy = clampCam(my - vh * 11 / 20 + pan.y, t.h, vh)
+                            val cx = clampCam(fx - vw / 2 + pan.x, t.w, vw); val cy = clampCam(fy - vh * 11 / 20 + pan.y, t.h, vh)
                             val ax = cx + o.x / k; val ay = cy + o.y / k
                             // a finger is about 24 dp wide whatever the zoom: far out, a bed is only a few map pixels
                             val finger = 24.dp.toPx() / k
@@ -223,10 +229,10 @@ fun MapScreen(open: (Sheet) -> Unit) {
                         onLongPress = { o ->
                             if (!BuildConfig.DEMO) return@detectTapGestures
                             val k = size.width / vw.toFloat()
-                            val cx = clampCam(mx - vw / 2 + pan.x, t.w, vw); val cy = clampCam(my - vh * 11 / 20 + pan.y, t.h, vh)
+                            val cx = clampCam(fx - vw / 2 + pan.x, t.w, vw); val cy = clampCam(fy - vh * 11 / 20 + pan.y, t.h, vh)
                             val ax = cx + o.x / k; val ay = cy + o.y / k
                             pan = IntOffset.Zero
-                            val tended = c.fix(Geo(d.lat(ay), d.lon(ax)), 5f)
+                            val tended = c.fix(Geo(d.lat(ay), d.lon(ax)), 5f, manual = true)
                             if (tended > 0) Tracker.lastTended.value = System.currentTimeMillis() to tended
                         },
                     )
@@ -235,7 +241,7 @@ fun MapScreen(open: (Sheet) -> Unit) {
                 val frame = tick + ready
                 val base = MapCache.buf ?: return@Canvas
                 frame.let { }
-                val cx = clampCam(mx - vw / 2 + pan.x, t.w, vw); val cy = clampCam(my - vh * 11 / 20 + pan.y, t.h, vh)
+                val cx = clampCam(fx - vw / 2 + pan.x, t.w, vw); val cy = clampCam(fy - vh * 11 / 20 + pan.y, t.h, vh)
                 for (y in 0 until vh) System.arraycopy(base.d, (cy + y) * base.w + cx, view.d, y * vw, vw)
                 val objs = ArrayList<Pair<Int, () -> Unit>>()
                 for (b in s.beds) {
@@ -298,7 +304,7 @@ fun MapScreen(open: (Sheet) -> Unit) {
                 drawImage(img, srcOffset = IntOffset.Zero, srcSize = IntSize(vw, vh), dstOffset = IntOffset.Zero,
                     dstSize = IntSize(size.width.roundToInt(), (vh * size.width / vw).roundToInt()), filterQuality = FilterQuality.None)
             }
-            val ccx = clampCam(mx - vw / 2 + pan.x, t.w, vw); val ccy = clampCam(my - vh * 11 / 20 + pan.y, t.h, vh)
+            val ccx = clampCam(fx - vw / 2 + pan.x, t.w, vw); val ccy = clampCam(fy - vh * 11 / 20 + pan.y, t.h, vh)
             val placed = ArrayList<FloatArray>()
             val order = c.places.entries.sortedByDescending { (id, _) -> (if (s.bonds[id]?.isOpen == true) 2 else 0) + (if (c.game.request(s, id) != null) 1 else 0) }
             // a closed place keeps its owner's name, pale, so you know whose it is
@@ -356,6 +362,11 @@ fun MapScreen(open: (Sheet) -> Unit) {
             }
             if (moving == null) moveMsg?.let { m -> LaunchedEffect(m) { kotlinx.coroutines.delay(3000); moveMsg = null }
                 Text(m, style = T.Small.copy(color = C.green), modifier = Modifier.align(Alignment.TopCenter).padding(top = 8.dp).pixelBox(C.light, bevel = null, lip = null).padding(horizontal = 8.dp, vertical = 4.dp)) }
+            if (offMap && moving == null && moveMsg == null) Text(w(ru, "Вы сейчас за пределами карты своей улицы. Она показана от дома.", "You're off your street's map right now. It's shown from home."),
+                style = T.Small.copy(color = C.ink), modifier = Modifier.align(Alignment.TopCenter)
+                    // below the "To me" button when the map is moved
+                    .padding(start = 56.dp, end = 8.dp, top = if (pan != IntOffset.Zero) 56.dp else 8.dp)
+                    .pixelBox(C.light, bevel = null, lip = null).padding(horizontal = 8.dp, vertical = 4.dp))
             if (pan != IntOffset.Zero && moving == null) PixelButton(w(ru, "К себе", "To me"), { pan = IntOffset.Zero }, Modifier.align(Alignment.TopEnd).padding(8.dp), Kind.GHOST)
             if (!mapLoading) PixelButton(if (panelOpen) w(ru, "Скрыть ▾", "Hide ▾") else w(ru, "Описание ▴", "Details ▴"), { panelOpen = !panelOpen },
                 Modifier.align(Alignment.BottomEnd).padding(8.dp), Kind.GHOST)
@@ -610,7 +621,7 @@ fun placeName(c: app.greenstreet.AppContainer, at: Geo, ru: Boolean): String {
         var i = 0
         while (i + 1 < r.pts.size) { val dd = Math.hypot((r.pts[i] - x).toDouble(), (r.pts[i + 1] - y).toDouble()); if (dd < bd) { bd = dd; best = r.name }; i += 2 }
     }
-    return best ?: w(ru, "В районе", "In the district")
+    return best ?: w(ru, "На прогулке", "Out for a walk")
 }
 
 /** The most useful thing to do next and where: a ripe bed, a request you can fulfil, seeds waiting, a place not yet visited. */

@@ -10,6 +10,7 @@ import app.greenstreet.data.Tiles
 import app.greenstreet.domain.Errands
 import app.greenstreet.domain.Extras
 import app.greenstreet.domain.Find
+import app.greenstreet.domain.Fixes
 import app.greenstreet.domain.Forecast
 import app.greenstreet.domain.Game
 import app.greenstreet.domain.GameState
@@ -56,6 +57,27 @@ const val MAX_PONDS = 2
 /** Worse than this many metres a fix is too unsure to walk, tend or set home with (#26, #45). */
 const val WEAK_GPS = 40f
 
+/** The places the player marked out of reach (#41), as map points. */
+internal fun shutSpots(d: District, flags: Collection<String>): List<Spot> = flags.filter { it.startsWith("shut:") }.mapNotNull { f ->
+    f.removePrefix("shut:").split(',').takeIf { it.size == 2 }?.let { (a, b) -> a.toDoubleOrNull()?.let { la -> b.toDoubleOrNull()?.let { lo -> Spot(d.x(lo), d.y(la), "", "") } } }
+}
+
+/**
+ * Where a neighbour goes when the player marks their place [old] out of reach (#55): a place of their kind ([osm])
+ * within 400 m, else the nearest shop or café, free of [shut] spots and of the [others]' places and reached by the
+ * public ways. Searched near the old place, not anywhere in the district: a rare kind (a theatre for Ada) would
+ * otherwise send the neighbour to the far edge of the map, and every next press further on. A place already more
+ * than 600 m from [home] (sent there before) is searched for from home instead, to come back. Null if none.
+ */
+internal fun placeInstead(d: District, ter: Terrain?, osm: List<Pair<String, String>>, old: Spot, home: Spot?, shut: List<Spot>, others: Collection<Spot>): Spot? {
+    fun m(a: Spot, b: Spot) = Math.hypot((a.x - b.x).toDouble(), (a.y - b.y).toDouble()) * d.mpp
+    val from = if (home == null || m(old, home) <= 600) old else home
+    fun free(a: Spot) = shut.none { m(it, a) < 25 } && others.none { m(it, a) < 25 } &&
+        (ter == null || ter.reachable(a.x.toInt(), a.y.toInt(), REACH_PX))
+    val sameKind = d.places.filter { a -> osm.any { (k, v) -> a.kind == "$k=$v" } && m(a, from) <= 400 && free(a) }.minByOrNull { m(it, from) }
+    return sameKind ?: d.places.filter { a -> (a.kind.startsWith("shop=") || a.kind.startsWith("amenity=")) && free(a) }.minByOrNull { m(it, from) }
+}
+
 /** Holds the game for the whole app: content, the player's state, the district and the weather. */
 class AppContainer(context: Context) {
     val app: Context = context.applicationContext
@@ -91,6 +113,8 @@ class AppContainer(context: Context) {
     /** Metres walked since the last spot by the water (#56). */
     private var sinceWater = 1e9
     private var lastFix: Geo? = null
+    /** Sorts the raw positions (#58, #60). */
+    private val fixes = Fixes(WEAK_GPS)
 
     /** The opening task just finished, for a moment's banner. */
     val questDone = MutableStateFlow<Quest?>(null)
@@ -152,7 +176,7 @@ class AppContainer(context: Context) {
         fun dist(p: Spot) = Math.hypot((p.x - hx).toDouble(), (p.y - hy).toDouble()) + if (open(p)) 0.0 else FENCE_PX
         val taken = HashSet<Spot>()
         // places the player marked out of reach (#41): never offered again
-        val shut = s?.flags?.filter { it.startsWith("shut:") }?.mapNotNull { f -> f.removePrefix("shut:").split(',').takeIf { it.size == 2 }?.let { (a, b) -> a.toDoubleOrNull()?.let { la -> b.toDoubleOrNull()?.let { lo -> Spot(d.x(lo), d.y(la), "", "") } } } }.orEmpty()
+        val shut = s?.let { shutSpots(d, it.flags) }.orEmpty()
         fun isShut(p: Spot) = shut.any { Math.hypot((it.x - p.x).toDouble(), (it.y - p.y).toDouble()) * d.mpp < 25 }
         taken += d.places.filter(::isShut)
         val town = content.people.filter { !it.yard }.map { it.id }.toSet()
@@ -404,6 +428,9 @@ class AppContainer(context: Context) {
         val old = places[id] ?: return false
         s.flags += "shut:%.6f,%.6f".format(java.util.Locale.ROOT, d.lat(old.y), d.lon(old.x))
         s.places.remove(id)
+        val home = s.home?.let { Spot(d.x(it.lon), d.y(it.lat), "", "") }
+        val next = placeInstead(d, terrain, content.person[id]?.osm.orEmpty(), old, home, shutSpots(d, s.flags), places.filterKeys { it != id }.values)
+        if (next != null) s.places[id] = Kept(d.lat(next.y), d.lon(next.x), next.kind, next.name)
         s.home?.let { bind(d, it) }
         store.save(s); version.value++
         return places[id] != null
@@ -581,14 +608,24 @@ class AppContainer(context: Context) {
         version.value++
     }
 
-    /** A new position from the GPS: distance walked, beds tended on the way. Returns how many beds were tended. */
+    /**
+     * A new position from the GPS, taken at [time] (ms of [android.os.SystemClock.elapsedRealtime]): distance walked,
+     * beds tended on the way. [manual] is the demo's long-press, taken whatever came before. Returns how many beds were tended.
+     */
     @Synchronized
-    fun fix(at: Geo, accuracy: Float): Int {
+    fun fix(at: Geo, accuracy: Float, time: Long = android.os.SystemClock.elapsedRealtime(), manual: Boolean = false): Int {
+        // positions are sorted first, as in Fogwalk (#58, #60): a cell tower's guess or a lone fix far off used to
+        // throw the player off the map and out of home
+        if (manual) fixes.reset()
+        val use = fixes.judge(at, accuracy, time)
+        if (use == Fixes.Use.DROP) { stepStrolls(); return 0 }
+        // a real move the player didn't walk (three far fixes in a row): no distance, no beds along the way
+        if (use == Fixes.Use.JUMP) lastFix = null
         here.value = at
         hereAcc.value = accuracy
         stepStrolls()
         val s = state ?: return 0
-        if (accuracy > WEAK_GPS) return 0
+        if (use == Fixes.Use.SHOW) return 0
         var find: Find? = null
         // the way since the last fix, if it's a step and not a jump across town
         val from = lastFix?.takeIf { it.metres(at) <= 300.0 }
